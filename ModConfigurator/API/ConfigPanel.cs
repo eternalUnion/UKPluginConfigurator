@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,6 +13,8 @@ namespace PluginConfigurator.API
 
         void OnEnable()
         {
+            PluginConfiguratorController.Instance.activePanel = gameObject;
+
             PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
             PluginConfiguratorController.Instance.backButton.onClick.AddListener(() =>
             {
@@ -21,10 +24,11 @@ namespace PluginConfigurator.API
                     PluginConfiguratorController.Instance.mainPanel.SetActive(true);
                     PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
                     PluginConfiguratorController.Instance.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
+                    panel.rootConfig.Flush();
                 }
                 else
                 {
-                    panel.parentPanel.parentPanelObject.SetActive(true);
+                    panel.parentPanel.panelObject.SetActive(true);
                 }
             });
         }
@@ -32,18 +36,41 @@ namespace PluginConfigurator.API
 
     public class ConfigPanel : ConfigField
     {
-        internal GameObject parentPanelObject;
+        internal GameObject panelObject;
+        internal GameObject panelButton;
 
         private List<ConfigField> fields = new List<ConfigField>();
         public string currentDirectory = "";
 
+        private bool _hidden = false;
+        public override bool hidden { 
+            get => _hidden; set
+            {
+                _hidden = value;
+                panelButton?.SetActive(_hidden);
+            } 
+        }
+
+        public bool _interactable = true;
+        public override bool interactable
+        {
+            get => _interactable; set
+            {
+                _interactable = value;
+                if (panelButton != null)
+                    panelButton.transform.Find("Select").GetComponent<Button>().interactable = _interactable;
+            }
+        }
+
         internal ConfigPanel(PluginConfigurator config) : base(config.displayName, "", config)
         {
-
+            canBeSaved = false;
         }
 
         public ConfigPanel(ConfigPanel parentPanel, string name, string guid) : base(name, guid, parentPanel)
         {
+            canBeSaved = false;
+
             parentPanel.Register(this);
             currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
@@ -55,8 +82,8 @@ namespace PluginConfigurator.API
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, content);
-            parentPanelObject = panel;
+            GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
+            panelObject = panel;
             panel.transform.Find("Text").GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
             panel.transform.Find("Text").GetComponent<Text>().text = $"--{displayName}--";
             panel.SetActive(false);
@@ -71,12 +98,47 @@ namespace PluginConfigurator.API
             if (parentPanel == null)
                 esc.previousPage = PluginConfiguratorController.Instance.mainPanel;
             else
-                esc.previousPage = parentPanel.parentPanelObject;
+                esc.previousPage = parentPanel.panelObject;
 
             foreach (ConfigField config in fields)
                 config.CreateUI(contents);
 
+            if (content != null)
+            {
+                panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
+                panelButton.transform.Find("Text").GetComponent<Text>().text = displayName;
+                Transform buttonSelect = panelButton.transform.Find("Select");
+                buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
+                Button buttonComp = buttonSelect.gameObject.GetComponent<Button>();
+                buttonComp.onClick = new Button.ButtonClickedEvent();
+                buttonComp.onClick.AddListener(() =>
+                {
+                    PluginConfiguratorController.Instance.activePanel?.SetActive(false);
+                    panelObject?.SetActive(true);
+                    PluginConfiguratorController.Instance.activePanel = panelObject;
+                });
+
+                panelButton.SetActive(!_hidden);
+                buttonComp.interactable = _interactable;
+            }
+
             return panel;
+        }
+
+        internal override string SaveToString()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal override void LoadFromString(string data)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal override void WriteToFile(FileStream stream)
+        {
+            foreach (ConfigField field in fields)
+                field.WriteToFile(stream);
         }
     }
 }

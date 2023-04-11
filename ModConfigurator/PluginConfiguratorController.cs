@@ -82,7 +82,7 @@ namespace PluginConfigurator
                 Button b = configButton.transform.Find("Select").GetComponent<Button>();
                 b.onClick = new Button.ButtonClickedEvent();
 
-                config.CreateUI(optionsMenu, b);
+                config.CreateUI(b);
             }
         }
 
