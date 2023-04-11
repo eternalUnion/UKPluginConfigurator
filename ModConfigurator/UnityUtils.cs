@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-namespace ModConfigurator
+namespace PluginConfigurator
 {
     public static class UnityUtils
     {

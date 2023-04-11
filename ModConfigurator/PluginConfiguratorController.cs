@@ -1,5 +1,8 @@
 ﻿using BepInEx;
+using PluginConfigurator.API;
+using PluginConfigurator.API.Fields;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -9,17 +12,22 @@ using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace ModConfigurator
+namespace PluginConfigurator
 {
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-    public class Plugin : BaseUnityPlugin
+    public class PluginConfiguratorController : BaseUnityPlugin
     {
+        static internal PluginConfiguratorController Instance;
+
         public const string PLUGIN_NAME = "ModConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.modConfigurator";
         public const string PLUGIN_VERSION = "1.0.0";
 
-        private GameObject sampleButton;
-        private Sprite uiSprite;
+        private List<PluginConfigurator.API.PluginConfigurator> configs = new List<PluginConfigurator.API.PluginConfigurator>();
+        internal void RegisterConfigurator(PluginConfigurator.API.PluginConfigurator config)
+        {
+            configs.Add(config);
+        }
 
         private void TryLogAssets()
         {
@@ -52,15 +60,54 @@ namespace ModConfigurator
             }
         }
 
+        public GameObject sampleBoolField;
+        public GameObject sampleMenuButton;
+        public GameObject sampleMenu;
+        private void LoadSamples(Transform optionsMenu)
+        {
+            //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
+            sampleBoolField = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Variation Memory").gameObject;
+            //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Controller Rumble
+            sampleMenuButton = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Controller Rumble").gameObject;
+        }
+
+        public Transform configPanelContents;
+        private void LoadConfigs()
+        {
+            foreach(PluginConfigurator.API.PluginConfigurator config in configs)
+            {
+                GameObject configButton = Instantiate(sampleMenuButton, configPanelContents);
+                configButton.transform.Find("Text").GetComponent<Text>().text = config.displayName;
+                configButton.transform.Find("Select/Text").GetComponent<Text>().text = "Configure";
+                Button b = configButton.transform.Find("Select").GetComponent<Button>();
+                b.onClick = new Button.ButtonClickedEvent();
+
+                config.CreateUI(optionsMenu, b);
+            }
+        }
+
+        internal Transform optionsMenu;
+        internal GameObject mainPanel;
+        internal GameObject activePanel;
+        internal List<Button> sideButtons = new List<Button>();
+        internal Button backButton;
         private void OnSceneChange(Scene before, Scene after)
         {
             GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
             if (canvas == null)
                 return;
 
-            Transform optionsMenu = canvas.transform.Find("OptionsMenu");
+            optionsMenu = canvas.transform.Find("OptionsMenu");
             if (optionsMenu == null)
                 return;
+            
+            LoadSamples(optionsMenu);
+            /*sideButtons.Clear();
+            foreach(Transform o in UnityUtils.GetChilds(optionsMenu))
+            {
+
+            }*/
+            backButton = optionsMenu.transform.Find("Back").GetComponent<Button>();
 
             GameObject sampleButton = optionsMenu.Find("Gameplay").gameObject;
             Transform sampleButtonRect = sampleButton.GetComponent<RectTransform>();
@@ -73,7 +120,8 @@ namespace ModConfigurator
             Text modConfigButtonText = modConfigButton.GetComponentInChildren<Text>();
             modConfigButtonText.text = "Mod Options";
 
-            GameObject mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
+            mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
+            sampleMenu = mainPanel;
             mainPanel.SetActive(false);
             Debug.Log("c1");
             GamepadObjectSelector mainPanelSelector = mainPanel.GetComponent<GamepadObjectSelector>();
@@ -97,7 +145,18 @@ namespace ModConfigurator
                 {
                     Button b = t.gameObject.GetComponent<Button>();
                     if (b != null)
-                        b.onClick.AddListener(() => mainPanel.SetActive(false));
+                    {
+                        b.onClick.AddListener(() =>
+                        {
+                            mainPanel.SetActive(false);
+                            if(activePanel != null)
+                            {
+                                activePanel.SetActive(false);
+                                backButton.onClick = new Button.ButtonClickedEvent();
+                                backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
+                            }
+                        });
+                    }
                 }
             }
             modConfigButtonComp.onClick.AddListener(() => mainPanel.SetActive(true));
@@ -107,15 +166,31 @@ namespace ModConfigurator
             Debug.Log("c4");
 
             Transform contents = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(mainPanel.transform).transform;
+            ContentSizeFitter contentsFitter = contents.gameObject.AddComponent<ContentSizeFitter>();
+            contentsFitter.verticalFit = ContentSizeFitter.FitMode.MinSize;
+            configPanelContents = contents;
             Debug.Log("c5");
             foreach (Transform t in contents)
                 Destroy(t.gameObject);
             Debug.Log("c6");
-            mainPanel.GetComponentInChildren<Text>().text = "---MODCONFIG---";
+            mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
+            mainPanel.GetComponentInChildren<Text>().text = "---MOD CONFIG---";
+
+            LoadConfigs();
         }
 
+        PluginConfigurator.API.PluginConfigurator config;
+        PluginConfigurator.API.PluginConfigurator config2;
         private void Awake()
         {
+            Instance = this;
+
+            config = API.PluginConfigurator.Create("Plugin Configurator", "com.eternalUnion.pluginconfigurator");
+            BoolField boolConfig = new BoolField(config.rootPanel, "Custom Bool", "custombool", false);
+            ConfigPanel customPanel = new ConfigPanel(config.rootPanel, "My Custom Menu", "custommenu");
+
+            config2 = API.PluginConfigurator.Create("ULTRAPAIN", "com.eternalUnion.ultrapain");
+
             Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
