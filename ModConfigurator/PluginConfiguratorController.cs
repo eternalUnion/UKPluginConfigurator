@@ -210,6 +210,7 @@ namespace PluginConfigurator
             ConfigHeader header = new ConfigHeader(config.rootPanel, "Sample Hedader");
             IntegerField customInput = new IntegerField(config.rootPanel, "Damage", "damage", 5);
             StringField customString = new StringField(config.rootPanel, "Style name", "stylename", "<color=cyan>FISTFUL OF 'NADE</color>");
+            FloatField angle = new FloatField(config.rootPanel, "Angle", "angle", 2.4f);
             ConfigPanel customPanel = new ConfigPanel(config.rootPanel, "My Custom Menu", "custommenu");
             boolConfig.onValueChange = (eventData) => customPanel.interactable = eventData.value;
             customInput.onValueChange = (eventData) =>
