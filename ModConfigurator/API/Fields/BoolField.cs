@@ -25,20 +25,29 @@ namespace PluginConfigurator.API.Fields
         {
             get => _value; set
             {
-                if (_value != value)
-                    rootConfig.isDirty = true;
+                if (_value == value)
+                    return;
+                rootConfig.isDirty = true;
 
                 _value = value;
-                string guidPath = fullGuidPath;
-                if (rootConfig.config.ContainsKey(guidPath))
-                    rootConfig.config[guidPath] = _value ? "true" : "false";
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = _value ? "true" : "false";
                 else
-                    rootConfig.config.Add(guidPath, _value ? "true" : "false");
+                    rootConfig.config.Add(guid, _value ? "true" : "false");
+
+                if (currentUi == null)
+                    return;
+                currentUi.transform.Find("Toggle").GetComponent<Toggle>().isOn = value;
             }
         }
 
         public bool defaultValue;
-        public Action<bool> onValueChange;
+        public class BoolValueChangeEvent
+        {
+            public bool value;
+            public bool canceled = false;
+        }
+        public Action<BoolValueChangeEvent> onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -65,13 +74,12 @@ namespace PluginConfigurator.API.Fields
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
 
-            string fullPath = parentPanel.currentDirectory + '/' + guid;
-            if (rootConfig.config.TryGetValue(fullPath, out string data))
+            if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(fullPath, _value ? "true" : "false");
+                rootConfig.config.Add(guid, _value ? "true" : "false");
                 rootConfig.isDirty = true;
             }
         }
@@ -97,8 +105,11 @@ namespace PluginConfigurator.API.Fields
 
         internal void OnCompValueChange(bool val)
         {
-            onValueChange?.Invoke(val);
-            value = val;
+            BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
+            onValueChange?.Invoke(eventData);
+
+            if(!eventData.canceled)
+                value = val;
         }
 
         internal override string SaveToString()
@@ -117,12 +128,11 @@ namespace PluginConfigurator.API.Fields
                 _value = defaultValue;
                 rootConfig.isDirty = true;
 
-                string fullPath = parentPanel.currentDirectory + '/' + guid;
                 data = _value ? "true" : "false";
-                if (rootConfig.config.ContainsKey(fullPath))
-                    rootConfig.config[fullPath] = data;
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = data;
                 else
-                    rootConfig.config.Add(fullPath, data);
+                    rootConfig.config.Add(guid, data);
             }
         }
     }

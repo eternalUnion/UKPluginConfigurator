@@ -1,5 +1,6 @@
 ﻿using BepInEx;
 using PluginConfigurator.API;
+using PluginConfigurator.API.Decorators;
 using PluginConfigurator.API.Fields;
 using System;
 using System.Collections.Generic;
@@ -60,19 +61,52 @@ namespace PluginConfigurator
             }
         }
 
-        public GameObject sampleBoolField;
-        public GameObject sampleMenuButton;
-        public GameObject sampleMenu;
+        internal GameObject sampleBoolField;
+        internal GameObject sampleMenuButton;
+        internal GameObject sampleMenu;
+        internal GameObject sampleHeader;
         private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
             sampleBoolField = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Variation Memory").gameObject;
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Controller Rumble
             sampleMenuButton = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Controller Rumble").gameObject;
+            //Canvas/OptionsMenu/Video Options/Scroll Rect/Contents/Text (5)
+            sampleHeader = optionsMenu.Find("Video Options/Scroll Rect/Contents/Text (5)").gameObject;
+        }
+
+        internal GameObject MakeInputField(Transform content)
+        {
+            GameObject field = Instantiate(sampleBoolField, content);
+
+            Transform bg = field.transform.Find("Toggle/Background");
+            bg.SetParent(field.transform);
+            bg.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 30);
+
+            Destroy(field.transform.Find("Toggle").gameObject);
+            Destroy(bg.transform.GetChild(0).gameObject);
+
+            Image img = bg.GetComponent<Image>();
+            img.fillMethod = Image.FillMethod.Horizontal;
+            img.pixelsPerUnitMultiplier = 10f;
+            img.SetAllDirty();
+            RectTransform bgRect = bg.GetComponent<RectTransform>();
+            bgRect.pivot = new Vector2(0, 0.5f);
+
+            GameObject txt = GameObject.Instantiate(field.transform.Find("Text").gameObject, bg.transform);
+            RectTransform txtRect = txt.GetComponent<RectTransform>();
+            txtRect.anchoredPosition = new Vector2(10f, 0);
+            Text txtComp = txt.GetComponent<Text>();
+
+            InputField input = field.AddComponent<InputField>();
+            input.textComponent = txtComp;
+            input.targetGraphic = img;
+
+            return field;
         }
 
         public Transform configPanelContents;
-        private void LoadConfigs()
+        private void CreateConfigUI()
         {
             foreach(PluginConfigurator.API.PluginConfigurator config in configs)
             {
@@ -89,7 +123,6 @@ namespace PluginConfigurator
         internal Transform optionsMenu;
         internal GameObject mainPanel;
         internal GameObject activePanel;
-        internal List<Button> sideButtons = new List<Button>();
         internal Button backButton;
         private void OnSceneChange(Scene before, Scene after)
         {
@@ -102,34 +135,21 @@ namespace PluginConfigurator
                 return;
             
             LoadSamples(optionsMenu);
-            /*sideButtons.Clear();
-            foreach(Transform o in UnityUtils.GetChilds(optionsMenu))
-            {
-
-            }*/
             backButton = optionsMenu.transform.Find("Back").GetComponent<Button>();
 
             GameObject sampleButton = optionsMenu.Find("Gameplay").gameObject;
-            Transform sampleButtonRect = sampleButton.GetComponent<RectTransform>();
 
             GameObject modConfigButton = Instantiate(sampleButton, optionsMenu);
             modConfigButton.SetActive(true);
             RectTransform modConfigButtonRect = modConfigButton.GetComponent<RectTransform>();
-            //modConfigButtonRect.SetParent(optionsMenu);
             modConfigButtonRect.anchoredPosition = new Vector2(30, 300);
             Text modConfigButtonText = modConfigButton.GetComponentInChildren<Text>();
             modConfigButtonText.text = "Mod Options";
 
-            mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
-            sampleMenu = mainPanel;
+            sampleMenu = mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
             mainPanel.SetActive(false);
-            Debug.Log("c1");
             GamepadObjectSelector mainPanelSelector = mainPanel.GetComponent<GamepadObjectSelector>();
-            Destroy(mainPanelSelector);
-            mainPanelSelector = mainPanel.AddComponent<GamepadObjectSelector>();
-            Debug.Log("c2");
             Button modConfigButtonComp = modConfigButton.GetComponent<Button>();
-            Debug.Log("c3");
             modConfigButtonComp.onClick = new Button.ButtonClickedEvent();
             foreach (Transform t in UnityUtils.GetChilds(optionsMenu.transform))
             {
@@ -139,6 +159,7 @@ namespace PluginConfigurator
                 GamepadObjectSelector obj = t.gameObject.GetComponent<GamepadObjectSelector>();
                 if (obj != null)
                 {
+                    // Mod config button disables all menu panels
                     modConfigButtonComp.onClick.AddListener(() => obj.gameObject.SetActive(false));
                 }
                 else
@@ -146,6 +167,7 @@ namespace PluginConfigurator
                     Button b = t.gameObject.GetComponent<Button>();
                     if (b != null)
                     {
+                        // Side buttons close all configuration panels
                         b.onClick.AddListener(() =>
                         {
                             mainPanel.SetActive(false);
@@ -159,24 +181,22 @@ namespace PluginConfigurator
                     }
                 }
             }
+
             modConfigButtonComp.onClick.AddListener(() => mainPanel.SetActive(true));
             modConfigButtonComp.onClick.AddListener(mainPanelSelector.Activate);
             modConfigButtonComp.onClick.AddListener(mainPanelSelector.SetTop);
-
-            Debug.Log("c4");
 
             Transform contents = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(mainPanel.transform).transform;
             ContentSizeFitter contentsFitter = contents.gameObject.AddComponent<ContentSizeFitter>();
             contentsFitter.verticalFit = ContentSizeFitter.FitMode.MinSize;
             configPanelContents = contents;
-            Debug.Log("c5");
             foreach (Transform t in contents)
                 Destroy(t.gameObject);
-            Debug.Log("c6");
+
             mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
             mainPanel.GetComponentInChildren<Text>().text = "---MOD CONFIG---";
 
-            LoadConfigs();
+            CreateConfigUI();
         }
 
         PluginConfigurator.API.PluginConfigurator config;
@@ -187,7 +207,20 @@ namespace PluginConfigurator
 
             config = API.PluginConfigurator.Create("Plugin Configurator", "com.eternalUnion.pluginconfigurator");
             BoolField boolConfig = new BoolField(config.rootPanel, "Custom Bool", "custombool", false);
+            ConfigHeader header = new ConfigHeader(config.rootPanel, "Sample Hedader");
+            IntegerField customInput = new IntegerField(config.rootPanel, "Damage", "damage", 5);
             ConfigPanel customPanel = new ConfigPanel(config.rootPanel, "My Custom Menu", "custommenu");
+            boolConfig.onValueChange = (eventData) => customPanel.interactable = eventData.value;
+            customInput.onValueChange = (eventData) =>
+            {
+                if (eventData.value <= 0)
+                {
+                    eventData.canceled = true;
+                    return;
+                }
+
+                Debug.Log($"New value: {eventData.value}");
+            };
 
             config2 = API.PluginConfigurator.Create("ULTRAPAIN", "com.eternalUnion.ultrapain");
 

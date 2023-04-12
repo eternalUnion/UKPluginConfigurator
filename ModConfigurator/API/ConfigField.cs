@@ -10,10 +10,6 @@ namespace PluginConfigurator.API
     {
         public string displayName { private set; get; }
         public string guid { private set; get; }
-        public string fullGuidPath
-        {
-            get => parentPanel.currentDirectory + '/' + guid;
-        }
         public abstract bool hidden { get; set; }
         public abstract bool interactable { get; set; }
         public PluginConfigurator rootConfig { private set; get; }
