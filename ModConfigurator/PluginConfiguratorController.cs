@@ -209,6 +209,7 @@ namespace PluginConfigurator
             BoolField boolConfig = new BoolField(config.rootPanel, "Custom Bool", "custombool", false);
             ConfigHeader header = new ConfigHeader(config.rootPanel, "Sample Hedader");
             IntegerField customInput = new IntegerField(config.rootPanel, "Damage", "damage", 5);
+            StringField customString = new StringField(config.rootPanel, "Style name", "stylename", "<color=cyan>FISTFUL OF 'NADE</color>");
             ConfigPanel customPanel = new ConfigPanel(config.rootPanel, "My Custom Menu", "custommenu");
             boolConfig.onValueChange = (eventData) => customPanel.interactable = eventData.value;
             customInput.onValueChange = (eventData) =>
