@@ -65,6 +65,7 @@ namespace PluginConfigurator
         internal GameObject sampleMenuButton;
         internal GameObject sampleMenu;
         internal GameObject sampleHeader;
+        internal GameObject sampleDropdown;
         private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
@@ -73,6 +74,8 @@ namespace PluginConfigurator
             sampleMenuButton = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Controller Rumble").gameObject;
             //Canvas/OptionsMenu/Video Options/Scroll Rect/Contents/Text (5)
             sampleHeader = optionsMenu.Find("Video Options/Scroll Rect/Contents/Text (5)").gameObject;
+            //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Weapon Position
+            sampleDropdown = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Weapon Position").gameObject;
         }
 
         internal GameObject MakeInputField(Transform content)
@@ -201,6 +204,12 @@ namespace PluginConfigurator
 
         PluginConfigurator.API.PluginConfigurator config;
         PluginConfigurator.API.PluginConfigurator config2;
+        enum SampleEnum
+        {
+            Horizontal,
+            Vertical,
+            Default
+        }
         private void Awake()
         {
             Instance = this;
@@ -211,6 +220,7 @@ namespace PluginConfigurator
             IntegerField customInput = new IntegerField(config.rootPanel, "Damage", "damage", 5);
             StringField customString = new StringField(config.rootPanel, "Style name", "stylename", "<color=cyan>FISTFUL OF 'NADE</color>");
             FloatField angle = new FloatField(config.rootPanel, "Angle", "angle", 2.4f);
+            EnumField<SampleEnum> enumField = new EnumField<SampleEnum>(config.rootPanel, "Axis", "axis", SampleEnum.Default);
             ConfigPanel customPanel = new ConfigPanel(config.rootPanel, "My Custom Menu", "custommenu");
             boolConfig.onValueChange = (eventData) => customPanel.interactable = eventData.value;
             customInput.onValueChange = (eventData) =>
