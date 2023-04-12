@@ -20,8 +20,8 @@ namespace PluginConfigurator
     {
         static internal PluginConfiguratorController Instance;
 
-        public const string PLUGIN_NAME = "ModConfigurator";
-        public const string PLUGIN_GUID = "com.eternalUnion.modConfigurator";
+        public const string PLUGIN_NAME = "PluginConfigurator";
+        public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
         public const string PLUGIN_VERSION = "1.0.0";
 
         private List<PluginConfigurator.API.PluginConfigurator> configs = new List<PluginConfigurator.API.PluginConfigurator>();
@@ -202,19 +202,19 @@ namespace PluginConfigurator
             CreateConfigUI();
         }
 
-        PluginConfigurator.API.PluginConfigurator config;
+        /*PluginConfigurator.API.PluginConfigurator config;
         PluginConfigurator.API.PluginConfigurator config2;
         enum SampleEnum
         {
             Horizontal,
             Vertical,
             Default
-        }
+        }*/
         private void Awake()
         {
             Instance = this;
 
-            config = API.PluginConfigurator.Create("Plugin Configurator", "com.eternalUnion.pluginconfigurator");
+            /*config = API.PluginConfigurator.Create("Plugin Configurator", "com.eternalUnion.pluginconfigurator");
             BoolField boolConfig = new BoolField(config.rootPanel, "Custom Bool", "custombool", false);
             ConfigHeader header = new ConfigHeader(config.rootPanel, "Sample Hedader");
             IntegerField customInput = new IntegerField(config.rootPanel, "Damage", "damage", 5);
@@ -234,7 +234,7 @@ namespace PluginConfigurator
                 Debug.Log($"New value: {eventData.value}");
             };
 
-            config2 = API.PluginConfigurator.Create("ULTRAPAIN", "com.eternalUnion.ultrapain");
+            config2 = API.PluginConfigurator.Create("ULTRAPAIN", "com.eternalUnion.ultrapain");*/
 
             Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }

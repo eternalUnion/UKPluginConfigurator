@@ -2,20 +2,20 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>ModConfigurator</AssemblyName>
+    <AssemblyName>PluginConfigurator</AssemblyName>
     <Description>Ultrakill mod that makes configuring mods easier</Description>
     <Version>1.0.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
 
-	<BaseOutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\ModConfigurator</BaseOutputPath>
+	<BaseOutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator</BaseOutputPath>
 
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-	<OutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\ModConfigurator</OutputPath>
+	<OutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator</OutputPath>
 	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 
-	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
