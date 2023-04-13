@@ -10,6 +10,9 @@ namespace PluginConfig.Patches
     {
         static bool Prefix(OptionsManager __instance)
         {
+            if (PluginConfiguratorController.Instance.activePanel == null || !PluginConfiguratorController.Instance.activePanel.activeSelf)
+                return true;
+
             if (MenuFinderPatch.optionsMenu != null && MenuFinderPatch.optionsMenu.gameObject.activeInHierarchy)
                 return false;
 

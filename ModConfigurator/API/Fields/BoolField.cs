@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
@@ -19,6 +20,7 @@ namespace PluginConfig.API.Fields
     public class BoolField : ConfigField
     {
         private GameObject currentUi;
+        private GameObject currentResetButton;
 
         private bool _value;
         public bool value
@@ -59,6 +61,15 @@ namespace PluginConfig.API.Fields
             }
         }
 
+        private void SetInteractableColor(bool interactable)
+        {
+            if (currentUi == null)
+                return;
+
+            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            currentUi.transform.Find("Toggle/Background/Checkmark").GetComponent<Image>().color = interactable ? Color.white : Color.gray;
+        }
+
         public bool _interactable = true;
         public override bool interactable
         {
@@ -66,6 +77,7 @@ namespace PluginConfig.API.Fields
             {
                 _interactable = value;
                 currentUi.transform.Find("Toggle").GetComponent<Toggle>().interactable = _interactable;
+                SetInteractableColor(value);
             }
         }
 
@@ -100,7 +112,29 @@ namespace PluginConfig.API.Fields
             toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
             toggle.GetComponent<Toggle>().onValueChanged.AddListener(comp.OnValueChange);
 
+            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
+            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
+            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
+            resetRect.anchorMax = new Vector2(1, 0.5f);
+            resetRect.anchorMin = new Vector2(1, 0.5f);
+            resetRect.sizeDelta = new Vector2(70, 40);
+            resetRect.anchoredPosition = new Vector2(-85, 0);
+            Button resetComp = currentResetButton.GetComponent<Button>();
+            resetComp.onClick = new Button.ButtonClickedEvent();
+            resetComp.onClick.AddListener(OnReset);
+            currentResetButton.SetActive(false);
+
+            EventTrigger trigger = field.AddComponent<EventTrigger>();
+            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
+            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable) currentResetButton.SetActive(true); });
+            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
+            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
+            trigger.triggers.Add(mouseOn);
+            trigger.triggers.Add(mouseOff);
+
             field.SetActive(!_hidden);
+            SetInteractableColor(_interactable);
             return field;
         }
 
@@ -111,6 +145,11 @@ namespace PluginConfig.API.Fields
 
             if(!eventData.canceled)
                 value = val;
+        }
+
+        internal void OnReset()
+        {
+            value = defaultValue;
         }
 
         internal override string SaveToString()
