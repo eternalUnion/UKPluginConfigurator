@@ -3,10 +3,12 @@ using HarmonyLib;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
+using PluginConfig.Patches;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using UnityEngine;
@@ -177,44 +179,59 @@ namespace PluginConfig
             CreateConfigUI();
         }
 
-        /*PluginConfigurator.API.PluginConfigurator config;
-        PluginConfigurator.API.PluginConfigurator config2;
-        enum SampleEnum
-        {
-            Horizontal,
-            Vertical,
-            Default
-        }*/
-
         public Harmony configuratorPatches;
+
+        private PluginConfigurator config;
+        private BoolField patchCheatKeys;
+        private BoolField patchPause;
+
         private void Awake()
         {
             Instance = this;
-
-            /*config = API.PluginConfigurator.Create("Plugin Configurator", "com.eternalUnion.pluginconfigurator");
-            BoolField boolConfig = new BoolField(config.rootPanel, "Custom Bool", "custombool", false);
-            ConfigHeader header = new ConfigHeader(config.rootPanel, "Sample Hedader");
-            IntegerField customInput = new IntegerField(config.rootPanel, "Damage", "damage", 5);
-            StringField customString = new StringField(config.rootPanel, "Style name", "stylename", "<color=cyan>FISTFUL OF 'NADE</color>");
-            FloatField angle = new FloatField(config.rootPanel, "Angle", "angle", 2.4f);
-            EnumField<SampleEnum> enumField = new EnumField<SampleEnum>(config.rootPanel, "Axis", "axis", SampleEnum.Default);
-            ConfigPanel customPanel = new ConfigPanel(config.rootPanel, "My Custom Menu", "custommenu");
-            boolConfig.onValueChange = (eventData) => customPanel.interactable = eventData.value;
-            customInput.onValueChange = (eventData) =>
-            {
-                if (eventData.value <= 0)
-                {
-                    eventData.canceled = true;
-                    return;
-                }
-
-                Debug.Log($"New value: {eventData.value}");
-            };
-
-            config2 = API.PluginConfigurator.Create("ULTRAPAIN", "com.eternalUnion.ultrapain");*/
-
             configuratorPatches = new Harmony(PLUGIN_GUID);
-            configuratorPatches.PatchAll();
+            config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
+
+            new ConfigHeader(config.rootPanel, "Patches");
+            patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
+            patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
+
+            MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+            void CheatKeyListener(BoolField.BoolValueChangeEvent data)
+            {
+                if (data.value)
+                {
+                    configuratorPatches.Patch(GetStaticMethod<CheatsManager>("HandleCheatBind"), new HarmonyMethod(GetStaticMethod<HandleCheatBindPatch>("Prefix")));
+                }
+                else
+                {
+                    configuratorPatches.Unpatch(GetStaticMethod<CheatsManager>("HandleCheatBind"), GetStaticMethod<HandleCheatBindPatch>("Prefix"));
+                }
+            }
+            patchCheatKeys.onValueChange = CheatKeyListener;
+            if (patchCheatKeys.value)
+                CheatKeyListener(new BoolField.BoolValueChangeEvent() { value = true });
+
+            void UnpauseListener(BoolField.BoolValueChangeEvent data)
+            {
+                if (data.value)
+                {
+                    configuratorPatches.Patch(GetStaticMethod<OptionsManager>("UnPause"), new HarmonyMethod(GetStaticMethod<UnpausePatch>("Prefix")));
+                    configuratorPatches.Patch(GetStaticMethod<OptionsManager>("CloseOptions"), new HarmonyMethod(GetStaticMethod<CloseOptionsPatch>("Prefix")));
+                }
+                else
+                {
+                    configuratorPatches.Unpatch(GetStaticMethod<OptionsManager>("UnPause"), GetStaticMethod<UnpausePatch>("Prefix"));
+                    configuratorPatches.Unpatch(GetStaticMethod<OptionsManager>("CloseOptions"), GetStaticMethod<CloseOptionsPatch>("Prefix"));
+                }
+            }
+            patchPause.onValueChange = UnpauseListener;
+            if (patchPause.value)
+                UnpauseListener(new BoolField.BoolValueChangeEvent() { value = true });
+
+            configuratorPatches.Patch(GetStaticMethod<HUDOptions>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
+
+            config.Flush();
             Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
@@ -230,7 +247,7 @@ namespace PluginConfig
 
         private void OnApplicationQuit()
         {
-            foreach(PluginConfig.API.PluginConfigurator config in configs)
+            foreach(PluginConfigurator config in configs)
             {
                 config.Flush();
             }

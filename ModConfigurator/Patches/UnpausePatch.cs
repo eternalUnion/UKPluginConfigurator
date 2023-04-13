@@ -10,7 +10,7 @@ namespace PluginConfig.Patches
     {
         static bool Prefix(OptionsManager __instance)
         {
-            if (HandleCheatBind_Init.optionsMenu != null && HandleCheatBind_Init.optionsMenu.gameObject.activeInHierarchy)
+            if (MenuFinderPatch.optionsMenu != null && MenuFinderPatch.optionsMenu.gameObject.activeInHierarchy)
                 return false;
 
             return true;
@@ -22,7 +22,7 @@ namespace PluginConfig.Patches
     {
         static bool Prefix(OptionsManager __instance)
         {
-            if (HandleCheatBind_Init.optionsMenu != null && HandleCheatBind_Init.optionsMenu.gameObject.activeInHierarchy)
+            if (MenuFinderPatch.optionsMenu != null && MenuFinderPatch.optionsMenu.gameObject.activeInHierarchy)
                 return false;
 
             return true;
