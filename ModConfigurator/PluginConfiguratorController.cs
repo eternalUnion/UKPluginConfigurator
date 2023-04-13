@@ -56,7 +56,7 @@ namespace PluginConfig
 
             Transform bg = field.transform.Find("Toggle/Background");
             bg.SetParent(field.transform);
-            bg.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 30);
+            bg.GetComponent<RectTransform>().sizeDelta = new Vector2(270, 30);
 
             Destroy(field.transform.Find("Toggle").gameObject);
             Destroy(bg.transform.GetChild(0).gameObject);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
@@ -20,6 +21,7 @@ namespace PluginConfig.API.Fields
     public class StringField : ConfigField
     {
         private GameObject currentUi;
+        private GameObject currentResetButton;
 
         private string _value;
         public string value
@@ -100,8 +102,34 @@ namespace PluginConfig.API.Fields
             comp.field = this;
             input.onEndEdit.AddListener(comp.OnValueChange);
 
+            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
+            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
+            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
+            resetRect.anchorMax = new Vector2(1, 0.5f);
+            resetRect.anchorMin = new Vector2(1, 0.5f);
+            resetRect.sizeDelta = new Vector2(70, 40);
+            resetRect.anchoredPosition = new Vector2(-85, 0);
+            Button resetComp = currentResetButton.GetComponent<Button>();
+            resetComp.onClick = new Button.ButtonClickedEvent();
+            resetComp.onClick.AddListener(OnReset);
+            currentResetButton.SetActive(false);
+
+            EventTrigger trigger = field.AddComponent<EventTrigger>();
+            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
+            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable) currentResetButton.SetActive(true); });
+            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
+            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
+            trigger.triggers.Add(mouseOn);
+            trigger.triggers.Add(mouseOff);
+
             field.SetActive(!_hidden);
             return field;
+        }
+
+        private void OnReset()
+        {
+            value = defaultValue;
         }
 
         internal void OnCompValueChange(string val)
