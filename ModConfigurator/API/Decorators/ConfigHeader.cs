@@ -5,9 +5,9 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API.Decorators
+namespace PluginConfig.API.Decorators
 {
-    internal class ConfigHeader : ConfigField
+    public class ConfigHeader : ConfigField
     {
         private GameObject currentUi;
 
@@ -54,7 +54,16 @@ namespace PluginConfigurator.API.Decorators
             parentPanel.Register(this);
         }
 
-        public override bool hidden { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        private bool _hidden = false;
+        public override bool hidden { get => _hidden; set
+            {
+                _hidden = value;
+                if (currentUi == null)
+                    return;
+                currentUi.SetActive(!_hidden);
+            } 
+        }
+
         public override bool interactable { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         internal override GameObject CreateUI(Transform content)
@@ -65,7 +74,8 @@ namespace PluginConfigurator.API.Decorators
             header.GetComponent<Text>().text = _text;
             header.GetComponent<Text>().fontSize = _textSize;
             header.GetComponent<Text>().color = _textColor;
-
+            
+            header.SetActive(!_hidden);
             return header;
         }
 

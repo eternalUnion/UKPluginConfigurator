@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API.Fields
+namespace PluginConfig.API.Fields
 {
     public class StringFieldComponent : MonoBehaviour
     {
@@ -57,7 +57,7 @@ namespace PluginConfigurator.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(_hidden);
+                currentUi?.SetActive(!_hidden);
             }
         }
 

@@ -16,6 +16,8 @@
 	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 
 	<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+
+	<RootNamespace>PluginConfig</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API
+namespace PluginConfig.API
 {
     public class PluginConfigurator
     {

@@ -5,8 +5,13 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API.Fields
+namespace PluginConfig.API.Fields
 {
+    public class EnumValueChangeEvent<T> where T : struct
+    {
+        public T value;
+        public bool canceled = false;
+    }
 
     public class EnumField<T> : ConfigField where T : struct
     {
@@ -36,11 +41,6 @@ namespace PluginConfigurator.API.Fields
         }
 
         public T defaultValue;
-        public class EnumValueChangeEvent<T> where T : struct
-        {
-            public T value;
-            public bool canceled = false;
-        }
         public Action<EnumValueChangeEvent<T>> onValueChange;
 
         private bool _hidden = false;
@@ -49,7 +49,7 @@ namespace PluginConfigurator.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(_hidden);
+                currentUi?.SetActive(!_hidden);
             }
         }
 
@@ -85,7 +85,9 @@ namespace PluginConfigurator.API.Fields
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
             Dropdown dropdown = field.transform.Find("Dropdown").GetComponent<Dropdown>();
+            dropdown.onValueChanged = new Dropdown.DropdownEvent();
             dropdown.options.Clear();
+            dropdown.onValueChanged.AddListener(OnCompValueChange);
 
             T[] enumVals = Enum.GetValues(typeof(T)) as T[];
             foreach (T val in enumVals)
@@ -93,8 +95,6 @@ namespace PluginConfigurator.API.Fields
                 dropdown.options.Add(new Dropdown.OptionData(val.ToString()));
             }
 
-            dropdown.onValueChanged = new Dropdown.DropdownEvent();
-            dropdown.onValueChanged.AddListener(OnCompValueChange);
 
             int index = -1;
             for(int i = 0; i < enumVals.Length; i++)
@@ -106,6 +106,7 @@ namespace PluginConfigurator.API.Fields
             if (index != -1)
                 dropdown.SetValueWithoutNotify(index);
 
+            field.SetActive(!_hidden);
             return field;
 
             /*GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);

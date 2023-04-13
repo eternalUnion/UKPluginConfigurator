@@ -5,7 +5,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API
+namespace PluginConfig.API
 {
     public class ConfigPanelComponent : MonoBehaviour
     {

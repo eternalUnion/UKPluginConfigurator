@@ -1,7 +1,8 @@
 ﻿using BepInEx;
-using PluginConfigurator.API;
-using PluginConfigurator.API.Decorators;
-using PluginConfigurator.API.Fields;
+using HarmonyLib;
+using PluginConfig.API;
+using PluginConfig.API.Decorators;
+using PluginConfig.API.Fields;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,52 +14,21 @@ using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace PluginConfigurator
+namespace PluginConfig
 {
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
     public class PluginConfiguratorController : BaseUnityPlugin
     {
-        static internal PluginConfiguratorController Instance;
+        public static PluginConfiguratorController Instance;
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
         public const string PLUGIN_VERSION = "1.0.0";
 
-        private List<PluginConfigurator.API.PluginConfigurator> configs = new List<PluginConfigurator.API.PluginConfigurator>();
-        internal void RegisterConfigurator(PluginConfigurator.API.PluginConfigurator config)
+        internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
+        internal void RegisterConfigurator(PluginConfigurator config)
         {
             configs.Add(config);
-        }
-
-        private void TryLogAssets()
-        {
-            string path = Path.Combine(Environment.CurrentDirectory, "ULTRAKILL_Data");
-            using FileStream filelog = File.Open(Path.Combine(Environment.CurrentDirectory, "log.txt"), FileMode.OpenOrCreate, FileAccess.Write);
-
-            foreach (string filePath in Directory.GetFiles(path))
-            {
-                if (!filePath.EndsWith(".assets"))
-                    continue;
-
-                try
-                {
-                    AssetBundle bundle = AssetBundle.LoadFromFile(filePath);
-                    filelog.Write(Encoding.ASCII.GetBytes(filePath), 0, filePath.Length);
-                    filelog.WriteByte((byte)'\n');
-
-                    foreach (string asset in bundle.GetAllAssetNames())
-                    {
-                        filelog.Write(Encoding.ASCII.GetBytes(asset), 0, asset.Length);
-                        filelog.WriteByte((byte)'\n');
-                    }
-
-                    filelog.WriteByte((byte)'\n');
-                }
-                catch (Exception e)
-                {
-                    Logger.LogWarning($"Could not load {filePath}: {e}");
-                }
-            }
         }
 
         internal GameObject sampleBoolField;
@@ -111,7 +81,7 @@ namespace PluginConfigurator
         public Transform configPanelContents;
         private void CreateConfigUI()
         {
-            foreach(PluginConfigurator.API.PluginConfigurator config in configs)
+            foreach(PluginConfig.API.PluginConfigurator config in configs)
             {
                 GameObject configButton = Instantiate(sampleMenuButton, configPanelContents);
                 configButton.transform.Find("Text").GetComponent<Text>().text = config.displayName;
@@ -142,28 +112,28 @@ namespace PluginConfigurator
 
             GameObject sampleButton = optionsMenu.Find("Gameplay").gameObject;
 
-            GameObject modConfigButton = Instantiate(sampleButton, optionsMenu);
-            modConfigButton.SetActive(true);
-            RectTransform modConfigButtonRect = modConfigButton.GetComponent<RectTransform>();
-            modConfigButtonRect.anchoredPosition = new Vector2(30, 300);
-            Text modConfigButtonText = modConfigButton.GetComponentInChildren<Text>();
-            modConfigButtonText.text = "Mod Options";
+            GameObject pluginConfigButton = Instantiate(sampleButton, optionsMenu);
+            pluginConfigButton.SetActive(true);
+            RectTransform pluginConfigButtonRect = pluginConfigButton.GetComponent<RectTransform>();
+            pluginConfigButtonRect.anchoredPosition = new Vector2(30, 300);
+            Text pluginConfigButtonText = pluginConfigButton.GetComponentInChildren<Text>();
+            pluginConfigButtonText.text = "PLUGIN CONFIG";
 
             sampleMenu = mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
             mainPanel.SetActive(false);
             GamepadObjectSelector mainPanelSelector = mainPanel.GetComponent<GamepadObjectSelector>();
-            Button modConfigButtonComp = modConfigButton.GetComponent<Button>();
-            modConfigButtonComp.onClick = new Button.ButtonClickedEvent();
+            Button pluginConfigButtonComp = pluginConfigButton.GetComponent<Button>();
+            pluginConfigButtonComp.onClick = new Button.ButtonClickedEvent();
             foreach (Transform t in UnityUtils.GetChilds(optionsMenu.transform))
             {
-                if (t == mainPanelSelector.transform || t == modConfigButton.transform)
+                if (t == mainPanelSelector.transform || t == pluginConfigButton.transform)
                     continue;
 
                 GamepadObjectSelector obj = t.gameObject.GetComponent<GamepadObjectSelector>();
                 if (obj != null)
                 {
-                    // Mod config button disables all menu panels
-                    modConfigButtonComp.onClick.AddListener(() => obj.gameObject.SetActive(false));
+                    // Plugin config button disables all menu panels
+                    pluginConfigButtonComp.onClick.AddListener(() => obj.gameObject.SetActive(false));
                 }
                 else
                 {
@@ -185,9 +155,14 @@ namespace PluginConfigurator
                 }
             }
 
-            modConfigButtonComp.onClick.AddListener(() => mainPanel.SetActive(true));
-            modConfigButtonComp.onClick.AddListener(mainPanelSelector.Activate);
-            modConfigButtonComp.onClick.AddListener(mainPanelSelector.SetTop);
+            pluginConfigButtonComp.onClick.AddListener(() => mainPanel.SetActive(true));
+            pluginConfigButtonComp.onClick.AddListener(mainPanelSelector.Activate);
+            pluginConfigButtonComp.onClick.AddListener(mainPanelSelector.SetTop);
+            pluginConfigButtonComp.onClick.AddListener(() =>
+            {
+                if (activePanel != null)
+                    activePanel.SetActive(false);
+            });
 
             Transform contents = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(mainPanel.transform).transform;
             ContentSizeFitter contentsFitter = contents.gameObject.AddComponent<ContentSizeFitter>();
@@ -197,7 +172,7 @@ namespace PluginConfigurator
                 Destroy(t.gameObject);
 
             mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
-            mainPanel.GetComponentInChildren<Text>().text = "---MOD CONFIG---";
+            mainPanel.GetComponentInChildren<Text>().text = "--PLUGIN CONFIG--";
 
             CreateConfigUI();
         }
@@ -210,6 +185,8 @@ namespace PluginConfigurator
             Vertical,
             Default
         }*/
+
+        public Harmony configuratorPatches;
         private void Awake()
         {
             Instance = this;
@@ -236,6 +213,8 @@ namespace PluginConfigurator
 
             config2 = API.PluginConfigurator.Create("ULTRAPAIN", "com.eternalUnion.ultrapain");*/
 
+            configuratorPatches = new Harmony(PLUGIN_GUID);
+            configuratorPatches.PatchAll();
             Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
@@ -247,6 +226,14 @@ namespace PluginConfigurator
         private void OnDisable()
         {
             SceneManager.activeSceneChanged -= OnSceneChange;
+        }
+
+        private void OnApplicationQuit()
+        {
+            foreach(PluginConfig.API.PluginConfigurator config in configs)
+            {
+                config.Flush();
+            }
         }
     }
 }

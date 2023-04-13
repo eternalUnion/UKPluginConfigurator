@@ -4,7 +4,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API.Fields
+namespace PluginConfig.API.Fields
 {
     public class BoolFieldComponent : MonoBehaviour
     {
@@ -55,7 +55,7 @@ namespace PluginConfigurator.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(_hidden);
+                currentUi?.SetActive(!_hidden);
             }
         }
 
@@ -91,6 +91,7 @@ namespace PluginConfigurator.API.Fields
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
             Transform toggle = field.transform.Find("Toggle");
+            toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
             toggle.GetComponent<Toggle>().isOn = value;
             toggle.GetComponent<Toggle>().interactable = _interactable;
 

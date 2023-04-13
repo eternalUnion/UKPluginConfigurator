@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-namespace PluginConfigurator.API
+namespace PluginConfig.API
 {
     public abstract class ConfigField
     {

@@ -4,7 +4,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfigurator.API.Fields
+namespace PluginConfig.API.Fields
 {
     public class FloatFieldComponent : MonoBehaviour
     {
@@ -55,7 +55,7 @@ namespace PluginConfigurator.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(_hidden);
+                currentUi?.SetActive(!_hidden);
             }
         }
 
