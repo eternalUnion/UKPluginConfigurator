@@ -24,14 +24,14 @@ namespace PluginConfig.API.Fields
         private string _value;
         public string value
         {
-            get => _value; set
+            get => _value.Replace("\n", ""); set
             {
                 if (_value == value)
                     return;
                 rootConfig.isDirty = true;
 
                 _value = value;
-                string storedValue = value.Replace("\n", "\\n");
+                string storedValue = value.Replace("\n", "");
                 if (rootConfig.config.ContainsKey(guid))
                     rootConfig.config[guid] = storedValue;
                 else
@@ -157,12 +157,12 @@ namespace PluginConfig.API.Fields
 
         internal override string SaveToString()
         {
-            return _value.Replace("\n", "\\n");
+            return _value.Replace("\n", "");
         }
 
         internal override void LoadFromString(string data)
         {
-            _value = Regex.Unescape(data);
+            _value = data;
         }
     }
 }

@@ -69,6 +69,8 @@ namespace PluginConfig.API
                             break;
 
                         string data = stream.ReadLine();
+                        if (data == null)
+                            data = "";
                         Debug.Log($"{guid}:{data}");
                         config[guid] = data;
                     }
@@ -88,6 +90,9 @@ namespace PluginConfig.API
             {
                 foreach(KeyValuePair<string, string> data in config)
                 {
+                    if (data.Key == null || data.Value == null)
+                        continue;
+
                     stream.Write(Encoding.ASCII.GetBytes(data.Key), 0, data.Key.Length);
                     stream.WriteByte((byte)'\n');
                     stream.Write(Encoding.ASCII.GetBytes(data.Value), 0, data.Value.Length);
