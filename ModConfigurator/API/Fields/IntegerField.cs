@@ -4,6 +4,8 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static PluginConfig.API.Fields.BoolField;
+using static PluginConfig.API.Fields.FloatField;
 
 namespace PluginConfig.API.Fields
 {
@@ -128,6 +130,14 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
+            if (onValueChange != null)
+            {
+                IntValueChangeEvent evt = new IntValueChangeEvent() { value = defaultValue };
+                onValueChange(evt);
+                if (evt.canceled)
+                    return;
+            }
+
             value = defaultValue;
         }
 

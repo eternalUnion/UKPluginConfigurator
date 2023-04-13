@@ -4,6 +4,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static PluginConfig.API.Fields.BoolField;
 
 namespace PluginConfig.API.Fields
 {
@@ -128,6 +129,14 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
+            if (onValueChange != null)
+            {
+                FloatValueChangeEvent evt = new FloatValueChangeEvent() { value = defaultValue };
+                onValueChange(evt);
+                if (evt.canceled)
+                    return;
+            }
+
             value = defaultValue;
         }
 

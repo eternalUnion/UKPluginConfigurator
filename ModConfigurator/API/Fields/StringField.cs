@@ -5,6 +5,8 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static PluginConfig.API.Fields.BoolField;
+using static PluginConfig.API.Fields.IntegerField;
 
 namespace PluginConfig.API.Fields
 {
@@ -130,6 +132,14 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
+            if (onValueChange != null)
+            {
+                StringValueChangeEvent evt = new StringValueChangeEvent() { value = defaultValue };
+                onValueChange(evt);
+                if (evt.canceled)
+                    return;
+            }
+
             value = defaultValue;
         }
 

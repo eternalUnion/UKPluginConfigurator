@@ -150,6 +150,14 @@ namespace PluginConfig.API.Fields
 
         internal void OnReset()
         {
+            if (onValueChange != null)
+            {
+                BoolValueChangeEvent evt = new BoolValueChangeEvent() { value = defaultValue };
+                onValueChange(evt);
+                if (evt.canceled)
+                    return;
+            }
+
             value = defaultValue;
         }
 
