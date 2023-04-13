@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static PluginConfig.API.Fields.BoolField;
-using static PluginConfig.API.Fields.IntegerField;
 
 namespace PluginConfig.API.Fields
 {

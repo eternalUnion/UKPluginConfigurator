@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static PluginConfig.API.Fields.BoolField;
-using static PluginConfig.API.Fields.FloatField;
 
 namespace PluginConfig.API.Fields
 {
