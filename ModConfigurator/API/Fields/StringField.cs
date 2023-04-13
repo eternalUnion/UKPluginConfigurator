@@ -104,6 +104,7 @@ namespace PluginConfig.API.Fields
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
+            currentResetButton.AddComponent<DisableWhenHidden>();
             currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
             RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
             resetRect.anchorMax = new Vector2(1, 0.5f);
