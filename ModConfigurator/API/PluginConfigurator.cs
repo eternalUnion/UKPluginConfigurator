@@ -90,7 +90,7 @@ namespace PluginConfig.API
 
             PluginConfiguratorController.logger.LogInfo($"Dirty config detected. Saving configuration for {displayName} : {guid}");
 
-            using(FileStream stream = File.OpenWrite(configFilePath))
+            using(FileStream stream = File.Open(configFilePath, FileMode.Truncate))
             {
                 foreach(KeyValuePair<string, string> data in config)
                 {
