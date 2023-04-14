@@ -5,16 +5,6 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
-    public class IntegerFieldComponent : MonoBehaviour
-    {
-        public IntegerField field;
-
-        public void OnValueChange(string value)
-        {
-            field?.OnCompValueChange(value);
-        }
-    }
-
     public class IntegerField : ConfigField
     {
         private GameObject currentUi;
@@ -93,10 +83,7 @@ namespace PluginConfig.API.Fields
             InputField input = field.GetComponent<InputField>();
             input.characterValidation = InputField.CharacterValidation.Integer;
             input.text = _value.ToString();
-
-            IntegerFieldComponent comp = field.AddComponent<IntegerFieldComponent>();
-            comp.field = this;
-            input.onEndEdit.AddListener(comp.OnValueChange);
+            input.onEndEdit.AddListener(OnCompValueChange);
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
@@ -119,6 +106,7 @@ namespace PluginConfig.API.Fields
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
             trigger.triggers.Add(mouseOff);
+            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
             field.SetActive(!_hidden);
             return field;

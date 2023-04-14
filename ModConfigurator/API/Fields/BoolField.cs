@@ -5,16 +5,6 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
-    public class BoolFieldComponent : MonoBehaviour
-    {
-        public BoolField field;
-
-        public void OnValueChange(bool value)
-        {
-            field?.OnCompValueChange(value);
-        }
-    }
-
     public class BoolField : ConfigField
     {
         private GameObject currentUi;
@@ -104,11 +94,8 @@ namespace PluginConfig.API.Fields
             toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
             toggle.GetComponent<Toggle>().isOn = value;
             toggle.GetComponent<Toggle>().interactable = _interactable;
-
-            BoolFieldComponent comp = field.AddComponent<BoolFieldComponent>();
-            comp.field = this;
             toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
-            toggle.GetComponent<Toggle>().onValueChanged.AddListener(comp.OnValueChange);
+            toggle.GetComponent<Toggle>().onValueChanged.AddListener(OnCompValueChange);
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
@@ -131,6 +118,7 @@ namespace PluginConfig.API.Fields
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
             trigger.triggers.Add(mouseOff);
+            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
             field.SetActive(!_hidden);
             SetInteractableColor(_interactable);

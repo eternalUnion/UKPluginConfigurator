@@ -126,6 +126,7 @@ namespace PluginConfig.API.Fields
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
             trigger.triggers.Add(mouseOff);
+            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
             field.SetActive(!_hidden);
             return field;

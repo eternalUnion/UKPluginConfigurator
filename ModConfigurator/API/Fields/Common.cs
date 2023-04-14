@@ -2,7 +2,7 @@
 
 namespace PluginConfig.API.Fields
 {
-    public class DisableWhenHidden : MonoBehaviour
+    internal class DisableWhenHidden : MonoBehaviour
     {
         void OnDisable()
         {
