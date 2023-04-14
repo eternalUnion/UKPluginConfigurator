@@ -18,14 +18,14 @@ namespace PluginConfig.API.Fields
             {
                 if (_value == value)
                     return;
+                value = value.Replace("\n", "");
                 rootConfig.isDirty = true;
 
                 _value = value;
-                string storedValue = value.Replace("\n", "");
                 if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = storedValue;
+                    rootConfig.config[guid] = value;
                 else
-                    rootConfig.config.Add(guid, storedValue);
+                    rootConfig.config.Add(guid, value);
 
                 if (currentUi == null)
                     return;

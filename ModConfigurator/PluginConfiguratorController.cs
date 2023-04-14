@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Logging;
 using HarmonyLib;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
@@ -17,6 +18,7 @@ namespace PluginConfig
     public class PluginConfiguratorController : BaseUnityPlugin
     {
         public static PluginConfiguratorController Instance;
+        public static ManualLogSource logger;
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
@@ -183,6 +185,7 @@ namespace PluginConfig
         private void Awake()
         {
             Instance = this;
+            logger = Logger;
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 

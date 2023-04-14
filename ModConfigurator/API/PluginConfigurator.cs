@@ -14,10 +14,12 @@ namespace PluginConfig.API
         /// The plugin button text
         /// </summary>
         public string displayName { private set; get; }
+
         /// <summary>
         /// Plugin id, do not change after releasing. If a change is required, changing the display name is adviced
         /// </summary>
         public string guid { private set; get; }
+
         /// <summary>
         /// The main configuration panel, opened after plugin config button is clicked
         /// </summary>
@@ -79,12 +81,14 @@ namespace PluginConfig.API
         }
 
         /// <summary>
-        /// Write all changes to the config folder. Will not write to the file if no changes are made
+        /// Write all changes to the config folder. Will not write to the file if no changes are made. The config will be flushed when the menu or game is closed.
         /// </summary>
         public void Flush()
         {
             if (!isDirty)
                 return;
+
+            PluginConfiguratorController.logger.LogInfo($"Dirty config detected. Saving configuration for {displayName} : {guid}");
 
             using(FileStream stream = File.OpenWrite(configFilePath))
             {
