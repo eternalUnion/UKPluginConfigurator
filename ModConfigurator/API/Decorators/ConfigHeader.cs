@@ -80,11 +80,6 @@ namespace PluginConfig.API.Decorators
             return header;
         }
 
-        internal override void WriteToFile(FileStream stream)
-        {
-            return;
-        }
-
         internal override void LoadFromString(string data)
         {
             throw new NotImplementedException();

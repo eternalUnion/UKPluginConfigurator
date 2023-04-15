@@ -27,7 +27,6 @@ namespace PluginConfig.API
 
         internal bool isDirty = false;
         internal Dictionary<string, string> config = new Dictionary<string, string>();
-        internal List<ConfigField> fields = new List<ConfigField>();
 
         /// <summary>
         /// File path of the config file including the file name

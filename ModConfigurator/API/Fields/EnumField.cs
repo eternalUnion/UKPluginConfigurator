@@ -120,6 +120,7 @@ namespace PluginConfig.API.Fields
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
             Dropdown dropdown = field.transform.Find("Dropdown").GetComponent<Dropdown>();
+            dropdown.interactable = interactable && parentInteractable;
             dropdown.onValueChanged = new Dropdown.DropdownEvent();
             dropdown.options.Clear();
             dropdown.onValueChanged.AddListener(OnCompValueChange);

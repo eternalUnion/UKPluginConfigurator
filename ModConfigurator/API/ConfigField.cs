@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 using UnityEngine;
 
@@ -66,15 +67,5 @@ namespace PluginConfig.API
         internal abstract string SaveToString();
 
         internal abstract void LoadFromString(string data);
-
-        internal virtual void WriteToFile(FileStream stream)
-        {
-            string fullPath = parentPanel.currentDirectory + '/' + guid;
-            stream.Write(Encoding.ASCII.GetBytes(fullPath), 0, fullPath.Length);
-            stream.WriteByte((byte)'\n');
-            string data = SaveToString();
-            stream.Write(Encoding.ASCII.GetBytes(data), 0, data.Length);
-            stream.WriteByte((byte)'\n');
-        }
     }
 }

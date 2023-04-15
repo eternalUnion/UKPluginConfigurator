@@ -151,11 +151,5 @@ namespace PluginConfig.API
         {
             throw new NotImplementedException();
         }
-
-        internal override void WriteToFile(FileStream stream)
-        {
-            foreach (ConfigField field in fields)
-                field.WriteToFile(stream);
-        }
     }
 }
