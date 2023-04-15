@@ -105,6 +105,7 @@ namespace PluginConfig.API.Fields
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
             InputField input = field.GetComponent<InputField>();
+            input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.None;
             input.text = _value;
             input.onEndEdit.AddListener(OnCompValueChange);
@@ -132,7 +133,8 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
-            field.SetActive(!_hidden);
+            field.SetActive(!_hidden && !parentHidden);
+            SetInteractableColor(interactable && parentInteractable);
             return field;
         }
 

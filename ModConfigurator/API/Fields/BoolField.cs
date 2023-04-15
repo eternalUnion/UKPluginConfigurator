@@ -103,7 +103,7 @@ namespace PluginConfig.API.Fields
             Transform toggle = field.transform.Find("Toggle");
             toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
             toggle.GetComponent<Toggle>().isOn = value;
-            toggle.GetComponent<Toggle>().interactable = _interactable;
+            toggle.GetComponent<Toggle>().interactable = _interactable && parentInteractable;
             toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
             toggle.GetComponent<Toggle>().onValueChanged.AddListener(OnCompValueChange);
 
@@ -130,8 +130,8 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
-            field.SetActive(!_hidden);
-            SetInteractableColor(_interactable);
+            field.SetActive(!_hidden && !parentHidden);
+            SetInteractableColor(_interactable && parentInteractable);
             return field;
         }
 

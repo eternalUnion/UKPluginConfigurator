@@ -166,7 +166,8 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
-            field.SetActive(!_hidden);
+            field.SetActive(!_hidden && !parentHidden);
+            SetInteractableColor(interactable && parentInteractable);
             return field;
         }
 
