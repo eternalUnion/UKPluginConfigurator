@@ -11,6 +11,9 @@ namespace PluginConfig.API.Fields
         private GameObject currentResetButton;
 
         private bool _value;
+        /// <summary>
+        /// Get the value of the field. Setting the value will not call the onValueChange event.
+        /// </summary>
         public bool value
         {
             get => _value; set
@@ -27,17 +30,24 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.transform.Find("Toggle").GetComponent<Toggle>().isOn = value;
+                currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(value);
             }
         }
 
         public bool defaultValue;
+
+        /// <summary>
+        /// Event data passed when the value is changed by the player.
+        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
+        /// New value is passed trough value field and can be changed
+        /// </summary>
         public class BoolValueChangeEvent
         {
             public bool value;
             public bool canceled = false;
         }
-        public Action<BoolValueChangeEvent> onValueChange;
+        public delegate void BoolValueChangeEventDelegate(BoolValueChangeEvent data);
+        public event BoolValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -128,23 +138,21 @@ namespace PluginConfig.API.Fields
         internal void OnCompValueChange(bool val)
         {
             BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
-            onValueChange?.Invoke(eventData);
+            onValueChange.Invoke(eventData);
 
-            if(!eventData.canceled)
-                value = val;
+            if (eventData.canceled)
+            {
+                currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(_value);
+                return;
+            }
+
+            value = eventData.value;
         }
 
         internal void OnReset()
         {
-            if (onValueChange != null)
-            {
-                BoolValueChangeEvent evt = new BoolValueChangeEvent() { value = defaultValue };
-                onValueChange(evt);
-                if (evt.canceled)
-                    return;
-            }
-
-            value = defaultValue;
+            currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(defaultValue);
+            OnCompValueChange(defaultValue);
         }
 
         internal override string SaveToString()

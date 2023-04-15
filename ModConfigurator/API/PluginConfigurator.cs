@@ -11,12 +11,12 @@ namespace PluginConfig.API
     public class PluginConfigurator
     {
         /// <summary>
-        /// The plugin button text
+        /// The text displayed on the plugin button
         /// </summary>
         public string displayName { private set; get; }
 
         /// <summary>
-        /// Plugin id, do not change after releasing. If a change is required, changing the display name is adviced
+        /// Plugin id, do not change after releasing (this field is used to find the path to the config file). If a change is required, changing the display name is adviced
         /// </summary>
         public string guid { private set; get; }
 
@@ -111,7 +111,7 @@ namespace PluginConfig.API
         /// Create a new configurator. Use one instance troughtought the session
         /// </summary>
         /// <param name="displayName">Name of the plugin, displayName will be set to this</param>
-        /// <param name="guid">Id of the plugin, guild will be set to this</param>
+        /// <param name="guid">ID of the plugin, guild will be set to this</param>
         public static PluginConfigurator Create(string displayName, string guid)
         {
             PluginConfigurator config = new PluginConfigurator()

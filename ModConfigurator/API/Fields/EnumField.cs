@@ -1,20 +1,31 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
-    public class EnumValueChangeEvent<T> where T : struct
-    {
-        public T value;
-        public bool canceled = false;
-    }
-
+    /// <summary>
+    /// A field used to create a dropdown list using an enum as its elements. By default, enum's values will be used as the display name but can be changed with <see cref="EnumField{T}.SetEnumDisplayName(T, string)"/>
+    /// Order of the values of the enum can be changed, but name of the values should not be change as they are used in the config file.
+    /// </summary>
+    /// <typeparam name="T">Type of the enum</typeparam>
     public class EnumField<T> : ConfigField where T : struct
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
+
+        private readonly T[] values = Enum.GetValues(typeof(T)) as T[];
+        private Dictionary<T, string> enumNames = new Dictionary<T, string>();
+        public void SetEnumDisplayName(T enumNameToChange, string newName)
+        {
+            enumNames[enumNameToChange] = newName;
+            if(currentUi != null)
+            {
+                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().options[Array.IndexOf(values, enumNameToChange)].text = newName;
+            }
+        }
 
         private T _value;
         public T value
@@ -34,13 +45,24 @@ namespace PluginConfig.API.Fields
                 if (currentUi == null)
                     return;
 
-                T[] values = Enum.GetValues(typeof(T)) as T[];
                 currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, value));
             }
         }
 
         public T defaultValue;
-        public Action<EnumValueChangeEvent<T>> onValueChange;
+
+        /// <summary>
+        /// Event data passed when the value is changed by the player.
+        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
+        /// New value is passed trough value field and can be changed
+        /// </summary>
+        public class EnumValueChangeEvent<F> where F : struct
+        {
+            public F value;
+            public bool canceled = false;
+        }
+        public delegate void EnumValueChangeEventDelegate(EnumValueChangeEvent<T> data);
+        public event EnumValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -67,6 +89,11 @@ namespace PluginConfig.API.Fields
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
 
+            foreach(T value in values)
+            {
+                enumNames.Add(value, value.ToString());
+            }
+
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);
             else
@@ -91,7 +118,7 @@ namespace PluginConfig.API.Fields
             T[] enumVals = Enum.GetValues(typeof(T)) as T[];
             foreach (T val in enumVals)
             {
-                dropdown.options.Add(new Dropdown.OptionData(val.ToString()));
+                dropdown.options.Add(new Dropdown.OptionData(enumNames[val]));
             }
 
 
@@ -134,15 +161,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (onValueChange != null)
-            {
-                EnumValueChangeEvent<T> evt = new EnumValueChangeEvent<T>() { value = defaultValue };
-                onValueChange(evt);
-                if (evt.canceled)
-                    return;
-            }
-
-            value = defaultValue;
+            currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, _value));
+            OnCompValueChange(Array.IndexOf(values, defaultValue));
         }
 
         internal void OnCompValueChange(int val)
@@ -154,26 +174,20 @@ namespace PluginConfig.API.Fields
                 return;
             }
 
-            /*T newValue;
-            if (!Enum.TryParse(values[val], out newValue))
-            {
-                Debug.LogWarning("Could not parse enum");
-                return;
-            }*/
             T newValue = values[val];
-
             if (newValue.Equals(_value))
                 return;
 
             EnumValueChangeEvent<T> eventData = new EnumValueChangeEvent<T>() { value = newValue };
-            onValueChange?.Invoke(eventData);
+            onValueChange.Invoke(eventData);
+
             if (eventData.canceled)
             {
                 currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 
-            value = newValue;
+            value = eventData.value;
         }
 
         internal override string SaveToString()

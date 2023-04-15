@@ -27,17 +27,23 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponent<InputField>().text = value.ToString();
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(value.ToString());
             }
         }
 
         public float defaultValue;
+        /// <summary>
+        /// Event data passed when the value is changed by the player.
+        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
+        /// New value is passed trough value field and can be changed
+        /// </summary>
         public class FloatValueChangeEvent
         {
             public float value;
             public bool canceled = false;
         }
-        public Action<FloatValueChangeEvent> onValueChange;
+        public delegate void FloatValueChangeEventDelegate(FloatValueChangeEvent data);
+        public event FloatValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -114,15 +120,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (onValueChange != null)
-            {
-                FloatValueChangeEvent evt = new FloatValueChangeEvent() { value = defaultValue };
-                onValueChange(evt);
-                if (evt.canceled)
-                    return;
-            }
-
-            value = defaultValue;
+            currentUi.GetComponent<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            OnCompValueChange(defaultValue.ToString());
         }
 
         internal void OnCompValueChange(string val)
@@ -130,7 +129,8 @@ namespace PluginConfig.API.Fields
             float newValue;
             if (!float.TryParse(val, out newValue))
             {
-                currentUi.GetComponent<InputField>().text = _value.ToString();
+                if(currentUi != null)
+                    currentUi.GetComponent<InputField>().text = _value.ToString();
                 return;
             }
 
@@ -138,14 +138,14 @@ namespace PluginConfig.API.Fields
                 return;
 
             FloatValueChangeEvent eventData = new FloatValueChangeEvent() { value = newValue };
-            onValueChange?.Invoke(eventData);
+            onValueChange.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponent<InputField>().text = _value.ToString();
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
-            value = newValue;
+            value = eventData.value;
         }
 
         internal override string SaveToString()

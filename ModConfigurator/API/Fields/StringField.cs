@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
+    /// <summary>
+    /// A field used to store single line of text. This field does not support multi line text.
+    /// </summary>
     public class StringField : ConfigField
     {
         private GameObject currentUi;
@@ -29,17 +32,23 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponent<InputField>().text = value;
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(value.ToString());
             }
         }
 
         public string defaultValue;
+        /// <summary>
+        /// Event data passed when the value is changed by the player.
+        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
+        /// New value is passed trough value field and can be changed
+        /// </summary>
         public class StringValueChangeEvent
         {
             public string value;
             public bool canceled = false;
         }
-        public Action<StringValueChangeEvent> onValueChange;
+        public delegate void StringValueChangeEventDelegate(StringValueChangeEvent data);
+        public event StringValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -116,15 +125,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (onValueChange != null)
-            {
-                StringValueChangeEvent evt = new StringValueChangeEvent() { value = defaultValue };
-                onValueChange(evt);
-                if (evt.canceled)
-                    return;
-            }
-
-            value = defaultValue;
+            currentUi.GetComponent<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            OnCompValueChange(defaultValue);
         }
 
         internal void OnCompValueChange(string val)
@@ -133,14 +135,14 @@ namespace PluginConfig.API.Fields
                 return;
 
             StringValueChangeEvent eventData = new StringValueChangeEvent() { value = val };
-            onValueChange?.Invoke(eventData);
+            onValueChange.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponent<InputField>().text = _value.ToString();
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
-            value = val;
+            value = eventData.value;
         }
 
         internal override string SaveToString()

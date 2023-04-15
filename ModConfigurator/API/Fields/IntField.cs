@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
-    public class IntegerField : ConfigField
+    public class IntField : ConfigField
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
@@ -27,17 +27,23 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponent<InputField>().text = value.ToString();
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(value.ToString());
             }
         }
 
         public int defaultValue;
+        /// <summary>
+        /// Event data passed when the value is changed by the player.
+        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
+        /// New value is passed trough value field and can be changed
+        /// </summary>
         public class IntValueChangeEvent
         {
             public int value;
             public bool canceled = false;
         }
-        public Action<IntValueChangeEvent> onValueChange;
+        public delegate void IntValueChangeEventDelegate(IntValueChangeEvent data);
+        public event IntValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -59,7 +65,7 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public IntegerField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : base(displayName, guid, parentPanel)
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
@@ -114,15 +120,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (onValueChange != null)
-            {
-                IntValueChangeEvent evt = new IntValueChangeEvent() { value = defaultValue };
-                onValueChange(evt);
-                if (evt.canceled)
-                    return;
-            }
-
-            value = defaultValue;
+            currentUi.GetComponent<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            OnCompValueChange(defaultValue.ToString());
         }
 
         internal void OnCompValueChange(string val)
@@ -138,14 +137,14 @@ namespace PluginConfig.API.Fields
                 return;
 
             IntValueChangeEvent eventData = new IntValueChangeEvent() { value = newValue };
-            onValueChange?.Invoke(eventData);
+            onValueChange.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponent<InputField>().text = _value.ToString();
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
-            value = newValue;
+            value = eventData.value;
         }
 
         internal override string SaveToString()

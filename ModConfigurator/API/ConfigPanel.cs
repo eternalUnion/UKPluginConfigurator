@@ -66,13 +66,11 @@ namespace PluginConfig.API
 
         internal ConfigPanel(PluginConfigurator config) : base(config.displayName, "", config)
         {
-            canBeSaved = false;
+
         }
 
         public ConfigPanel(ConfigPanel parentPanel, string name, string guid) : base(name, guid, parentPanel)
         {
-            canBeSaved = false;
-
             parentPanel.Register(this);
             currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }

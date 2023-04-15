@@ -14,6 +14,9 @@ using UnityEngine.UI;
 
 namespace PluginConfig
 {
+    /// <summary>
+    /// Component for the Config Manager plugin
+    /// </summary>
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
     public class PluginConfiguratorController : BaseUnityPlugin
     {
@@ -206,7 +209,7 @@ namespace PluginConfig
                     configuratorPatches.Unpatch(GetStaticMethod<CheatsManager>("HandleCheatBind"), GetStaticMethod<HandleCheatBindPatch>("Prefix"));
                 }
             }
-            patchCheatKeys.onValueChange = CheatKeyListener;
+            patchCheatKeys.onValueChange += CheatKeyListener;
             if (patchCheatKeys.value)
                 CheatKeyListener(new BoolField.BoolValueChangeEvent() { value = true });
 
@@ -223,7 +226,7 @@ namespace PluginConfig
                     configuratorPatches.Unpatch(GetStaticMethod<OptionsManager>("CloseOptions"), GetStaticMethod<CloseOptionsPatch>("Prefix"));
                 }
             }
-            patchPause.onValueChange = UnpauseListener;
+            patchPause.onValueChange += UnpauseListener;
             if (patchPause.value)
                 UnpauseListener(new BoolField.BoolValueChangeEvent() { value = true });
 
