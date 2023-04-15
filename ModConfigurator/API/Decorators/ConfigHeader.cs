@@ -61,11 +61,11 @@ namespace PluginConfig.API.Decorators
                 _hidden = value;
                 if (currentUi == null)
                     return;
-                currentUi.SetActive(!_hidden);
+                currentUi.SetActive(!_hidden && !parentHidden);
             } 
         }
 
-        public override bool interactable { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override bool interactable { get => true; set { } }
 
         internal override GameObject CreateUI(Transform content)
         {

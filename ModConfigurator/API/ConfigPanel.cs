@@ -41,7 +41,7 @@ namespace PluginConfig.API
         internal GameObject panelObject;
         internal GameObject panelButton;
 
-        private List<ConfigField> fields = new List<ConfigField>();
+        protected List<ConfigField> fields = new List<ConfigField>();
         public string currentDirectory { get; private set; }
 
         private bool _hidden = false;
@@ -49,22 +49,39 @@ namespace PluginConfig.API
             get => _hidden; set
             {
                 _hidden = value;
-                panelButton?.SetActive(_hidden);
+                if(panelButton != null)
+                    panelButton.SetActive(!_hidden && !parentHidden);
             } 
         }
 
-        public bool _interactable = true;
+        private void SetInteractableColor(bool interactable)
+        {
+            if (panelButton == null)
+                return;
+
+            panelButton.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+        }
+
+        private bool _interactable = true;
         public override bool interactable
         {
             get => _interactable; set
             {
                 _interactable = value;
                 if (panelButton != null)
-                    panelButton.transform.Find("Select").GetComponent<Button>().interactable = _interactable;
+                {
+                    panelButton.transform.Find("Select").GetComponent<Button>().interactable = _interactable && parentInteractable;
+                    SetInteractableColor(_interactable && parentInteractable);
+                }
             }
         }
 
         internal ConfigPanel(PluginConfigurator config) : base(config.displayName, "", config)
+        {
+
+        }
+
+        internal ConfigPanel(ConfigPanel panel, string name) : base(name, "", panel)
         {
 
         }
@@ -75,7 +92,7 @@ namespace PluginConfig.API
             currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
 
-        internal void Register(ConfigField field)
+        internal virtual void Register(ConfigField field)
         {
             fields.Add(field);
         }

@@ -51,20 +51,32 @@ namespace PluginConfig.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(!_hidden);
+                currentUi?.SetActive(!_hidden && !parentHidden);
             }
         }
 
-        public bool _interactable = true;
+        private void SetInteractableColor(bool interactable)
+        {
+            if (currentUi == null)
+                return;
+
+            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+        }
+
+        private bool _interactable = true;
         public override bool interactable
         {
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.GetComponent<InputField>().interactable = _interactable;
+                currentUi.GetComponent<InputField>().interactable = _interactable && parentInteractable;
+                SetInteractableColor(_interactable && parentInteractable);
             }
         }
 
+        public float minimumValue = float.MinValue;
+        public float maximumValue = float.MaxValue;
+        public bool setToNearestValidValueOnUnvalidInput = true;
         public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
@@ -80,6 +92,22 @@ namespace PluginConfig.API.Fields
             }
         }
 
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue) : this(parentPanel, displayName, guid, defaultValue)
+        {
+            this.minimumValue = minimumValue;
+            this.maximumValue = maximumValue;
+
+            if (minimumValue > maximumValue)
+                throw new ArgumentException($"Float field {guid} has its minimum value larger than maximum value");
+            if (defaultValue < minimumValue || defaultValue > maximumValue)
+                throw new ArgumentException($"Float field {guid} has a range of [{minimumValue}, {maximumValue}], but its default value is {defaultValue}");
+        }
+
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue)
+        {
+            this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
+        }
+
         internal override GameObject CreateUI(Transform content)
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
@@ -88,7 +116,7 @@ namespace PluginConfig.API.Fields
 
             InputField input = field.GetComponent<InputField>();
             input.characterValidation = InputField.CharacterValidation.Decimal;
-            input.text = _value.ToString();
+            input.SetTextWithoutNotify(_value.ToString());
             input.onEndEdit.AddListener(OnCompValueChange);
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
@@ -107,7 +135,7 @@ namespace PluginConfig.API.Fields
 
             EventTrigger trigger = field.AddComponent<EventTrigger>();
             EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable) currentResetButton.SetActive(true); });
+            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
             EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
@@ -120,6 +148,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
+            if (!interactable || !parentInteractable)
+                return;
             currentUi.GetComponent<InputField>().SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue.ToString());
         }
@@ -130,15 +160,36 @@ namespace PluginConfig.API.Fields
             if (!float.TryParse(val, out newValue))
             {
                 if(currentUi != null)
-                    currentUi.GetComponent<InputField>().text = _value.ToString();
+                    currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
                 return;
+            }
+
+            if (newValue < minimumValue)
+            {
+                if (setToNearestValidValueOnUnvalidInput)
+                    newValue = minimumValue;
+                else
+                {
+                    currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
+                    return;
+                }
+            }
+            else if (newValue > maximumValue)
+            {
+                if (setToNearestValidValueOnUnvalidInput)
+                    newValue = maximumValue;
+                else
+                {
+                    currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
+                    return;
+                }
             }
 
             if (newValue == _value)
                 return;
 
             FloatValueChangeEvent eventData = new FloatValueChangeEvent() { value = newValue };
-            onValueChange.Invoke(eventData);
+            onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
                 currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());

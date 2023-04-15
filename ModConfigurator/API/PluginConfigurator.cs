@@ -80,12 +80,13 @@ namespace PluginConfig.API
             }
         }
 
+        public bool saveToFile = true;
         /// <summary>
         /// Write all changes to the config folder. Will not write to the file if no changes are made. The config will be flushed when the menu or game is closed.
         /// </summary>
         public void Flush()
         {
-            if (!isDirty)
+            if (!isDirty || !saveToFile)
                 return;
 
             PluginConfiguratorController.logger.LogInfo($"Dirty config detected. Saving configuration for {displayName} : {guid}");

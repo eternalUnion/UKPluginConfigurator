@@ -56,12 +56,12 @@ namespace PluginConfig.API.Fields
         /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
         /// New value is passed trough value field and can be changed
         /// </summary>
-        public class EnumValueChangeEvent<F> where F : struct
+        public class EnumValueChangeEvent
         {
-            public F value;
+            public T value;
             public bool canceled = false;
         }
-        public delegate void EnumValueChangeEventDelegate(EnumValueChangeEvent<T> data);
+        public delegate void EnumValueChangeEventDelegate(EnumValueChangeEvent data);
         public event EnumValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
@@ -70,17 +70,26 @@ namespace PluginConfig.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(!_hidden);
+                currentUi?.SetActive(!_hidden && !parentHidden);
             }
         }
 
-        public bool _interactable = true;
+        private void SetInteractableColor(bool interactable)
+        {
+            if (currentUi == null)
+                return;
+
+            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+        }
+
+        private bool _interactable = true;
         public override bool interactable
         {
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().interactable = _interactable;
+                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().interactable = _interactable && parentInteractable;
+                SetInteractableColor(_interactable && parentInteractable);
             }
         }
 
@@ -114,13 +123,15 @@ namespace PluginConfig.API.Fields
             dropdown.onValueChanged = new Dropdown.DropdownEvent();
             dropdown.options.Clear();
             dropdown.onValueChanged.AddListener(OnCompValueChange);
+            ColorBlock colors = dropdown.colors;
+            colors.disabledColor = new Color(dropdown.colors.normalColor.r / 2, dropdown.colors.normalColor.g / 2, dropdown.colors.normalColor.b / 2);
+            dropdown.colors = colors;
 
             T[] enumVals = Enum.GetValues(typeof(T)) as T[];
             foreach (T val in enumVals)
             {
                 dropdown.options.Add(new Dropdown.OptionData(enumNames[val]));
             }
-
 
             int index = -1;
             for(int i = 0; i < enumVals.Length; i++)
@@ -148,7 +159,7 @@ namespace PluginConfig.API.Fields
 
             EventTrigger trigger = field.AddComponent<EventTrigger>();
             EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable) currentResetButton.SetActive(true); });
+            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
             EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
@@ -161,6 +172,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
+            if (!interactable || !parentInteractable)
+                return;
             currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, _value));
             OnCompValueChange(Array.IndexOf(values, defaultValue));
         }
@@ -178,8 +191,8 @@ namespace PluginConfig.API.Fields
             if (newValue.Equals(_value))
                 return;
 
-            EnumValueChangeEvent<T> eventData = new EnumValueChangeEvent<T>() { value = newValue };
-            onValueChange.Invoke(eventData);
+            EnumValueChangeEvent eventData = new EnumValueChangeEvent() { value = newValue };
+            onValueChange?.Invoke(eventData);
 
             if (eventData.canceled)
             {

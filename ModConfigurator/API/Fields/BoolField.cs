@@ -55,7 +55,7 @@ namespace PluginConfig.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(!_hidden);
+                currentUi?.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -68,14 +68,14 @@ namespace PluginConfig.API.Fields
             currentUi.transform.Find("Toggle/Background/Checkmark").GetComponent<Image>().color = interactable ? Color.white : Color.gray;
         }
 
-        public bool _interactable = true;
+        private bool _interactable = true;
         public override bool interactable
         {
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.transform.Find("Toggle").GetComponent<Toggle>().interactable = _interactable;
-                SetInteractableColor(value);
+                currentUi.transform.Find("Toggle").GetComponent<Toggle>().interactable = _interactable && parentInteractable;
+                SetInteractableColor(_interactable && parentInteractable);
             }
         }
 
@@ -123,7 +123,7 @@ namespace PluginConfig.API.Fields
 
             EventTrigger trigger = field.AddComponent<EventTrigger>();
             EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable) currentResetButton.SetActive(true); });
+            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
             EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
@@ -138,7 +138,7 @@ namespace PluginConfig.API.Fields
         internal void OnCompValueChange(bool val)
         {
             BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
-            onValueChange.Invoke(eventData);
+            onValueChange?.Invoke(eventData);
 
             if (eventData.canceled)
             {
@@ -151,6 +151,8 @@ namespace PluginConfig.API.Fields
 
         internal void OnReset()
         {
+            if (!interactable || !parentInteractable)
+                return;
             currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(defaultValue);
             OnCompValueChange(defaultValue);
         }

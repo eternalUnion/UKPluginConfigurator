@@ -185,12 +185,71 @@ namespace PluginConfig
         private BoolField patchCheatKeys;
         private BoolField patchPause;
 
+        internal enum TestEnum
+        {
+            SampleText,
+            SecondElement,
+            Third
+        }
+
+        private void ConfigTest()
+        {
+            PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
+            divConfig.saveToFile = false;
+
+            BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
+            BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
+            BoolField interactable1 = new BoolField(divConfig.rootPanel, "Enable interacable 1", "interactable1", true);
+            BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
+
+            ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1", "div1");
+            new ConfigHeader(div1, "Division 1");
+            new IntField(div1, "Sample Field", "sampleField1", 0);
+            ConfigDivision div2 = new ConfigDivision(div1, "div2", "div2");
+            new ConfigHeader(div2, "Division 2");
+            new BoolField(div2, "Sample Field", "sampleField2", true);
+            new ConfigPanel(div2, "SamplePanel", "samplePanel");
+            EnumField<TestEnum> enumField = new EnumField<TestEnum>(div2, "Sample Enum", "sampleEnum1", TestEnum.SampleText);
+            enumField.SetEnumDisplayName(TestEnum.SampleText, "Sample Text");
+            enumField.SetEnumDisplayName(TestEnum.SecondElement, "Second Element");
+            enumField.SetEnumDisplayName(TestEnum.Third, "Third");
+
+            enabler1.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+            {
+                div1.hidden = !data.value;
+            };
+            enabler2.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+            {
+                div2.hidden = !data.value;
+            };
+            interactable1.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+            {
+                div1.interactable = data.value;
+            };
+            interactable2.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+            {
+                div2.interactable = data.value;
+            };
+
+            PluginConfigurator rangeConfig = PluginConfigurator.Create("Range", "rangeTest");
+            rangeConfig.saveToFile = false;
+
+            new IntField(rangeConfig.rootPanel, "-5 to 5 near", "intrange1", 0, -5, 5, true);
+            new IntField(rangeConfig.rootPanel, "-5 to 5 invalid", "intrange2", 0, -5, 5, false);
+            new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 near", "floatrange1", 0, -2.5f, 2.5f, true);
+            new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
+            new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
+            new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
+        }
+
         private void Awake()
         {
             Instance = this;
             logger = Logger;
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
+            // TEST
+            ConfigTest();
 
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);

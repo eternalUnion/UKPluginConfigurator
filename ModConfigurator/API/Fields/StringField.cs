@@ -56,23 +56,36 @@ namespace PluginConfig.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(!_hidden);
+                currentUi?.SetActive(!_hidden && !parentHidden);
             }
         }
 
-        public bool _interactable = true;
+        private void SetInteractableColor(bool interactable)
+        {
+            if (currentUi == null)
+                return;
+
+            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+        }
+
+        private bool _interactable = true;
         public override bool interactable
         {
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.GetComponent<InputField>().interactable = _interactable;
+                currentUi.GetComponent<InputField>().interactable = _interactable && parentInteractable;
+                SetInteractableColor(_interactable && parentInteractable);
             }
         }
 
-        public StringField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue) : base(displayName, guid, parentPanel)
+        public bool allowEmptyValues;
+        public StringField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue, bool allowEmptyValues = false) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
+            this.allowEmptyValues = allowEmptyValues;
+            if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
+                throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
             parentPanel.Register(this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
@@ -112,7 +125,7 @@ namespace PluginConfig.API.Fields
 
             EventTrigger trigger = field.AddComponent<EventTrigger>();
             EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable) currentResetButton.SetActive(true); });
+            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
             EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
             mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
             trigger.triggers.Add(mouseOn);
@@ -125,6 +138,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
+            if (!interactable || !parentInteractable)
+                return;
             currentUi.GetComponent<InputField>().SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue);
         }
@@ -134,8 +149,14 @@ namespace PluginConfig.API.Fields
             if (val == _value)
                 return;
 
+            if (!allowEmptyValues && String.IsNullOrWhiteSpace(val))
+            {
+                currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
+                return;
+            }
+
             StringValueChangeEvent eventData = new StringValueChangeEvent() { value = val };
-            onValueChange.Invoke(eventData);
+            onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
                 currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
