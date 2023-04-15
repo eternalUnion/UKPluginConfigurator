@@ -31,6 +31,7 @@ namespace PluginConfig.API
         public ConfigDivision(ConfigPanel panel, string name, string guid) : base(panel, name)
         {
             panel.Register(this);
+            currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
 
         internal override void Register(ConfigField field)

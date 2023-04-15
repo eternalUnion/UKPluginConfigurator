@@ -13,11 +13,13 @@
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 	<OutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator</OutputPath>
-	<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+	<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
 
 	<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
 
 	<RootNamespace>PluginConfig</RootNamespace>
+
+	<GenerateDocumentationFile>False</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

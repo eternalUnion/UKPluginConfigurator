@@ -38,6 +38,7 @@ namespace PluginConfig
         internal GameObject sampleMenu;
         internal GameObject sampleHeader;
         internal GameObject sampleDropdown;
+        internal GameObject sampleColor;
         private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
@@ -48,6 +49,8 @@ namespace PluginConfig
             sampleHeader = optionsMenu.Find("Video Options/Scroll Rect/Contents/Text (5)").gameObject;
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Weapon Position
             sampleDropdown = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Weapon Position").gameObject;
+            //Canvas/OptionsMenu/ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation/
+            sampleColor = optionsMenu.Find("ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation").gameObject;
         }
 
         internal GameObject MakeInputField(Transform content)
@@ -195,7 +198,7 @@ namespace PluginConfig
         private void ConfigTest()
         {
             PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
-            divConfig.saveToFile = false;
+            divConfig.saveToFile = true;
 
             BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
             BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
@@ -209,6 +212,11 @@ namespace PluginConfig
             new ConfigHeader(div2, "Division 2");
             new BoolField(div2, "Sample Field", "sampleField2", true);
             new ConfigPanel(div2, "SamplePanel", "samplePanel");
+            ColorField colorField = new ColorField(div2, "Sample Color", "sampleColor", new Color(0.3f, 0.2f, 0.1f));
+            colorField.onValueChange += (ColorField.ColorValueChangeEvent data) =>
+            {
+                Logger.LogInfo($"New color: {data.value}");
+            };
             EnumField<TestEnum> enumField = new EnumField<TestEnum>(div2, "Sample Enum", "sampleEnum1", TestEnum.SampleText);
             enumField.SetEnumDisplayName(TestEnum.SampleText, "Sample Text");
             enumField.SetEnumDisplayName(TestEnum.SecondElement, "Second Element");

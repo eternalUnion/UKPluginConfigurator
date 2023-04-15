@@ -42,7 +42,7 @@ namespace PluginConfig.API
         internal GameObject panelButton;
 
         protected List<ConfigField> fields = new List<ConfigField>();
-        public string currentDirectory { get; private set; }
+        public string currentDirectory { get; protected set; }
 
         private bool _hidden = false;
         public override bool hidden { 
