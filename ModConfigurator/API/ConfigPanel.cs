@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API
 {
-    public class ConfigPanelComponent : MonoBehaviour
+    class ConfigPanelComponent : MonoBehaviour
     {
         public ConfigPanel panel;
 
@@ -33,13 +33,16 @@ namespace PluginConfig.API
         }
     }
 
+    /// <summary>
+    /// A panel for holding fields.
+    /// </summary>
     public class ConfigPanel : ConfigField
     {
         internal GameObject panelObject;
         internal GameObject panelButton;
 
         private List<ConfigField> fields = new List<ConfigField>();
-        public string currentDirectory = "";
+        public string currentDirectory { get; private set; }
 
         private bool _hidden = false;
         public override bool hidden { 

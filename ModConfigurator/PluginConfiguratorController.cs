@@ -77,7 +77,6 @@ namespace PluginConfig
             return field;
         }
 
-        public Transform configPanelContents;
         private void CreateConfigUI()
         {
             foreach(PluginConfig.API.PluginConfigurator config in configs)
@@ -92,6 +91,7 @@ namespace PluginConfig
             }
         }
 
+        internal Transform configPanelContents;
         internal Transform optionsMenu;
         internal GameObject mainPanel;
         internal GameObject activePanel;

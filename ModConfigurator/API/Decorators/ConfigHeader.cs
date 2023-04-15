@@ -5,6 +5,9 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Decorators
 {
+    /// <summary>
+    /// Centered text used to separate fields.
+    /// </summary>
     public class ConfigHeader : ConfigField
     {
         private GameObject currentUi;
