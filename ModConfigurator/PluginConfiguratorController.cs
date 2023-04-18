@@ -257,7 +257,7 @@ namespace PluginConfig
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
             // TEST CONFIGS
-            ConfigTest();
+            // ConfigTest();
 
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);

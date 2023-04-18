@@ -69,8 +69,11 @@ namespace PluginConfig.API.Fields
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.GetComponent<InputField>().interactable = _interactable && parentInteractable;
-                SetInteractableColor(_interactable && parentInteractable);
+                if (currentUi != null)
+                {
+                    currentUi.GetComponent<InputField>().interactable = _interactable && parentInteractable;
+                    SetInteractableColor(_interactable && parentInteractable);
+                }
             }
         }
 
@@ -199,6 +202,11 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+        }
+
+        public void TriggerValueChangeEvent()
+        {
+            onValueChange?.Invoke(new FloatValueChangeEvent() { value = _value });
         }
 
         internal override void LoadFromString(string data)

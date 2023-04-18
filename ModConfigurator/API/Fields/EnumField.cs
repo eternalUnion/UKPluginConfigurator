@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static PluginConfig.API.Fields.ColorField;
 
 namespace PluginConfig.API.Fields
 {
@@ -88,8 +89,11 @@ namespace PluginConfig.API.Fields
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().interactable = _interactable && parentInteractable;
-                SetInteractableColor(_interactable && parentInteractable);
+                if (currentUi != null)
+                {
+                    currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().interactable = _interactable && parentInteractable;
+                    SetInteractableColor(_interactable && parentInteractable);
+                }
             }
         }
 
@@ -203,6 +207,11 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+        }
+
+        public void TriggerValueChangeEvent()
+        {
+            onValueChange?.Invoke(new EnumValueChangeEvent() { value = _value });
         }
 
         internal override void LoadFromString(string data)

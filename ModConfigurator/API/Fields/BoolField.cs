@@ -74,8 +74,11 @@ namespace PluginConfig.API.Fields
             get => _interactable; set
             {
                 _interactable = value;
-                currentUi.transform.Find("Toggle").GetComponent<Toggle>().interactable = _interactable && parentInteractable;
-                SetInteractableColor(_interactable && parentInteractable);
+                if (currentUi != null)
+                {
+                    currentUi.transform.Find("Toggle").GetComponent<Toggle>().interactable = _interactable && parentInteractable;
+                    SetInteractableColor(_interactable && parentInteractable);
+                }
             }
         }
 
@@ -155,6 +158,11 @@ namespace PluginConfig.API.Fields
                 return;
             currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(defaultValue);
             OnCompValueChange(defaultValue);
+        }
+
+        public void TriggerValueChangeEvent()
+        {
+            onValueChange?.Invoke(new BoolValueChangeEvent() { value = _value });
         }
 
         internal override void LoadFromString(string data)

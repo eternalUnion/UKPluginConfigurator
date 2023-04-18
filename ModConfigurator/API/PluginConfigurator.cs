@@ -80,14 +80,26 @@ namespace PluginConfig.API
             }
         }
 
+        public delegate void PostConfigChangeEvent();
+        /// <summary>
+        /// Triggered after the config is flushed (either by a menu close, a game quit or by a call)
+        /// </summary>
+        public event PostConfigChangeEvent postConfigChange;
+
         public bool saveToFile = true;
         /// <summary>
         /// Write all changes to the config folder. Will not write to the file if no changes are made. The config will be flushed when the menu or game is closed.
         /// </summary>
         public void Flush()
         {
-            if (!isDirty || !saveToFile)
+            if (!isDirty)
                 return;
+
+            if (!saveToFile)
+            {
+                postConfigChange?.Invoke();
+                return;
+            }
 
             PluginConfiguratorController.logger.LogInfo($"Dirty config detected. Saving configuration for {displayName} : {guid}");
 
@@ -106,6 +118,7 @@ namespace PluginConfig.API
             }
 
             isDirty = false;
+            postConfigChange?.Invoke();
         }
 
         /// <summary>

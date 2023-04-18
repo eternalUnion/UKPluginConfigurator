@@ -4,6 +4,7 @@ using System.Text;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine;
+using static PluginConfig.API.Fields.BoolField;
 
 namespace PluginConfig.API.Fields
 {
@@ -148,10 +149,13 @@ namespace PluginConfig.API.Fields
             get => _interactable; set
             {
                 _interactable = value;
-                r.interactable = _interactable && parentInteractable;
-                g.interactable = _interactable && parentInteractable;
-                b.interactable = _interactable && parentInteractable;
-                SetInteractableColor(_interactable && parentInteractable);
+                if (currentUi != null)
+                {
+                    r.interactable = _interactable && parentInteractable;
+                    g.interactable = _interactable && parentInteractable;
+                    b.interactable = _interactable && parentInteractable;
+                    SetInteractableColor(_interactable && parentInteractable);
+                }
             }
         }
 
@@ -275,6 +279,11 @@ namespace PluginConfig.API.Fields
                 return;
             SetSliders(defaultValue);
             OnCompValueChange();
+        }
+
+        public void TriggerValueChangeEvent()
+        {
+            onValueChange?.Invoke(new ColorValueChangeEvent() { value = _value });
         }
 
         internal override void LoadFromString(string data)
