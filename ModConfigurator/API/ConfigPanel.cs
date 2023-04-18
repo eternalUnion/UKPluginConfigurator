@@ -27,7 +27,8 @@ namespace PluginConfig.API
                 }
                 else
                 {
-                    panel.parentPanel.panelObject.SetActive(true);
+                    //panel.parentPanel.panelObject.SetActive(true);
+                    panel.parentPanel.ActivatePanel();
                 }
             });
         }
@@ -97,6 +98,17 @@ namespace PluginConfig.API
             fields.Add(field);
         }
 
+        internal virtual void ActivatePanel()
+        {
+            if (panelObject != null)
+                panelObject.SetActive(true);
+        }
+
+        internal virtual GameObject GetPanel()
+        {
+            return panelObject;
+        }
+
         internal override GameObject CreateUI(Transform content)
         {
             GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
@@ -115,7 +127,7 @@ namespace PluginConfig.API
             if (parentPanel == null)
                 esc.previousPage = PluginConfiguratorController.Instance.mainPanel;
             else
-                esc.previousPage = parentPanel.panelObject;
+                esc.previousPage = parentPanel.GetPanel();
 
             foreach (ConfigField config in fields)
                 config.CreateUI(contents);
@@ -140,11 +152,6 @@ namespace PluginConfig.API
             }
 
             return panel;
-        }
-
-        internal override string SaveToString()
-        {
-            throw new NotImplementedException();
         }
 
         internal override void LoadFromString(string data)

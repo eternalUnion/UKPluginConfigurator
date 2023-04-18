@@ -157,11 +157,6 @@ namespace PluginConfig.API.Fields
             OnCompValueChange(defaultValue);
         }
 
-        internal override string SaveToString()
-        {
-            return _value ? "true" : "false";
-        }
-
         internal override void LoadFromString(string data)
         {
             if (data == "true")

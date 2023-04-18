@@ -168,11 +168,6 @@ namespace PluginConfig.API.Fields
             value = eventData.value;
         }
 
-        internal override string SaveToString()
-        {
-            return _value.Replace("\n", "");
-        }
-
         internal override void LoadFromString(string data)
         {
             _value = data;

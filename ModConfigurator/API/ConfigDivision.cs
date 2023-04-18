@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API
 {
-    internal class ConfigDivision : ConfigPanel
+    public class ConfigDivision : ConfigPanel
     {
         public override bool hidden { get => base.hidden; set
             {
@@ -28,7 +28,7 @@ namespace PluginConfig.API
             }
         }
 
-        public ConfigDivision(ConfigPanel panel, string name, string guid) : base(panel, name)
+        public ConfigDivision(ConfigPanel panel, string guid) : base(panel, guid)
         {
             panel.Register(this);
             currentDirectory = parentPanel.currentDirectory + '/' + guid;
@@ -37,6 +37,17 @@ namespace PluginConfig.API
         internal override void Register(ConfigField field)
         {
             fields.Add(field);
+        }
+
+        internal override void ActivatePanel()
+        {
+            if (parentPanel != null)
+                parentPanel.ActivatePanel();
+        }
+
+        internal override GameObject GetPanel()
+        {
+            return parentPanel.GetPanel();
         }
 
         internal override GameObject CreateUI(Transform content)

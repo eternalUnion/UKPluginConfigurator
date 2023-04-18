@@ -205,11 +205,6 @@ namespace PluginConfig.API.Fields
             value = eventData.value;
         }
 
-        internal override string SaveToString()
-        {
-            return _value.ToString();
-        }
-
         internal override void LoadFromString(string data)
         {
             if (Enum.TryParse<T>(data, out T newValue))

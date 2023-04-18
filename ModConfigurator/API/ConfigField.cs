@@ -64,8 +64,6 @@ namespace PluginConfig.API
 
         internal abstract GameObject CreateUI(Transform content);
 
-        internal abstract string SaveToString();
-
         internal abstract void LoadFromString(string data);
     }
 }

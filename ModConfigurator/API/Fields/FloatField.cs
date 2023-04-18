@@ -201,11 +201,6 @@ namespace PluginConfig.API.Fields
             value = eventData.value;
         }
 
-        internal override string SaveToString()
-        {
-            return _value.ToString();
-        }
-
         internal override void LoadFromString(string data)
         {
             if (float.TryParse(data, out float newValue))

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
@@ -72,20 +73,18 @@ namespace PluginConfig.API.Decorators
             GameObject header = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleHeader, content);
             currentUi = header;
 
-            header.GetComponent<Text>().text = _text;
-            header.GetComponent<Text>().fontSize = _textSize;
-            header.GetComponent<Text>().color = _textColor;
+            Text text = header.GetComponent<Text>();
+            text.text = _text;
+            text.fontSize = _textSize;
+            text.color = _textColor;
+            RectTransform rect = header.GetComponent<RectTransform>();
+            rect.sizeDelta *= new Vector2(1f, 0.5f);
             
             header.SetActive(!_hidden);
             return header;
         }
 
         internal override void LoadFromString(string data)
-        {
-            throw new NotImplementedException();
-        }
-
-        internal override string SaveToString()
         {
             throw new NotImplementedException();
         }

@@ -205,10 +205,10 @@ namespace PluginConfig
             BoolField interactable1 = new BoolField(divConfig.rootPanel, "Enable interacable 1", "interactable1", true);
             BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
 
-            ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1", "div1");
+            ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
             new ConfigHeader(div1, "Division 1");
             new IntField(div1, "Sample Field", "sampleField1", 0);
-            ConfigDivision div2 = new ConfigDivision(div1, "div2", "div2");
+            ConfigDivision div2 = new ConfigDivision(div1, "div2");
             new ConfigHeader(div2, "Division 2");
             new BoolField(div2, "Sample Field", "sampleField2", true);
             new ConfigPanel(div2, "SamplePanel", "samplePanel");
@@ -256,8 +256,8 @@ namespace PluginConfig
             logger = Logger;
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
-            // TEST
-            // ConfigTest();
+            // TEST CONFIGS
+            ConfigTest();
 
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);

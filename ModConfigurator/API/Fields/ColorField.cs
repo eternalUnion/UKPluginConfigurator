@@ -62,6 +62,7 @@ namespace PluginConfig.API.Fields
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
+        private ColorFieldComponent currentImage;
         private Slider r;
         private Slider g;
         private Slider b;
@@ -73,6 +74,7 @@ namespace PluginConfig.API.Fields
             r.SetValueWithoutNotify(c.r);
             g.SetValueWithoutNotify(c.g);
             b.SetValueWithoutNotify(c.b);
+            currentImage.SetColor(c.r, c.g, c.b);
 
             Debug.Log($"Setting to {c}");
         }
@@ -177,27 +179,29 @@ namespace PluginConfig.API.Fields
             float delta = 300;
             float halfDelta = delta / 2;
             RectTransform fieldRect = field.GetComponent<RectTransform>();
-            fieldRect.sizeDelta = new Vector2(fieldRect.sizeDelta.x + delta, fieldRect.sizeDelta.y);
+            fieldRect.sizeDelta = new Vector2(fieldRect.sizeDelta.x + delta, /*fieldRect.sizeDelta.y*/100);
             fieldRect.anchoredPosition += new Vector2(halfDelta, 0);
             RectTransform imageRect = field.transform.Find("Image").GetComponent<RectTransform>();
-            imageRect.anchoredPosition -= new Vector2(halfDelta, 0);
+            imageRect.anchoredPosition -= new Vector2(halfDelta, -8);
             RectTransform rRect = field.transform.Find("Red").GetComponent<RectTransform>();
-            rRect.anchoredPosition -= new Vector2(halfDelta, 0);
+            rRect.anchoredPosition -= new Vector2(halfDelta, -8);
             rRect.transform.Find("Text (1)").GetComponent<RectTransform>().anchoredPosition += new Vector2(halfDelta, 0);
             RectTransform gRect = field.transform.Find("Green").GetComponent<RectTransform>();
-            gRect.anchoredPosition -= new Vector2(halfDelta, 0);
+            gRect.anchoredPosition -= new Vector2(halfDelta, -8);
             gRect.transform.Find("Text (1)").GetComponent<RectTransform>().anchoredPosition += new Vector2(halfDelta, 0);
             RectTransform bRect = field.transform.Find("Blue").GetComponent<RectTransform>();
-            bRect.anchoredPosition -= new Vector2(halfDelta, 0);
+            bRect.anchoredPosition -= new Vector2(halfDelta, -8);
             bRect.transform.Find("Text (1)").GetComponent<RectTransform>().anchoredPosition += new Vector2(halfDelta, 0);
             RectTransform textRect = field.transform.Find("Text").GetComponent<RectTransform>();
-            textRect.anchoredPosition += new Vector2(9, 0);
+            textRect.anchoredPosition += new Vector2(9, -7);
+            textRect.sizeDelta = new Vector2(0, 20);
             Text textComp = textRect.GetComponent<Text>();
             textComp.resizeTextForBestFit = true;
             textComp.alignment = TextAnchor.MiddleLeft;
             textComp.text = displayName;
 
             ColorFieldComponent comp = field.AddComponent<ColorFieldComponent>();
+            currentImage = comp;
             comp.image = imageRect.GetComponent<Image>();
             comp.SetColor(_value.r, _value.g, _value.b);
 
@@ -226,7 +230,8 @@ namespace PluginConfig.API.Fields
             RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
             resetRect.anchorMax = new Vector2(1, 0.5f);
             resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
+            resetRect.sizeDelta = new Vector2(80, 80);
+            resetRect.anchoredPosition = new Vector2(-90, 0);
             resetRect.anchoredPosition = new Vector2(-85, 0);
             Button resetComp = currentResetButton.GetComponent<Button>();
             resetComp.onClick = new Button.ButtonClickedEvent();
@@ -270,11 +275,6 @@ namespace PluginConfig.API.Fields
                 return;
             SetSliders(defaultValue);
             OnCompValueChange();
-        }
-
-        internal override string SaveToString()
-        {
-            return StringifyColor(_value);
         }
 
         internal override void LoadFromString(string data)
