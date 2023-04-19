@@ -37,6 +37,7 @@ namespace PluginConfig.API
         internal override void Register(ConfigField field)
         {
             fields.Add(field);
+            GetPanel().Register(field);
         }
 
         internal override void ActivatePanel()
@@ -45,15 +46,20 @@ namespace PluginConfig.API
                 parentPanel.ActivatePanel();
         }
 
-        internal override GameObject GetPanel()
+        internal override GameObject GetPanelObj()
+        {
+            return parentPanel.GetPanelObj();
+        }
+
+        internal override ConfigPanel GetPanel()
         {
             return parentPanel.GetPanel();
         }
 
         internal override GameObject CreateUI(Transform content)
         {
-            foreach (ConfigField field in fields)
-                field.CreateUI(content);
+            //foreach (ConfigField field in fields)
+            //    field.CreateUI(content);
             return null;
         }
     }

@@ -104,9 +104,14 @@ namespace PluginConfig.API
                 panelObject.SetActive(true);
         }
 
-        internal virtual GameObject GetPanel()
+        internal virtual GameObject GetPanelObj()
         {
             return panelObject;
+        }
+
+        internal virtual ConfigPanel GetPanel()
+        {
+            return this;
         }
 
         internal override GameObject CreateUI(Transform content)
@@ -127,7 +132,7 @@ namespace PluginConfig.API
             if (parentPanel == null)
                 esc.previousPage = PluginConfiguratorController.Instance.mainPanel;
             else
-                esc.previousPage = parentPanel.GetPanel();
+                esc.previousPage = parentPanel.GetPanelObj();
 
             foreach (ConfigField config in fields)
                 config.CreateUI(contents);

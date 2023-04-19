@@ -60,6 +60,12 @@ namespace PluginConfig.API
             this.guid = guid;
             this.parentPanel = parentPanel;
             this.rootConfig = parentPanel.rootConfig;
+
+            if(parentPanel is ConfigDivision div)
+            {
+                this._parentHidden = div.hidden || div.parentHidden;
+                this._parentInteractable = div.interactable && div.parentInteractable;
+            }
         }
 
         internal abstract GameObject CreateUI(Transform content);
