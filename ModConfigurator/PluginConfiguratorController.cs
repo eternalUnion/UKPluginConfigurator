@@ -117,9 +117,10 @@ namespace PluginConfig
             Button btn = ___newBtn.GetComponent<Button>();
             btn.onClick.AddListener(() =>
             {
-                PluginConfiguratorController.Instance.activePanel?.SetActive(false);
-                PluginConfiguratorController.Instance.activePanel = null;
-                PluginConfiguratorController.Instance.mainPanel?.SetActive(false);
+                if(Instance.activePanel != null)
+                    Instance.activePanel.SetActive(false);
+                Instance.activePanel = null;
+                Instance.mainPanel.SetActive(false);
             });
         }
 
