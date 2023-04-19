@@ -5,6 +5,7 @@ using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
 using PluginConfig.Patches;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -30,6 +31,7 @@ namespace PluginConfig
     {
         public static PluginConfiguratorController Instance;
         public static ManualLogSource logger;
+        public static bool ultraTweaker = false;
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
@@ -110,11 +112,23 @@ namespace PluginConfig
             }
         }
 
+        static void HandleUltraTweakerUI(GameObject ___newBtn)
+        {
+            Button btn = ___newBtn.GetComponent<Button>();
+            btn.onClick.AddListener(() =>
+            {
+                PluginConfiguratorController.Instance.activePanel?.SetActive(false);
+                PluginConfiguratorController.Instance.activePanel = null;
+                PluginConfiguratorController.Instance.mainPanel?.SetActive(false);
+            });
+        }
+
         internal Transform configPanelContents;
         internal Transform optionsMenu;
         internal GameObject mainPanel;
         internal GameObject activePanel;
         internal Button backButton;
+        internal Harmony ultraTweakerHarmony = new Harmony(PLUGIN_GUID + "_ultraTweakerPatches");
         private void OnSceneChange(Scene before, Scene after)
         {
             GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
@@ -125,7 +139,17 @@ namespace PluginConfig
             if (optionsMenu == null)
                 return;
             optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
-            
+
+            ultraTweakerHarmony.UnpatchSelf();
+            ultraTweaker = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("waffle.ultrakill.ultratweaker");
+            if (ultraTweaker)
+            {
+                Logger.LogInfo("Ultra Tweaker detected");
+                Type SettingUIHandler = Type.GetType("UltraTweaker.Handlers.SettingUIHandler, UltraTweaker");
+                MethodInfo ultraTweakerUIMethod = SettingUIHandler.GetMethod("CreateUI", BindingFlags.Static | BindingFlags.Public);
+                ultraTweakerHarmony.Patch(ultraTweakerUIMethod, postfix: new HarmonyMethod(typeof(PluginConfiguratorController).GetMethod("HandleUltraTweakerUI", BindingFlags.NonPublic | BindingFlags.Static)));
+            }
+
             LoadSamples(optionsMenu);
             backButton = optionsMenu.transform.Find("Back").GetComponent<Button>();
 
@@ -134,7 +158,7 @@ namespace PluginConfig
             GameObject pluginConfigButton = Instantiate(sampleButton, optionsMenu);
             pluginConfigButton.SetActive(true);
             RectTransform pluginConfigButtonRect = pluginConfigButton.GetComponent<RectTransform>();
-            pluginConfigButtonRect.anchoredPosition = new Vector2(30, 300);
+            pluginConfigButtonRect.anchoredPosition = new Vector2(30, ultraTweaker ? 330 : 300);
             Text pluginConfigButtonText = pluginConfigButton.GetComponentInChildren<Text>();
             pluginConfigButtonText.text = "PLUGIN CONFIG";
 
