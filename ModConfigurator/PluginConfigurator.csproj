@@ -17,6 +17,8 @@
 	<RootNamespace>PluginConfig</RootNamespace>
 
 	<GenerateDocumentationFile>False</GenerateDocumentationFile>
+
+	<RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,6 +45,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(SolutionDir)\ModConfigurator\bin\Debug\PluginConfigurator.dll D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator.dll" />
+    <Exec Command="copy $(SolutionDir)\ModConfigurator\bin\$(ConfigurationName)\PluginConfigurator.dll D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator\PluginConfigurator.dll" />
   </Target>
 </Project>
