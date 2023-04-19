@@ -8,11 +8,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
 
-	<BaseOutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator</BaseOutputPath>
-
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-	<OutputPath>D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator</OutputPath>
 	<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
 
 	<CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
@@ -44,4 +41,8 @@
       <HintPath>Libs\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
+  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(SolutionDir)\ModConfigurator\bin\Debug\PluginConfigurator.dll D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator.dll" />
+  </Target>
 </Project>
