@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -43,8 +43,4 @@
       <HintPath>Libs\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
-  
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(SolutionDir)\PluginConfigurator\bin\$(ConfigurationName)\PluginConfigurator.dll D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator\PluginConfigurator.dll" />
-  </Target>
 </Project>
