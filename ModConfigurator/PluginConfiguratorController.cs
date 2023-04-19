@@ -14,6 +14,14 @@ using UnityEngine.UI;
 
 namespace PluginConfig
 {
+    class OptionsMenuCloseListener : MonoBehaviour
+    {
+        void OnDisable()
+        {
+            PluginConfiguratorController.Instance.FlushAllConfigs();
+        }
+    }
+
     /// <summary>
     /// Component for the Config Manager plugin
     /// </summary>
@@ -31,6 +39,11 @@ namespace PluginConfig
         internal void RegisterConfigurator(PluginConfigurator config)
         {
             configs.Add(config);
+        }
+        public void FlushAllConfigs()
+        {
+            foreach (PluginConfigurator config in configs)
+                config.Flush();
         }
 
         internal GameObject sampleBoolField;
@@ -111,6 +124,7 @@ namespace PluginConfig
             optionsMenu = canvas.transform.Find("OptionsMenu");
             if (optionsMenu == null)
                 return;
+            optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
             
             LoadSamples(optionsMenu);
             backButton = optionsMenu.transform.Find("Back").GetComponent<Button>();
