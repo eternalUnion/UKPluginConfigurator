@@ -66,7 +66,14 @@ namespace PluginConfig.API.Decorators
             } 
         }
 
-        public override bool interactable { get => true; set { } }
+        private bool _interactable = true;
+        public override bool interactable { get => _interactable; set 
+            {
+                _interactable = value;
+                if (currentUi != null)
+                    currentUi.GetComponent<Text>().color = (_interactable && parentInteractable) ? textColor : textColor * 0.5f;
+            } 
+        }
 
         internal override GameObject CreateUI(Transform content)
         {
@@ -76,11 +83,11 @@ namespace PluginConfig.API.Decorators
             Text text = header.GetComponent<Text>();
             text.text = _text;
             text.fontSize = _textSize;
-            text.color = _textColor;
             RectTransform rect = header.GetComponent<RectTransform>();
             rect.sizeDelta *= new Vector2(1f, 0.5f);
             
-            header.SetActive(!_hidden);
+            header.SetActive(!_hidden && !parentHidden);
+            text.color = (_interactable && parentInteractable)? textColor : textColor * 0.5f;
             return header;
         }
 
