@@ -51,6 +51,7 @@ namespace PluginConfig.API.Decorators
 
         public ConfigHeader(ConfigPanel parentPanel, string text, int textSize = 24) : base("", "", parentPanel)
         {
+            strictGuid = false;
             _text = text;
             _textSize = textSize;
             parentPanel.Register(this);

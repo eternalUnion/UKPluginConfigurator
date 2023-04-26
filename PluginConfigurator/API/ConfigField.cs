@@ -19,6 +19,10 @@ namespace PluginConfig.API
         /// </summary>
         public string guid { private set; get; }
         /// <summary>
+        /// If set to true, guid must be unique, else the guid does not matter (such as headers)
+        /// </summary>
+        public bool strictGuid { get; protected set; }
+        /// <summary>
         /// If enabled, field will not be shown on the screen
         /// </summary>
         public abstract bool hidden { get; set; }
@@ -48,6 +52,7 @@ namespace PluginConfig.API
 
         internal ConfigField(string displayName, string guid, PluginConfigurator rootConfig)
         {
+            strictGuid = true;
             this.displayName = displayName;
             this.guid = guid;
             this.parentPanel = null;
@@ -56,6 +61,7 @@ namespace PluginConfig.API
 
         public ConfigField(string displayName, string guid, ConfigPanel parentPanel)
         {
+            strictGuid = true;
             this.displayName = displayName;
             this.guid = guid;
             this.parentPanel = parentPanel;
