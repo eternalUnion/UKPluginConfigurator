@@ -45,6 +45,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(SolutionDir)\PluginConfigurator\bin\$(ConfigurationName)\PluginConfigurator.dll D:\Games\UltrakillPatch\ULTRAKILL\ULTRAKILL\BepInEx\plugins\PluginConfigurator\PluginConfigurator.dll" />
+    <Exec Command="copy $(SolutionDir)\PluginConfigurator\bin\$(ConfigurationName)\PluginConfigurator.dll D:\Games\ULTRAKILL-CG\ULTRAKILL\BepInEx\plugins\PluginConfigurator\PluginConfigurator.dll" />
   </Target>
 </Project>

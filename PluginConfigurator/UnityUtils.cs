@@ -7,23 +7,6 @@ namespace PluginConfig
 {
     public static class UnityUtils
     {
-        public static string bundlePath = Path.Combine(Environment.CurrentDirectory, "ULTRAKILL_Data", "StreamingAssets", "Magenta", "Bundles");
-        public static AssetBundle GetAssetBundle(string name)
-        {
-            AssetManager manager = MonoSingleton<AssetManager>.Instance;
-            AssetBundle bundle = null;
-
-            manager?.loadedBundles.TryGetValue(name, out bundle);
-
-            if (bundle != null)
-                return bundle;
-
-            bundle = AssetBundle.LoadFromFile(Path.Combine(bundlePath, name));
-            MonoSingleton<AssetManager>.Instance?.loadedBundles.Add(name, bundle);
-
-            return bundle;
-        }
-
         public static void PrintGameobject(GameObject o, int iters = 0)
         {
             string logMessage = "";
