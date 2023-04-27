@@ -154,5 +154,44 @@ namespace PluginConfig.API
                 panel.SetActive(true);
             });
         }
+
+        private void AddFields(ConfigPanel panel, List<ConfigField> fields)
+        {
+            foreach(ConfigField field in panel.GetFields())
+            {
+                if (field is ConfigPanel childPanel)
+                {
+                    if (childPanel is not ConfigDivision)
+                        AddFields(childPanel, fields);
+                }
+                else
+                    fields.Add(field);
+            }
+        }
+
+        public void LogDuplicateGUID()
+        {
+            List<ConfigField> allFields = new List<ConfigField>();
+            AddFields(rootPanel, allFields);
+
+            Dictionary<string, ConfigField> registered = new Dictionary<string, ConfigField>();
+            List<KeyValuePair<ConfigField, ConfigField>> conflicts = new List<KeyValuePair<ConfigField, ConfigField>>();
+
+            foreach(ConfigField field in allFields)
+            {
+                if (registered.TryGetValue(field.guid, out ConfigField duplicate))
+                {
+                    if (field.strictGuid)
+                        conflicts.Add(new KeyValuePair<ConfigField, ConfigField>(duplicate, field));
+                }
+                else
+                    registered.Add(field.guid, field);
+            }
+
+            foreach(KeyValuePair<ConfigField, ConfigField> duplicate in conflicts)
+            {
+                Debug.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+            }
+        }
     }
 }

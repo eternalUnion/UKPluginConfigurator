@@ -43,6 +43,8 @@ namespace PluginConfig.API
         internal GameObject panelButton;
 
         protected List<ConfigField> fields = new List<ConfigField>();
+        internal List<ConfigField> GetFields() => fields;
+
         public string currentDirectory { get; protected set; }
 
         private bool _hidden = false;
