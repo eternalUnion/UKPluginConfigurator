@@ -35,7 +35,7 @@ namespace PluginConfig
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-        public const string PLUGIN_VERSION = "1.1.0";
+        public const string PLUGIN_VERSION = "1.2.0";
 
         internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
         internal void RegisterConfigurator(PluginConfigurator config)
@@ -54,6 +54,7 @@ namespace PluginConfig
         internal GameObject sampleHeader;
         internal GameObject sampleDropdown;
         internal GameObject sampleColor;
+        internal GameObject sampleSlider;
         private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
@@ -66,6 +67,8 @@ namespace PluginConfig
             sampleDropdown = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Weapon Position").gameObject;
             //Canvas/OptionsMenu/ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation/
             sampleColor = optionsMenu.Find("ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation").gameObject;
+            //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Screenshake
+            sampleSlider = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Screenshake").gameObject;
         }
 
         internal GameObject MakeInputField(Transform content)
@@ -96,6 +99,38 @@ namespace PluginConfig
             input.targetGraphic = img;
 
             return field;
+        }
+
+        internal GameObject MakeInputFieldNoBG(Transform tempContent, Transform parent)
+        {
+            GameObject field = Instantiate(sampleBoolField, tempContent);
+
+            Transform bg = field.transform.Find("Toggle/Background");
+            bg.SetParent(field.transform);
+            bg.GetComponent<RectTransform>().sizeDelta = new Vector2(270, 30);
+
+            Destroy(field.transform.Find("Toggle").gameObject);
+            Destroy(bg.transform.GetChild(0).gameObject);
+
+            Image img = bg.GetComponent<Image>();
+            img.fillMethod = Image.FillMethod.Horizontal;
+            img.pixelsPerUnitMultiplier = 10f;
+            img.SetAllDirty();
+            RectTransform bgRect = bg.GetComponent<RectTransform>();
+            bgRect.pivot = new Vector2(0, 0.5f);
+
+            GameObject txt = GameObject.Instantiate(field.transform.Find("Text").gameObject, bg.transform);
+            RectTransform txtRect = txt.GetComponent<RectTransform>();
+            txtRect.anchoredPosition = new Vector2(10f, 0);
+            Text txtComp = txt.GetComponent<Text>();
+
+            bg.SetParent(parent);
+            InputField input = bg.gameObject.AddComponent<InputField>();
+            input.textComponent = txtComp;
+            input.targetGraphic = img;
+
+            Destroy(field.gameObject);
+            return bg.gameObject;
         }
 
         private void CreateConfigUI()
@@ -226,6 +261,7 @@ namespace PluginConfig
         private PluginConfigurator config;
         private BoolField patchCheatKeys;
         private BoolField patchPause;
+        private BoolField devConfigs;
 
         internal enum TestEnum
         {
@@ -251,6 +287,14 @@ namespace PluginConfig
             new ConfigHeader(div2, "Division 2");
             new BoolField(div2, "Sample Field", "sampleField2", true);
             new ConfigPanel(div2, "SamplePanel", "samplePanel");
+            FloatSliderField slider = new FloatSliderField(div2, "Slider field", "slider", new Tuple<float, float>(0, 100), 50, 2);
+            slider.onValueChange += (FloatSliderField.FloatSliderValueChangeEvent e) =>
+            {
+                if (e.newValue == 20)
+                    e.newValue = 5.5f;
+                else if (e.newValue == 30)
+                    e.canceled = true;
+            };
             ColorField colorField = new ColorField(div2, "Sample Color", "sampleColor", new Color(0.3f, 0.2f, 0.1f));
             colorField.onValueChange += (ColorField.ColorValueChangeEvent data) =>
             {
@@ -295,12 +339,16 @@ namespace PluginConfig
             logger = Logger;
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
-            // TEST CONFIGS
-            // ConfigTest();
 
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
             patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
+            new ConfigHeader(config.rootPanel, "Developer Stuffs");
+            devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
+
+            // TEST CONFIGS
+            if(devConfigs.value)
+                ConfigTest();
 
             MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
