@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using static PluginConfig.API.Fields.FloatField;
 
 namespace PluginConfig.API.Fields
 {
@@ -271,6 +272,10 @@ namespace PluginConfig.API.Fields
         }
         public delegate void OnValueChangeEventDelegate(FloatSliderValueChangeEvent args);
         public event OnValueChangeEventDelegate onValueChange;
+        public void TriggerValueChangeEvent()
+        {
+            onValueChange?.Invoke(new FloatSliderValueChangeEvent(bounds) { newValue = value });
+        }
 
         internal override GameObject CreateUI(Transform content)
         {
