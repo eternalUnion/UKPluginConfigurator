@@ -311,6 +311,7 @@ namespace PluginConfig.API.Fields
             textRect.sizeDelta = new Vector2(239, 20);
             textRect.anchoredPosition = new Vector2(220, -17);
             InputField inputComp = textField.GetComponent<InputField>();
+            inputComp.characterValidation = InputField.CharacterValidation.Decimal;
             sliderComp.onValueChanged.AddListener(newValue =>
             {
                 float finalValue = (float)Math.Round(Denormalize(sliderComp.normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);

@@ -94,7 +94,7 @@ namespace PluginConfig
             txtRect.anchoredPosition = new Vector2(10f, 0);
             Text txtComp = txt.GetComponent<Text>();
 
-            InputField input = field.AddComponent<InputField>();
+            InputField input = bg.gameObject.AddComponent<InputField>();
             input.textComponent = txtComp;
             input.targetGraphic = img;
 
