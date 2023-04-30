@@ -151,6 +151,7 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+            currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(value);
         }
 
         internal void OnReset()
@@ -175,6 +176,25 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
+                rootConfig.isDirty = true;
+
+                data = _value ? "true" : "false";
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = data;
+                else
+                    rootConfig.config.Add(guid, data);
+            }
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            if (data == "true")
+                OnCompValueChange(true);
+            else if (data == "false")
+                OnCompValueChange(false);
+            else
+            {
+                OnCompValueChange(defaultValue);
                 rootConfig.isDirty = true;
 
                 data = _value ? "true" : "false";

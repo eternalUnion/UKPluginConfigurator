@@ -26,6 +26,9 @@ namespace PluginConfig.API
         /// If enabled, field will not be shown on the screen
         /// </summary>
         public abstract bool hidden { get; set; }
+
+        public int presetLoadPriority = 0;
+
         private bool _parentHidden = false;
         internal bool parentHidden
         {
@@ -77,5 +80,7 @@ namespace PluginConfig.API
         internal abstract GameObject CreateUI(Transform content);
 
         internal abstract void LoadFromString(string data);
+
+        internal abstract void ReloadFromString(string data);
     }
 }

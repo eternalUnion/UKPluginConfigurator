@@ -203,6 +203,7 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()
@@ -219,6 +220,24 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
+                rootConfig.isDirty = true;
+
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = _value.ToString();
+                else
+                    rootConfig.config.Add(guid, _value.ToString());
+            }
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            if (float.TryParse(data, out float newValue))
+            {
+                value = newValue;
+            }
+            else
+            {
+                value = defaultValue;
                 rootConfig.isDirty = true;
 
                 if (rootConfig.config.ContainsKey(guid))

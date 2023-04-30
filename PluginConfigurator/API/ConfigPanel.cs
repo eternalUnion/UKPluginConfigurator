@@ -174,5 +174,10 @@ namespace PluginConfig.API
         {
             throw new NotImplementedException();
         }
+
+        internal override void ReloadFromString(string data)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

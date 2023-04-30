@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static PluginConfig.API.Fields.IntField;
 
 namespace PluginConfig.API.Fields
 {
@@ -171,6 +169,7 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()
@@ -181,6 +180,11 @@ namespace PluginConfig.API.Fields
         internal override void LoadFromString(string data)
         {
             _value = data;
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            value = data;
         }
     }
 }

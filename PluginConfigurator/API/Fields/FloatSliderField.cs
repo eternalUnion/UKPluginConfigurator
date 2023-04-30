@@ -187,6 +187,43 @@ namespace PluginConfig.API.Fields
             }
         }
 
+        internal override void ReloadFromString(string data)
+        {
+            if (float.TryParse(data, out float newValue))
+            {
+                if (newValue < bounds.Item1)
+                {
+                    newValue = bounds.Item1;
+                    if (rootConfig.config.ContainsKey(guid))
+                        rootConfig.config[guid] = newValue.ToString();
+                    else
+                        rootConfig.config.Add(guid, newValue.ToString());
+                    rootConfig.isDirty = true;
+                }
+                else if (newValue > bounds.Item2)
+                {
+                    newValue = bounds.Item2;
+                    if (rootConfig.config.ContainsKey(guid))
+                        rootConfig.config[guid] = newValue.ToString();
+                    else
+                        rootConfig.config.Add(guid, newValue.ToString());
+                    rootConfig.isDirty = true;
+                }
+
+                value = newValue;
+            }
+            else
+            {
+                value = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
+                rootConfig.isDirty = true;
+
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = _value.ToString();
+                else
+                    rootConfig.config.Add(guid, _value.ToString());
+            }
+        }
+
         private class SliderEndEditEvent : UnityEvent<float>
         { }
 

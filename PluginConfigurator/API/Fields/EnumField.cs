@@ -208,6 +208,7 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+            currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, value));
         }
 
         public void TriggerValueChangeEvent()
@@ -230,6 +231,26 @@ namespace PluginConfig.API.Fields
                     rootConfig.config[guid] = _value.ToString();
                 else
                     rootConfig.config.Add(guid, _value.ToString());
+            }
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            if (Enum.TryParse<T>(data, out T newValue))
+            {
+                OnCompValueChange(Array.IndexOf(values, newValue));
+            }
+            else
+            {
+                _value = defaultValue;
+                rootConfig.isDirty = true;
+
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = _value.ToString();
+                else
+                    rootConfig.config.Add(guid, _value.ToString());
+
+                OnCompValueChange(Array.IndexOf(values, newValue));
             }
         }
     }

@@ -319,5 +319,39 @@ namespace PluginConfig.API.Fields
                 _value = new Color(r, g, b);
             }
         }
+
+        internal override void ReloadFromString(string data)
+        {
+            string[] colorSplit = data.Split(',');
+
+            bool validData = colorSplit.Length == 3;
+            float r = 0, g = 0, b = 0;
+            if (validData)
+            {
+                if (!float.TryParse(colorSplit[0], out r))
+                    validData = false;
+                if (!float.TryParse(colorSplit[1], out g))
+                    validData = false;
+                if (!float.TryParse(colorSplit[2], out b))
+                    validData = false;
+
+                if(validData)
+                {
+                    SetSliders(new Color(r, g, b));
+                    OnCompValueChange();
+                    return;
+                }
+            }
+
+            rootConfig.isDirty = true;
+            SetSliders(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
+            OnCompValueChange();
+
+            data = StringifyColor(_value);
+            if (rootConfig.config.ContainsKey(guid))
+                rootConfig.config[guid] = data;
+            else
+                rootConfig.config.Add(guid, data);
+        }
     }
 }
