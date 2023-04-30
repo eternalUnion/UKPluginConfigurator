@@ -93,9 +93,10 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                if (_value == value)
-                    return;
-                rootConfig.isDirty = true;
+                if (_value != value)
+                    rootConfig.isDirty = true;
+                if (currentUi != null)
+                    SetSliders(_value);
 
                 _value = value;
                 string colorString = StringifyColor(_value);
@@ -103,10 +104,6 @@ namespace PluginConfig.API.Fields
                     rootConfig.config[guid] = colorString;
                 else
                     rootConfig.config.Add(guid, colorString);
-
-                if (currentUi == null)
-                    return;
-                SetSliders(_value);
             }
         }
 
@@ -352,6 +349,11 @@ namespace PluginConfig.API.Fields
                 rootConfig.config[guid] = data;
             else
                 rootConfig.config.Add(guid, data);
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(StringifyColor(defaultValue));
         }
     }
 }

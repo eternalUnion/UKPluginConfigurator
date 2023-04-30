@@ -15,19 +15,16 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                if (_value == value)
-                    return;
-                rootConfig.isDirty = true;
+                if (_value != value)
+                    rootConfig.isDirty = true;
+                if (currentUi != null)
+                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
 
                 _value = value;
                 if (rootConfig.config.ContainsKey(guid))
                     rootConfig.config[guid] = _value.ToString();
                 else
                     rootConfig.config.Add(guid, _value.ToString());
-
-                if (currentUi == null)
-                    return;
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
             }
         }
 
@@ -245,6 +242,11 @@ namespace PluginConfig.API.Fields
                 else
                     rootConfig.config.Add(guid, _value.ToString());
             }
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(defaultValue.ToString());
         }
     }
 }

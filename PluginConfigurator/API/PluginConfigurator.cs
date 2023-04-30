@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using static PluginConfig.API.PluginConfigurator;
 
 namespace PluginConfig.API
 {
@@ -58,7 +59,7 @@ namespace PluginConfig.API
         internal List<Preset> presets = new List<Preset>();
 
         /// <summary>
-        /// File path of the current config file including the file name
+        /// File path of the current default config file including the file name
         /// </summary>
         public string configFilePath
         {
@@ -182,6 +183,11 @@ namespace PluginConfig.API
                 Directory.CreateDirectory(directory);
 
             string filePath = configFilePath;
+            if(currentPreset != null)
+            {
+                filePath = currentPreset.filePath;
+            }
+
             if (!File.Exists(configFilePath))
             {
                 File.Create(filePath).Close();
@@ -229,7 +235,16 @@ namespace PluginConfig.API
 
             PluginConfiguratorController.logger.LogInfo($"Dirty config detected. Saving configuration for {displayName} : {guid}");
 
-            using(FileStream stream = File.Open(configFilePath, FileMode.Truncate))
+            string filePath = configFilePath;
+            if (currentPreset != null)
+                filePath = currentPreset.filePath;
+
+            if (!File.Exists(filePath))
+                File.Create(filePath).Close();
+
+            PluginConfiguratorController.logger.LogInfo($"Saving to {filePath}");
+
+            using (FileStream stream = File.Open(filePath, FileMode.Truncate))
             {
                 foreach(KeyValuePair<string, string> data in config)
                 {
@@ -245,6 +260,66 @@ namespace PluginConfig.API
 
             isDirty = false;
             postConfigChange?.Invoke();
+        }
+
+        private void ChangePreset(Preset newPreset)
+        {
+            Flush();
+
+            currentPreset = newPreset;
+            string filePath = configFilePath;
+            if (newPreset != null)
+                filePath = newPreset.filePath;
+
+            config.Clear();
+
+            if(File.Exists(filePath))
+            {
+                PluginConfiguratorController.logger.LogInfo($"Loading preset from {filePath}");
+                using (StreamReader stream = File.OpenText(filePath))
+                {
+                    while (!stream.EndOfStream)
+                    {
+                        string guid = stream.ReadLine();
+                        if (string.IsNullOrEmpty(guid))
+                            break;
+
+                        string data = stream.ReadLine();
+                        if (data == null)
+                            data = "";
+                        config[guid] = data;
+                    }
+                }
+            }
+
+            Dictionary<int, List<ConfigField>> priorityList = new Dictionary<int, List<ConfigField>>();
+            foreach(ConfigField field in fields.Values)
+            {
+                if(priorityList.TryGetValue(field.presetLoadPriority, out List<ConfigField> list))
+                {
+                    list.Add(field);
+                }
+                else
+                {
+                    priorityList.Add(field.presetLoadPriority, new List<ConfigField>() { field });
+                }
+            }
+
+            List<KeyValuePair<int, List<ConfigField>>> priority = priorityList.ToList();
+            priority.Sort((pair1, pair2) => pair2.Key.CompareTo(pair1.Key));
+
+            foreach(KeyValuePair<int, List<ConfigField>> list in priority)
+            {
+                foreach(ConfigField field in list.Value)
+                {
+                    if (config.TryGetValue(field.guid, out string val))
+                        field.ReloadFromString(val);
+                    else
+                        field.ReloadDefault();
+                }
+            }
+
+            Flush();
         }
 
         /// <summary>
@@ -400,8 +475,19 @@ namespace PluginConfig.API
             }
         }
 
+        private PresetButtonInfo currentPresetInfo = null;
         internal void CreatePresetUI(Transform optionsMenu)
         {
+            void SetButtonColor(Button btn, Color clr)
+            {
+                ColorBlock colors = ColorBlock.defaultColorBlock;
+                colors.normalColor = clr;
+                colors.pressedColor = clr * 0.5f;
+                colors.selectedColor = clr * 0.7f;
+                colors.highlightedColor = clr * 0.6f;
+                btn.colors = colors;
+            }
+
             this.presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
             RectTransform presetRect = this.presetButton.GetComponent<RectTransform>();
             presetRect.sizeDelta = new Vector2(-675, 40);
@@ -409,7 +495,6 @@ namespace PluginConfig.API
             Button comp = this.presetButton.GetComponent<Button>();
             comp.onClick = new Button.ButtonClickedEvent();
             presetButtonText = this.presetButton.transform.Find("Text").GetComponent<Text>();
-            presetButtonText.text = $"[DEFAULT({displayName})]";
             presetButtonText.alignment = TextAnchor.MiddleLeft;
             RectTransform presetTextRect = presetButtonText.GetComponent<RectTransform>();
             presetTextRect.anchoredPosition = new Vector2(7, 0);
@@ -449,33 +534,25 @@ namespace PluginConfig.API
             presetButtonContainerRect.anchoredPosition = Vector3.zero;
             defaultPresetButton = presetButtonContainer;
 
-            /*GameObject presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
-            RectTransform defaultPresetRect = presetButton.GetComponent<RectTransform>();
-            defaultPresetRect.anchorMin = new Vector2(0, 1);
-            defaultPresetRect.anchorMax = new Vector2(0, 1);
-            defaultPresetRect.pivot = new Vector2(0, 1);
-            defaultPresetRect.sizeDelta = new Vector2(515, 60); //620
-            defaultPresetRect.anchoredPosition = Vector2.zero;
-            Button defaultPresetButtonComp = presetButton.GetComponent<Button>();
-            defaultPresetButtonComp.onClick = new Button.ButtonClickedEvent();
-            Text defaultPresetButtonText = presetButton.GetComponentInChildren<Text>();
-            defaultPresetButtonText.text = "[Default Config]";
-            defaultPresetButtonText.alignment = TextAnchor.MiddleLeft;
-            defaultPresetButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);*/
             RectTransform presetButton = CreateBigContentButton(presetButtonContainer.transform, "[Default Config]", TextAnchor.MiddleLeft);
             presetButton.sizeDelta = new Vector2(515, 60);
+            Button presetButtonComp = presetButton.GetComponent<Button>();
+            presetButtonComp.onClick.AddListener(() =>
+            {
+                Debug.Log("Changing preset to default preset");
+                ChangePreset(null);
 
-            /*GameObject defaultResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
-            RectTransform defaultResetRect = defaultResetButton.GetComponent<RectTransform>();
-            defaultResetRect.anchorMin = new Vector2(0, 1);
-            defaultResetRect.anchorMax = new Vector2(0, 1);
-            defaultResetRect.pivot = new Vector2(0, 1);
-            defaultResetRect.sizeDelta = new Vector2(100, 60);
-            defaultResetRect.anchoredPosition = new Vector2(520, 0);
-            Button defaultResetButtonComp = defaultResetButton.GetComponent<Button>();
-            defaultResetButtonComp.onClick = new Button.ButtonClickedEvent();
-            defaultResetButtonText = defaultResetButton.GetComponentInChildren<Text>();
-            defaultResetButtonText.text = "RESET";*/
+                SetButtonColor(presetButtonComp, new Color(1, 0, 0));
+
+                if (currentPresetInfo != null)
+                {
+                    SetButtonColor(currentPresetInfo.mainButton, new Color(1, 1, 1));
+                }
+
+                currentPresetInfo = null;
+                presetButtonText.text = "[Default Config]";
+            });
+
             RectTransform defaultResetButton = CreateBigContentButton(presetButtonContainer.transform, "RESET", TextAnchor.MiddleCenter);
             defaultResetButton.sizeDelta = new Vector2(100, 60);
             defaultResetButton.anchoredPosition = new Vector2(520, 0);
@@ -487,8 +564,46 @@ namespace PluginConfig.API
 
             foreach(Preset preset in presets)
             {
-                PresetButtonInfo.CreateButton(content, preset.name);
+                PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name);
+                info.mainButton.onClick.AddListener(() =>
+                {
+                    Debug.Log($"Changing preset to {preset.name}");
+                    ChangePreset(preset);
+
+                    SetButtonColor(info.mainButton, new Color(1, 0, 0));
+
+                    ColorBlock newColors = info.mainButton.colors;
+                    newColors.normalColor = newColors.highlightedColor = newColors.pressedColor = newColors.selectedColor = new Color(1, 1, 1);
+                    if (currentPresetInfo != null)
+                    {
+                        SetButtonColor(currentPresetInfo.mainButton, new Color(1, 1, 1));
+                    }
+                    else
+                    {
+                        SetButtonColor(presetButtonComp, new Color(1, 1, 1));
+                    }
+
+                    currentPresetInfo = info;
+                    presetButtonText.text = preset.name;
+                });
+
+                if (preset == currentPreset)
+                {
+                    SetButtonColor(info.mainButton, new Color(1, 0, 0));
+                    currentPresetInfo = info;
+                }
             }
+
+            if (currentPreset == null)
+            {
+                SetButtonColor(presetButtonComp, new Color(1, 0, 0));
+                presetButtonText.text = $"[Default Config]";
+            }
+            else
+            {
+                presetButtonText.text = $"{currentPreset.name}";
+            }
+
 
             addPresetButton = CreateBigContentButton(content, "+", TextAnchor.MiddleCenter);
         }

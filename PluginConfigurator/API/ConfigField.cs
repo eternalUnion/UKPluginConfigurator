@@ -82,5 +82,7 @@ namespace PluginConfig.API
         internal abstract void LoadFromString(string data);
 
         internal abstract void ReloadFromString(string data);
+
+        internal abstract void ReloadDefault();
     }
 }

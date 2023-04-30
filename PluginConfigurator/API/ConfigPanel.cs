@@ -179,5 +179,10 @@ namespace PluginConfig.API
         {
             throw new NotImplementedException();
         }
+
+        internal override void ReloadDefault()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

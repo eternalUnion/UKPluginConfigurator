@@ -18,10 +18,9 @@ namespace PluginConfig.API.Fields
         {
             get => _value.Replace("\n", ""); set
             {
-                if (_value == value)
-                    return;
+                if (_value != value)
+                    rootConfig.isDirty = true;
                 value = value.Replace("\n", "");
-                rootConfig.isDirty = true;
 
                 _value = value;
                 if (rootConfig.config.ContainsKey(guid))
@@ -185,6 +184,11 @@ namespace PluginConfig.API.Fields
         internal override void ReloadFromString(string data)
         {
             value = data;
+        }
+
+        internal override void ReloadDefault()
+        {
+            value = defaultValue;
         }
     }
 }

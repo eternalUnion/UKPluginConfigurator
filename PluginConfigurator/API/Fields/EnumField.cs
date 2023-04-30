@@ -33,9 +33,8 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                if (_value.Equals(value))
-                    return;
-                rootConfig.isDirty = true;
+                if (!_value.Equals(value))
+                    rootConfig.isDirty = true;
 
                 _value = value;
                 if (rootConfig.config.ContainsKey(guid))
@@ -43,10 +42,8 @@ namespace PluginConfig.API.Fields
                 else
                     rootConfig.config.Add(guid, _value.ToString());
 
-                if (currentUi == null)
-                    return;
-
-                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, value));
+                if (currentUi != null)
+                    currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, value));
             }
         }
 
@@ -252,6 +249,11 @@ namespace PluginConfig.API.Fields
 
                 OnCompValueChange(Array.IndexOf(values, newValue));
             }
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(defaultValue.ToString());
         }
     }
 }

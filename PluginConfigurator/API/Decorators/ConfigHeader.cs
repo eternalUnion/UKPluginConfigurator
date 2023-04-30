@@ -101,5 +101,10 @@ namespace PluginConfig.API.Decorators
         {
             throw new NotImplementedException();
         }
+
+        internal override void ReloadDefault()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

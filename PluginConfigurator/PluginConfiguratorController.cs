@@ -281,9 +281,13 @@ namespace PluginConfig
             divConfig.saveToFile = true;
 
             BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
+            enabler1.presetLoadPriority = 1;
             BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
+            enabler2.presetLoadPriority = 1;
             BoolField interactable1 = new BoolField(divConfig.rootPanel, "Enable interacable 1", "interactable1", true);
+            interactable1.presetLoadPriority = 1;
             BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
+            interactable2.presetLoadPriority = 1;
 
             ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
             new ConfigHeader(div1, "Division 1");

@@ -18,19 +18,16 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                if (_value == value)
-                    return;
-                rootConfig.isDirty = true;
+                if (currentUi != null)
+                    currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(value);
+                if (_value != value)
+                    rootConfig.isDirty = true;
 
                 _value = value;
                 if (rootConfig.config.ContainsKey(guid))
                     rootConfig.config[guid] = _value ? "true" : "false";
                 else
                     rootConfig.config.Add(guid, _value ? "true" : "false");
-
-                if (currentUi == null)
-                    return;
-                currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(value);
             }
         }
 
@@ -203,6 +200,11 @@ namespace PluginConfig.API.Fields
                 else
                     rootConfig.config.Add(guid, data);
             }
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(defaultValue ? "true" : "false");
         }
     }
 }

@@ -416,5 +416,10 @@ namespace PluginConfig.API.Fields
 
             return sliderField;
         }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(defaultValue.ToString());
+        }
     }
 }
