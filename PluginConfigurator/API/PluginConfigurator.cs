@@ -39,8 +39,17 @@ namespace PluginConfig.API
         internal GameObject defaultPresetButton;
         internal Text defaultResetButtonText;
 
+        internal RectTransform addPresetButton;
+
+        internal class Preset
+        {
+            public string name;
+            public string filePath;
+            public int listIndex;
+        }
+
         /// <summary>
-        /// File path of the config file including the file name
+        /// File path of the current config file including the file name
         /// </summary>
         public string configFilePath
         {
@@ -48,7 +57,7 @@ namespace PluginConfig.API
         }
 
         /// <summary>
-        /// Directory of the plugin config folder
+        /// Directory of the current plugin config folder
         /// </summary>
         public string configFileDirectory
         {
@@ -172,19 +181,28 @@ namespace PluginConfig.API
             }
         }
 
-        internal void CreateUI(Button configButton, Transform optionsMenu)
+        private RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment)
         {
-            GameObject panel = rootPanel.CreateUI(null);
+            GameObject button = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, content);
+            RectTransform buttonRect = button.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0, 1);
+            buttonRect.anchorMax = new Vector2(0, 1);
+            buttonRect.pivot = new Vector2(0, 1);
+            buttonRect.sizeDelta = new Vector2(620, 60);
+            buttonRect.anchoredPosition = Vector2.zero;
+            Button buttonButtonComp = button.GetComponent<Button>();
+            buttonButtonComp.onClick = new Button.ButtonClickedEvent();
+            Text buttonButtonText = button.GetComponentInChildren<Text>();
+            buttonButtonText.text = text;
+            buttonButtonText.alignment = alignment;
+            if(alignment == TextAnchor.MiddleLeft)
+                buttonButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);
 
-            configButton.onClick = new Button.ButtonClickedEvent();
-            configButton.onClick.AddListener(() => PluginConfiguratorController.Instance.mainPanel.SetActive(false));
-            configButton.onClick.AddListener(() =>
-            {
-                //PluginConfiguratorController.Instance.activePanel?.SetActive(false);
-                PluginConfiguratorController.Instance.activePanel = panel;
-                panel.SetActive(true);
-            });
+            return buttonRect;
+        }
 
+        internal void CreatePresetUI(Transform optionsMenu)
+        {
             this.presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
             RectTransform presetRect = this.presetButton.GetComponent<RectTransform>();
             presetRect.sizeDelta = new Vector2(-675, 40);
@@ -230,21 +248,23 @@ namespace PluginConfig.API
             presetButtonContainerRect.anchoredPosition = Vector3.zero;
             defaultPresetButton = presetButtonContainer;
 
-            GameObject presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
+            /*GameObject presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
             RectTransform defaultPresetRect = presetButton.GetComponent<RectTransform>();
             defaultPresetRect.anchorMin = new Vector2(0, 1);
             defaultPresetRect.anchorMax = new Vector2(0, 1);
             defaultPresetRect.pivot = new Vector2(0, 1);
-            defaultPresetRect.sizeDelta = new Vector2(/*620*/515, 60);
+            defaultPresetRect.sizeDelta = new Vector2(515, 60); //620
             defaultPresetRect.anchoredPosition = Vector2.zero;
             Button defaultPresetButtonComp = presetButton.GetComponent<Button>();
             defaultPresetButtonComp.onClick = new Button.ButtonClickedEvent();
             Text defaultPresetButtonText = presetButton.GetComponentInChildren<Text>();
             defaultPresetButtonText.text = "[Default Config]";
             defaultPresetButtonText.alignment = TextAnchor.MiddleLeft;
-            defaultPresetButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);
+            defaultPresetButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);*/
+            RectTransform presetButton = CreateBigContentButton(presetButtonContainer.transform, "[Default Config]", TextAnchor.MiddleLeft);
+            presetButton.sizeDelta = new Vector2(515, 60);
 
-            GameObject defaultResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
+            /*GameObject defaultResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
             RectTransform defaultResetRect = defaultResetButton.GetComponent<RectTransform>();
             defaultResetRect.anchorMin = new Vector2(0, 1);
             defaultResetRect.anchorMax = new Vector2(0, 1);
@@ -254,12 +274,33 @@ namespace PluginConfig.API
             Button defaultResetButtonComp = defaultResetButton.GetComponent<Button>();
             defaultResetButtonComp.onClick = new Button.ButtonClickedEvent();
             defaultResetButtonText = defaultResetButton.GetComponentInChildren<Text>();
-            defaultResetButtonText.text = "RESET";
+            defaultResetButtonText.text = "RESET";*/
+            RectTransform defaultResetButton = CreateBigContentButton(presetButtonContainer.transform, "RESET", TextAnchor.MiddleCenter);
+            defaultResetButton.sizeDelta = new Vector2(100, 60);
+            defaultResetButton.anchoredPosition = new Vector2(520, 0);
 
             comp.onClick.AddListener(() =>
             {
                 presetPanel.SetActive(true);
             });
+
+            addPresetButton = CreateBigContentButton(content, "+", TextAnchor.MiddleCenter);
+        }
+
+        internal void CreateUI(Button configButton, Transform optionsMenu)
+        {
+            GameObject panel = rootPanel.CreateUI(null);
+
+            configButton.onClick = new Button.ButtonClickedEvent();
+            configButton.onClick.AddListener(() => PluginConfiguratorController.Instance.mainPanel.SetActive(false));
+            configButton.onClick.AddListener(() =>
+            {
+                //PluginConfiguratorController.Instance.activePanel?.SetActive(false);
+                PluginConfiguratorController.Instance.activePanel = panel;
+                panel.SetActive(true);
+            });
+
+            CreatePresetUI(optionsMenu);
         }
 
         private void AddFields(ConfigPanel panel, List<ConfigField> fields)
