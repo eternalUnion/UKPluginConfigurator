@@ -28,6 +28,7 @@ namespace PluginConfig.API
         public ConfigPanel rootPanel { private set; get; }
 
         internal bool isDirty = false;
+        internal bool isPresetHeaderDirty = false;
         internal Dictionary<string, string> config = new Dictionary<string, string>();
         internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
 
@@ -50,11 +51,7 @@ namespace PluginConfig.API
             public string fileId;
             public int listIndex;
 
-            public bool dirtyConfig = false;
-            public bool dirtyHeader = false;
             public bool markedForDelete = false;
-
-            public static bool globalDirtyHeader = false;
         }
         internal List<Preset> presets = new List<Preset>();
 
@@ -85,17 +82,6 @@ namespace PluginConfig.API
         internal string configPresetConfigFileDirectory
         {
             get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator", guid + "_presets", "config.txt");
-        }
-
-        private string[] GetPresetFilePaths()
-        {
-            if(!Directory.Exists(configPresetFolderDirectory))
-            {
-                Directory.CreateDirectory(configPresetFolderDirectory);
-                return new string[0];
-            }
-
-            return Directory.GetFiles(configPresetFolderDirectory).Where(path => !path.EndsWith("config.txt")).ToArray();
         }
 
         private PluginConfigurator()
@@ -219,11 +205,55 @@ namespace PluginConfig.API
         public event PostConfigChangeEvent postConfigChange;
 
         public bool saveToFile = true;
+
+        private void FlushPresets()
+        {
+            if (!isPresetHeaderDirty)
+                return;
+
+            if (!Directory.Exists(configPresetFolderDirectory))
+                Directory.CreateDirectory(configPresetFolderDirectory);
+
+            string configPath = configPresetConfigFileDirectory;
+            if (!File.Exists(configPath))
+                File.Create(configPath).Close();
+
+            using(StreamWriter stream = new StreamWriter(File.Open(configPath, FileMode.Truncate)))
+            {
+                stream.WriteLine(currentPreset == null ? "default" : currentPreset.fileId);
+                foreach(KeyValuePair<Preset, PresetButtonInfo> value in buttons)
+                {
+                    if(value.Key.markedForDelete)
+                    {
+                        if (File.Exists(value.Key.filePath))
+                            try { File.Delete(value.Key.filePath); } catch (Exception e) { Debug.LogError(e); }
+                    }
+
+                    stream.WriteLine(value.Key.fileId);
+                    stream.WriteLine(value.Value.mainButton.GetComponentInChildren<Text>().text);
+                    stream.WriteLine(value.Value.container.GetSiblingIndex() - 1);
+                }
+            }
+
+            presets = presets.Where(preset => !preset.markedForDelete).ToList();
+            
+            Dictionary<Preset, PresetButtonInfo> newButtons = new Dictionary<Preset, PresetButtonInfo>();
+            foreach(var value in buttons)
+            {
+                if (!value.Key.markedForDelete)
+                {
+                    newButtons.Add(value.Key, value.Value);
+                }
+            }
+            buttons = newButtons;
+        }
+
         /// <summary>
         /// Write all changes to the config folder. Will not write to the file if no changes are made. The config will be flushed when the menu or game is closed.
         /// </summary>
         public void Flush()
         {
+            FlushPresets();
             if (!isDirty)
                 return;
 
@@ -264,6 +294,9 @@ namespace PluginConfig.API
 
         private void ChangePreset(Preset newPreset)
         {
+            if (newPreset == currentPreset)
+                return;
+
             Flush();
 
             currentPreset = newPreset;
@@ -383,16 +416,16 @@ namespace PluginConfig.API
             return buttonRect;
         }
 
-        class PresetButtonInfo
+        internal class PresetButtonInfo
         {
-            public Button container;
+            public RectTransform container;
             public Button mainButton;
             public Button resetButton;
             public Button deleteButton;
             public Button upButton;
             public Button downButton;
 
-            public static PresetButtonInfo CreateButton(Transform content, string mainText)
+            public static PresetButtonInfo CreateButton(Transform content, string mainText, PluginConfigurator config)
             {
                 GameObject container = new GameObject();
                 RectTransform containerRect = container.AddComponent<RectTransform>();
@@ -453,6 +486,7 @@ namespace PluginConfig.API
                 input.onEndEdit.AddListener((text) =>
                 {
                     input.interactable = false;
+                    config.isPresetHeaderDirty = true;
                 });
 
                 editButton.GetComponent<Button>().onClick.AddListener(() =>
@@ -465,7 +499,7 @@ namespace PluginConfig.API
 
                 return new PresetButtonInfo()
                 {
-                    container = containerRect.GetComponent<Button>(),
+                    container = containerRect,
                     mainButton = mainButton.GetComponent<Button>(),
                     resetButton = resetButton.GetComponent<Button>(),
                     deleteButton = deleteButton.GetComponent<Button>(),
@@ -476,6 +510,7 @@ namespace PluginConfig.API
         }
 
         private PresetButtonInfo currentPresetInfo = null;
+        internal Dictionary<Preset, PresetButtonInfo> buttons = new Dictionary<Preset, PresetButtonInfo>();
         internal void CreatePresetUI(Transform optionsMenu)
         {
             void SetButtonColor(Button btn, Color clr)
@@ -509,7 +544,7 @@ namespace PluginConfig.API
             presetPanelRect.localScale = Vector3.one;
             presetPanelRect.anchoredPosition = Vector3.zero;
             Image presetPanelBg = presetPanel.AddComponent<Image>();
-            presetPanelBg.color = new Color(0, 0, 0, 0.9373f);
+            presetPanelBg.color = new Color(0, 0, 0, 0.95f);
             presetPanel.SetActive(false);
             MenuEsc esc = presetPanel.AddComponent<MenuEsc>();
             PresetPanelComp presetPanelComp = presetPanel.AddComponent<PresetPanelComp>();
@@ -562,11 +597,17 @@ namespace PluginConfig.API
                 presetPanel.SetActive(true);
             });
 
+            buttons.Clear();
             foreach(Preset preset in presets)
             {
-                PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name);
+                PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name, this);
+                buttons.Add(preset, info);
                 info.mainButton.onClick.AddListener(() =>
                 {
+                    if (currentPreset == preset)
+                        return;
+                    isPresetHeaderDirty = true;
+
                     Debug.Log($"Changing preset to {preset.name}");
                     ChangePreset(preset);
 
@@ -586,6 +627,31 @@ namespace PluginConfig.API
                     currentPresetInfo = info;
                     presetButtonText.text = preset.name;
                 });
+                info.upButton.onClick.AddListener(() =>
+                {
+                    if (info.container.GetSiblingIndex() > 1)
+                    {
+                        info.container.SetSiblingIndex(info.container.GetSiblingIndex() - 1);
+                        isPresetHeaderDirty = true;
+                    }
+                });
+                info.downButton.onClick.AddListener(() =>
+                {
+                    if (info.container.GetSiblingIndex() < content.childCount - 2)
+                    {
+                        info.container.SetSiblingIndex(info.container.GetSiblingIndex() + 1);
+                        isPresetHeaderDirty = true;
+                    }
+                });
+                info.deleteButton.onClick.AddListener(() =>
+                {
+                    if (currentPreset == preset)
+                        ChangePreset(null);
+
+                    GameObject.Destroy(info.container.gameObject);
+                    preset.markedForDelete = true;
+                    isPresetHeaderDirty = true;
+                });
 
                 if (preset == currentPreset)
                 {
@@ -604,8 +670,88 @@ namespace PluginConfig.API
                 presetButtonText.text = $"{currentPreset.name}";
             }
 
-
             addPresetButton = CreateBigContentButton(content, "+", TextAnchor.MiddleCenter);
+            Button addPresetButtonComp = addPresetButton.GetComponent<Button>();
+            addPresetButtonComp.onClick.AddListener(() =>
+            {
+                string name = $"Copy of {((currentPreset == null) ? "default config" : currentPreset.name)}";
+                string id = System.Guid.NewGuid().ToString();
+                string originalPath = (currentPreset == null) ? configFilePath : currentPreset.filePath;
+                PresetButtonInfo customPresetInfo = PresetButtonInfo.CreateButton(content, name, this);
+                int index = content.childCount - 2;
+
+                Preset customPreset = new Preset() { name = name, fileId = id,
+                    filePath = Path.Combine(configPresetFolderDirectory, $"{id}.config"), listIndex = index - 1 };
+                customPresetInfo.container.SetSiblingIndex(index);
+
+                buttons.Add(customPreset, customPresetInfo);
+
+                customPresetInfo.mainButton.onClick.AddListener(() =>
+                {
+                    if (currentPreset == customPreset)
+                        return;
+                    isPresetHeaderDirty = true;
+
+                    Debug.Log($"Changing preset to {customPreset.name}");
+                    ChangePreset(customPreset);
+
+                    SetButtonColor(customPresetInfo.mainButton, new Color(1, 0, 0));
+
+                    ColorBlock newColors = customPresetInfo.mainButton.colors;
+                    newColors.normalColor = newColors.highlightedColor = newColors.pressedColor = newColors.selectedColor = new Color(1, 1, 1);
+                    if (currentPresetInfo != null)
+                    {
+                        SetButtonColor(currentPresetInfo.mainButton, new Color(1, 1, 1));
+                    }
+                    else
+                    {
+                        SetButtonColor(presetButtonComp, new Color(1, 1, 1));
+                    }
+
+                    currentPresetInfo = customPresetInfo;
+                    presetButtonText.text = customPreset.name;
+                });
+                customPresetInfo.upButton.onClick.AddListener(() =>
+                {
+                    if (customPresetInfo.container.GetSiblingIndex() > 1)
+                    {
+                        customPresetInfo.container.SetSiblingIndex(customPresetInfo.container.GetSiblingIndex() - 1);
+                        isPresetHeaderDirty = true;
+                    }
+                });
+                customPresetInfo.downButton.onClick.AddListener(() =>
+                {
+                    if (customPresetInfo.container.GetSiblingIndex() < content.childCount - 2)
+                    {
+                        customPresetInfo.container.SetSiblingIndex(customPresetInfo.container.GetSiblingIndex() + 1);
+                        isPresetHeaderDirty = true;
+                    }
+                });
+                customPresetInfo.deleteButton.onClick.AddListener(() =>
+                {
+                    if (currentPreset == customPreset)
+                        ChangePreset(null);
+
+                    GameObject.Destroy(customPresetInfo.container.gameObject);
+                    customPreset.markedForDelete = true;
+                    isPresetHeaderDirty = true;
+                });
+
+                if (!Directory.Exists(configPresetFolderDirectory))
+                {
+                    Directory.CreateDirectory(configPresetFolderDirectory);
+                }
+
+                if (File.Exists(originalPath))
+                    File.Copy(originalPath, customPreset.filePath);
+            });
+
+            foreach (KeyValuePair<Preset, PresetButtonInfo> info in buttons)
+            {
+                info.Value.container.SetSiblingIndex(Math.Min(content.childCount - 2, Math.Max(info.Key.listIndex + 1, 1)));
+            }
+            presetButtonContainer.transform.SetAsFirstSibling();
+            addPresetButton.SetAsLastSibling();
         }
 
         internal void CreateUI(Button configButton, Transform optionsMenu)
