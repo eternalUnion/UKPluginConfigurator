@@ -33,6 +33,12 @@ namespace PluginConfig.API
         internal GameObject presetButton;
         internal Text presetButtonText;
 
+        internal GameObject presetPanel;
+        internal GameObject presetPanelList;
+
+        internal GameObject defaultPresetButton;
+        internal Text defaultResetButtonText;
+
         /// <summary>
         /// File path of the config file including the file name
         /// </summary>
@@ -146,6 +152,26 @@ namespace PluginConfig.API
             return config;
         }
 
+        private class PresetPanelComp : MonoBehaviour
+        {
+            MenuEsc esc;
+
+            private void Awake()
+            {
+                esc = GetComponent<MenuEsc>();
+            }
+
+            private void OnEnable()
+            {
+                esc.previousPage = PluginConfiguratorController.Instance.activePanel;
+            }
+
+            private void OnDisable()
+            {
+                gameObject.SetActive(false);
+            }
+        }
+
         internal void CreateUI(Button configButton, Transform optionsMenu)
         {
             GameObject panel = rootPanel.CreateUI(null);
@@ -159,18 +185,81 @@ namespace PluginConfig.API
                 panel.SetActive(true);
             });
 
-            presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
-            RectTransform presetRect = presetButton.GetComponent<RectTransform>();
+            this.presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
+            RectTransform presetRect = this.presetButton.GetComponent<RectTransform>();
             presetRect.sizeDelta = new Vector2(-675, 40);
             presetRect.anchoredPosition = new Vector2(-10, -77);
-            Button comp = presetButton.GetComponent<Button>();
+            Button comp = this.presetButton.GetComponent<Button>();
             comp.onClick = new Button.ButtonClickedEvent();
-            presetButtonText = presetButton.transform.Find("Text").GetComponent<Text>();
+            presetButtonText = this.presetButton.transform.Find("Text").GetComponent<Text>();
             presetButtonText.text = $"[DEFAULT({displayName})]";
             presetButtonText.alignment = TextAnchor.MiddleLeft;
             RectTransform presetTextRect = presetButtonText.GetComponent<RectTransform>();
             presetTextRect.anchoredPosition = new Vector2(7, 0);
-            presetButton.SetActive(false);
+            this.presetButton.SetActive(false);
+
+            presetPanel = new GameObject();
+            RectTransform presetPanelRect = presetPanel.AddComponent<RectTransform>();
+            presetPanelRect.anchorMin = new Vector2(0, 0);
+            presetPanelRect.anchorMax = new Vector2(1, 1);
+            presetPanelRect.SetParent(optionsMenu);
+            presetPanelRect.sizeDelta = new Vector2(0, 0);
+            presetPanelRect.localScale = Vector3.one;
+            presetPanelRect.anchoredPosition = Vector3.zero;
+            Image presetPanelBg = presetPanel.AddComponent<Image>();
+            presetPanelBg.color = new Color(0, 0, 0, 0.9373f);
+            presetPanel.SetActive(false);
+            MenuEsc esc = presetPanel.AddComponent<MenuEsc>();
+            PresetPanelComp presetPanelComp = presetPanel.AddComponent<PresetPanelComp>();
+
+            presetPanelList = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, presetPanel.transform);
+            presetPanelList.SetActive(true);
+            Transform content = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(presetPanelList.transform).transform;
+            foreach (Transform child in content)
+                GameObject.Destroy(child.gameObject);
+            Text presetPanelListText = presetPanelList.transform.Find("Text").GetComponent<Text>();
+            presetPanelListText.text = "Presets";
+
+            GameObject presetButtonContainer = new GameObject();
+            RectTransform presetButtonContainerRect = presetButtonContainer.AddComponent<RectTransform>();
+            presetButtonContainerRect.anchorMin = new Vector2(0, 1);
+            presetButtonContainerRect.anchorMax = new Vector2(0, 1);
+            presetButtonContainerRect.SetParent(content);
+            presetButtonContainerRect.sizeDelta = new Vector2(620, 60);
+            presetButtonContainerRect.localScale = Vector3.one;
+            presetButtonContainerRect.anchoredPosition = Vector3.zero;
+            defaultPresetButton = presetButtonContainer;
+
+            GameObject presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
+            RectTransform defaultPresetRect = presetButton.GetComponent<RectTransform>();
+            defaultPresetRect.anchorMin = new Vector2(0, 1);
+            defaultPresetRect.anchorMax = new Vector2(0, 1);
+            defaultPresetRect.pivot = new Vector2(0, 1);
+            defaultPresetRect.sizeDelta = new Vector2(/*620*/515, 60);
+            defaultPresetRect.anchoredPosition = Vector2.zero;
+            Button defaultPresetButtonComp = presetButton.GetComponent<Button>();
+            defaultPresetButtonComp.onClick = new Button.ButtonClickedEvent();
+            Text defaultPresetButtonText = presetButton.GetComponentInChildren<Text>();
+            defaultPresetButtonText.text = "[Default Config]";
+            defaultPresetButtonText.alignment = TextAnchor.MiddleLeft;
+            defaultPresetButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);
+
+            GameObject defaultResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, presetButtonContainer.transform);
+            RectTransform defaultResetRect = defaultResetButton.GetComponent<RectTransform>();
+            defaultResetRect.anchorMin = new Vector2(0, 1);
+            defaultResetRect.anchorMax = new Vector2(0, 1);
+            defaultResetRect.pivot = new Vector2(0, 1);
+            defaultResetRect.sizeDelta = new Vector2(100, 60);
+            defaultResetRect.anchoredPosition = new Vector2(520, 0);
+            Button defaultResetButtonComp = defaultResetButton.GetComponent<Button>();
+            defaultResetButtonComp.onClick = new Button.ButtonClickedEvent();
+            defaultResetButtonText = defaultResetButton.GetComponentInChildren<Text>();
+            defaultResetButtonText.text = "RESET";
+
+            comp.onClick.AddListener(() =>
+            {
+                presetPanel.SetActive(true);
+            });
         }
 
         private void AddFields(ConfigPanel panel, List<ConfigField> fields)

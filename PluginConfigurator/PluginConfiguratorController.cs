@@ -200,6 +200,7 @@ namespace PluginConfig
             pluginConfigButtonRect.anchoredPosition = new Vector2(30, ultraTweaker ? 330 : 300);
             Text pluginConfigButtonText = pluginConfigButton.GetComponentInChildren<Text>();
             pluginConfigButtonText.text = "PLUGIN CONFIG";
+            pluginConfigButton.transform.SetSiblingIndex(1);
 
             sampleMenu = mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
             mainPanel.SetActive(false);
