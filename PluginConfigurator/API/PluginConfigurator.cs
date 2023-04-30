@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
@@ -45,8 +46,12 @@ namespace PluginConfig.API
         {
             public string name;
             public string filePath;
+            public string fileId;
             public int listIndex;
+
+            public bool dirty = false;
         }
+        internal List<Preset> presets = new List<Preset>();
 
         /// <summary>
         /// File path of the current config file including the file name
@@ -64,9 +69,123 @@ namespace PluginConfig.API
             get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator");
         }
 
+        /// <summary>
+        /// Directory of the current plugin config preset folder
+        /// </summary>
+        public string configPresetFolderDirectory
+        {
+            get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator", guid + "_presets");
+        }
+
+        internal string configPresetConfigFileDirectory
+        {
+            get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator", guid + "_presets", "config.txt");
+        }
+
+        private string[] GetPresetFilePaths()
+        {
+            if(!Directory.Exists(configPresetFolderDirectory))
+            {
+                Directory.CreateDirectory(configPresetFolderDirectory);
+                return new string[0];
+            }
+
+            return Directory.GetFiles(configPresetFolderDirectory).Where(path => !path.EndsWith("config.txt")).ToArray();
+        }
+
         private PluginConfigurator()
         {
 
+        }
+
+        private Preset currentPreset = null;
+        private void LoadPresetConfig()
+        {
+            if (!Directory.Exists(configPresetFolderDirectory))
+                Directory.CreateDirectory(configPresetFolderDirectory);
+
+            if (!File.Exists(configPresetConfigFileDirectory))
+            {
+                using (StreamWriter stream = new StreamWriter(File.Open(configPresetConfigFileDirectory, FileMode.Create, FileAccess.Write)))
+                {
+                    stream.WriteLine("default");
+                }
+            }
+            else
+            {
+                using(StreamReader stream = File.OpenText(configPresetConfigFileDirectory))
+                {
+                    string currentPresetPath = stream.ReadLine();
+                    
+                    if(currentPresetPath == null)
+                    {
+                        Debug.LogWarning($"Invalid preset config for {guid}");
+
+                        currentPresetPath = "default";
+                        currentPreset = null;
+                    }
+                    else
+                    {
+                        if (currentPresetPath == "default")
+                        {
+                            currentPreset = null;
+                            Debug.Log($"Loaded default preset for {guid}");
+                        }
+                        else
+                        {
+                            currentPreset = presets.Where(preset => preset.fileId == currentPresetPath).FirstOrDefault();
+                            if (currentPreset == null)
+                            {
+                                Debug.LogWarning($"Could not find preset with id {currentPresetPath}");
+                            }
+                            else
+                            {
+                                Debug.Log($"Loaded preset with id {currentPresetPath}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void LoadPresets()
+        {
+            foreach(string filePath in GetPresetFilePaths())
+            {
+                using(StreamReader stream = File.OpenText(filePath))
+                {
+                    string name = stream.ReadLine();
+                    if(name == null)
+                    {
+                        Debug.LogWarning($"Invalid config preset at {filePath}");
+                        continue;
+                    }
+
+                    string indexStr = stream.ReadLine();
+                    if(indexStr == null)
+                    {
+                        Debug.LogWarning($"Invalid config preset at {filePath}");
+                        continue;
+                    }
+
+                    int index = 0;
+                    if(!int.TryParse(indexStr, out index))
+                    {
+                        Debug.LogWarning($"Invalid index value at {filePath}");
+                        index = 0;
+                    }
+
+                    presets.Add(new Preset()
+                    {
+                        filePath = filePath,
+                        fileId = Path.GetFileNameWithoutExtension(filePath),
+                        listIndex = index,
+                        name = name
+                    });
+                }
+            }
+
+            LoadPresetConfig();
         }
 
         private void LoadFromFile()
@@ -156,6 +275,7 @@ namespace PluginConfig.API
             config.rootPanel = new ConfigPanel(config);
 
             PluginConfiguratorController.Instance.RegisterConfigurator(config);
+            config.LoadPresets();
             config.LoadFromFile();
 
             return config;
