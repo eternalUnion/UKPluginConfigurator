@@ -50,6 +50,7 @@ namespace PluginConfig.API
             public int listIndex;
 
             public bool dirty = false;
+            public bool markedForDelete = false;
         }
         internal List<Preset> presets = new List<Preset>();
 
@@ -301,7 +302,7 @@ namespace PluginConfig.API
             }
         }
 
-        private RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment)
+        private static RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment)
         {
             GameObject button = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, content);
             RectTransform buttonRect = button.GetComponent<RectTransform>();
@@ -319,6 +320,72 @@ namespace PluginConfig.API
                 buttonButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);
 
             return buttonRect;
+        }
+
+        class PresetButtonInfo
+        {
+            public Button container;
+            public Button mainButton;
+            public Button resetButton;
+            public Button deleteButton;
+            public Button upButton;
+            public Button downButton;
+
+            public static PresetButtonInfo CreateButton(Transform content, string mainText)
+            {
+                GameObject container = new GameObject();
+                RectTransform containerRect = container.AddComponent<RectTransform>();
+                containerRect.anchorMin = new Vector2(0, 1);
+                containerRect.anchorMax = new Vector2(0, 1);
+                containerRect.SetParent(content);
+                containerRect.sizeDelta = new Vector2(620, 60);
+                containerRect.localScale = Vector3.one;
+                containerRect.anchoredPosition = Vector3.zero;
+
+                RectTransform mainButton = CreateBigContentButton(container.transform, mainText, TextAnchor.MiddleLeft);
+                mainButton.sizeDelta = new Vector2(352.5f, 60);
+
+                RectTransform resetButton = CreateBigContentButton(container.transform, "RESET", TextAnchor.MiddleCenter);
+                resetButton.sizeDelta = new Vector2(100, 60);
+                resetButton.anchoredPosition = new Vector2(mainButton.anchoredPosition.x + mainButton.sizeDelta.x + 5, 0);
+
+                RectTransform editButton = CreateBigContentButton(container.transform, "EDIT", TextAnchor.MiddleCenter);
+                editButton.sizeDelta = new Vector2(60, 60);
+                editButton.anchoredPosition = new Vector2(resetButton.anchoredPosition.x + resetButton.sizeDelta.x + 5, 0);
+                GameObject editButtonTxt = editButton.GetChild(0).gameObject;
+                GameObject.DestroyImmediate(editButtonTxt.GetComponent<Text>());
+                Image editImg = editButtonTxt.AddComponent<Image>();
+                editImg.sprite = PluginConfiguratorController.Instance.penIcon;
+                editButtonTxt.GetComponent<RectTransform>().sizeDelta = new Vector2(-15, -15);
+
+                RectTransform deleteButton = CreateBigContentButton(container.transform, "DELETE", TextAnchor.MiddleCenter);
+                deleteButton.sizeDelta = new Vector2(60, 60);
+                deleteButton.anchoredPosition = new Vector2(editButton.anchoredPosition.x + editButton.sizeDelta.x + 5, 0);
+                GameObject deleteButtonTxt = deleteButton.GetChild(0).gameObject;
+                GameObject.DestroyImmediate(deleteButtonTxt.GetComponent<Text>());
+                Image deleteImg = deleteButtonTxt.AddComponent<Image>();
+                deleteImg.sprite = PluginConfiguratorController.Instance.trashIcon;
+                deleteButtonTxt.GetComponent<RectTransform>().sizeDelta = new Vector2(-15, -15);
+
+                float sqSize = (60f - 5) / 2;
+                RectTransform upButton = CreateBigContentButton(container.transform, "▲", TextAnchor.MiddleCenter);
+                upButton.sizeDelta = new Vector2(sqSize, sqSize);
+                upButton.anchoredPosition = new Vector2(deleteButton.anchoredPosition.x + deleteButton.sizeDelta.x + 5, 0);
+
+                RectTransform downButton = CreateBigContentButton(container.transform, "▼", TextAnchor.MiddleCenter);
+                downButton.sizeDelta = new Vector2(sqSize, sqSize);
+                downButton.anchoredPosition = new Vector2(deleteButton.anchoredPosition.x + deleteButton.sizeDelta.x + 5, -sqSize - 5);
+
+                return new PresetButtonInfo()
+                {
+                    container = containerRect.GetComponent<Button>(),
+                    mainButton = mainButton.GetComponent<Button>(),
+                    resetButton = resetButton.GetComponent<Button>(),
+                    deleteButton = deleteButton.GetComponent<Button>(),
+                    upButton = upButton.GetComponent<Button>(),
+                    downButton = downButton.GetComponent<Button>()
+                };
+            }
         }
 
         internal void CreatePresetUI(Transform optionsMenu)
@@ -352,7 +419,9 @@ namespace PluginConfig.API
 
             presetPanelList = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, presetPanel.transform);
             presetPanelList.SetActive(true);
-            Transform content = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(presetPanelList.transform).transform;
+            VerticalLayoutGroup contentLayout = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(presetPanelList.transform);
+            contentLayout.spacing = 5;
+            Transform content = contentLayout.transform;
             foreach (Transform child in content)
                 GameObject.Destroy(child.gameObject);
             Text presetPanelListText = presetPanelList.transform.Find("Text").GetComponent<Text>();
@@ -403,6 +472,11 @@ namespace PluginConfig.API
             {
                 presetPanel.SetActive(true);
             });
+
+            foreach(Preset preset in presets)
+            {
+                PresetButtonInfo.CreateButton(content, preset.name);
+            }
 
             addPresetButton = CreateBigContentButton(content, "+", TextAnchor.MiddleCenter);
         }

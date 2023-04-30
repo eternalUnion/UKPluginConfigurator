@@ -7,6 +7,7 @@ using PluginConfig.API.Fields;
 using PluginConfig.Patches;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
@@ -337,10 +338,30 @@ namespace PluginConfig
             new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
         }
 
+        public AssetBundle bundle;
+        public Sprite trashIcon;
+        public Sprite penIcon;
+
         private void Awake()
         {
             Instance = this;
             logger = Logger;
+
+            string workingPath = Assembly.GetExecutingAssembly().Location;
+            string workingDir = Path.GetDirectoryName(workingPath);
+
+            Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
+            try
+            {
+                bundle = AssetBundle.LoadFromFile(Path.Combine(workingDir, "pluginconfigurator"));
+                trashIcon = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/trash-base.png");
+                penIcon = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/pen-base.png");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Could not load the asset bundle:\n{e}");
+            }
+
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 
