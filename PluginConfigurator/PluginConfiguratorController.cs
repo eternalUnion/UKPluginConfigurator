@@ -436,5 +436,23 @@ namespace PluginConfig
                 config.Flush();
             }
         }
+
+        private static void OnApplicationPause(bool pause)
+        {
+            if (pause)
+                foreach (PluginConfigurator config in PluginConfiguratorController.Instance.configs)
+                {
+                    config.Flush();
+                }
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+                foreach (PluginConfigurator config in configs)
+                {
+                    config.Flush();
+                }
+        }
     }
 }

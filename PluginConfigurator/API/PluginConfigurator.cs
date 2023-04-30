@@ -92,6 +92,9 @@ namespace PluginConfig.API
         private Preset currentPreset;
         private void LoadPresets()
         {
+            if (!Directory.Exists(configPresetFolderDirectory))
+                Directory.CreateDirectory(configPresetFolderDirectory);
+
             if (!File.Exists(configPresetConfigFileDirectory))
             {
                 using (StreamWriter stream = new StreamWriter(File.Open(configPresetConfigFileDirectory, FileMode.Create, FileAccess.Write)))
@@ -227,6 +230,7 @@ namespace PluginConfig.API
                     {
                         if (File.Exists(value.Key.filePath))
                             try { File.Delete(value.Key.filePath); } catch (Exception e) { Debug.LogError(e); }
+                        continue;
                     }
 
                     stream.WriteLine(value.Key.fileId);
@@ -246,6 +250,8 @@ namespace PluginConfig.API
                 }
             }
             buttons = newButtons;
+
+            isPresetHeaderDirty = false;
         }
 
         /// <summary>
@@ -292,9 +298,9 @@ namespace PluginConfig.API
             postConfigChange?.Invoke();
         }
 
-        private void ChangePreset(Preset newPreset)
+        private void ChangePreset(Preset newPreset, bool reset = false)
         {
-            if (newPreset == currentPreset)
+            if (newPreset == currentPreset && !reset)
                 return;
 
             Flush();
@@ -345,7 +351,7 @@ namespace PluginConfig.API
             {
                 foreach(ConfigField field in list.Value)
                 {
-                    if (config.TryGetValue(field.guid, out string val))
+                    if (config.TryGetValue(field.guid, out string val) && !reset)
                         field.ReloadFromString(val);
                     else
                         field.ReloadDefault();
@@ -353,6 +359,13 @@ namespace PluginConfig.API
             }
 
             Flush();
+        }
+
+        private void ResetPreset(Preset preset)
+        {
+            Preset lastPreset = currentPreset;
+            ChangePreset(preset, true);
+            ChangePreset(lastPreset);
         }
 
         /// <summary>
@@ -485,8 +498,8 @@ namespace PluginConfig.API
                 input.interactable = false;
                 input.onEndEdit.AddListener((text) =>
                 {
-                    input.interactable = false;
                     config.isPresetHeaderDirty = true;
+                    input.interactable = false;
                 });
 
                 editButton.GetComponent<Button>().onClick.AddListener(() =>
@@ -591,6 +604,10 @@ namespace PluginConfig.API
             RectTransform defaultResetButton = CreateBigContentButton(presetButtonContainer.transform, "RESET", TextAnchor.MiddleCenter);
             defaultResetButton.sizeDelta = new Vector2(100, 60);
             defaultResetButton.anchoredPosition = new Vector2(520, 0);
+            defaultResetButton.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                ResetPreset(null);
+            });
 
             comp.onClick.AddListener(() =>
             {
@@ -602,6 +619,13 @@ namespace PluginConfig.API
             {
                 PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name, this);
                 buttons.Add(preset, info);
+
+                UnityUtils.GetComponentInChildrenRecursively<InputField>(info.container.transform).onEndEdit.AddListener(name =>
+                {
+                    preset.name = name;
+                    if (currentPreset == preset)
+                        presetButtonText.text = preset.name;
+                });
                 info.mainButton.onClick.AddListener(() =>
                 {
                     if (currentPreset == preset)
@@ -646,11 +670,20 @@ namespace PluginConfig.API
                 info.deleteButton.onClick.AddListener(() =>
                 {
                     if (currentPreset == preset)
+                    {
                         ChangePreset(null);
+                        presetButtonText.text = "[Default Config]";
+                        SetButtonColor(presetButtonComp, new Color(1, 0, 0));
+                        currentPresetInfo = null;
+                    }
 
                     GameObject.Destroy(info.container.gameObject);
                     preset.markedForDelete = true;
                     isPresetHeaderDirty = true;
+                });
+                info.resetButton.onClick.AddListener(() =>
+                {
+                    ResetPreset(preset);
                 });
 
                 if (preset == currentPreset)
@@ -685,7 +718,14 @@ namespace PluginConfig.API
                 customPresetInfo.container.SetSiblingIndex(index);
 
                 buttons.Add(customPreset, customPresetInfo);
+                presets.Add(customPreset);
 
+                UnityUtils.GetComponentInChildrenRecursively<InputField>(customPresetInfo.container.transform).onEndEdit.AddListener(name =>
+                {
+                    customPreset.name = name;
+                    if(currentPreset == customPreset)
+                        presetButtonText.text = customPreset.name;
+                });
                 customPresetInfo.mainButton.onClick.AddListener(() =>
                 {
                     if (currentPreset == customPreset)
@@ -730,11 +770,20 @@ namespace PluginConfig.API
                 customPresetInfo.deleteButton.onClick.AddListener(() =>
                 {
                     if (currentPreset == customPreset)
+                    {
                         ChangePreset(null);
+                        presetButtonText.text = "[Default Config]";
+                        SetButtonColor(presetButtonComp, new Color(1, 0, 0));
+                        currentPresetInfo = null;
+                    }
 
                     GameObject.Destroy(customPresetInfo.container.gameObject);
                     customPreset.markedForDelete = true;
                     isPresetHeaderDirty = true;
+                });
+                customPresetInfo.resetButton.onClick.AddListener(() =>
+                {
+                    ResetPreset(customPreset);
                 });
 
                 if (!Directory.Exists(configPresetFolderDirectory))

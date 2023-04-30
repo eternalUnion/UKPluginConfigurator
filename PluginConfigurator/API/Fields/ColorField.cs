@@ -96,7 +96,7 @@ namespace PluginConfig.API.Fields
                 if (_value != value)
                     rootConfig.isDirty = true;
                 if (currentUi != null)
-                    SetSliders(_value);
+                    SetSliders(value);
 
                 _value = value;
                 string colorString = StringifyColor(_value);
