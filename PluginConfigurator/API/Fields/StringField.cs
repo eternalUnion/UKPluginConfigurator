@@ -88,9 +88,10 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
+            parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
                 throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
-            parentPanel.Register(this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);

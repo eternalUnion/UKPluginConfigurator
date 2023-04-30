@@ -163,6 +163,7 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);

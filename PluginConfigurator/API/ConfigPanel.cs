@@ -31,6 +31,13 @@ namespace PluginConfig.API
                     panel.parentPanel.ActivatePanel();
                 }
             });
+
+            panel.rootConfig.presetButton.SetActive(true);
+        }
+
+        void OnDisable()
+        {
+            panel.rootConfig.presetButton.SetActive(false);
         }
     }
 
@@ -120,8 +127,10 @@ namespace PluginConfig.API
         {
             GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
             panelObject = panel;
-            panel.transform.Find("Text").GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
-            panel.transform.Find("Text").GetComponent<Text>().text = $"--{displayName}--";
+            Text panelText = panel.transform.Find("Text").GetComponent<Text>();
+            panelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            panelText.text = $"--{displayName}--";
+            panelText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -115);
             panel.SetActive(false);
             ConfigPanelComponent panelComp = panel.AddComponent<ConfigPanelComponent>();
             panelComp.panel = this;

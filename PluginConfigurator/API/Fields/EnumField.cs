@@ -101,8 +101,9 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
 
-            foreach(T value in values)
+            foreach (T value in values)
             {
                 enumNames.Add(value, value.ToString());
             }

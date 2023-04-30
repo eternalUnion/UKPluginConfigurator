@@ -27,6 +27,11 @@ namespace PluginConfig.API
 
         internal bool isDirty = false;
         internal Dictionary<string, string> config = new Dictionary<string, string>();
+        internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
+
+        internal Transform panelHolder;
+        internal GameObject presetButton;
+        internal Text presetButtonText;
 
         /// <summary>
         /// File path of the config file including the file name
@@ -141,7 +146,7 @@ namespace PluginConfig.API
             return config;
         }
 
-        internal void CreateUI(Button configButton)
+        internal void CreateUI(Button configButton, Transform optionsMenu)
         {
             GameObject panel = rootPanel.CreateUI(null);
 
@@ -153,6 +158,19 @@ namespace PluginConfig.API
                 PluginConfiguratorController.Instance.activePanel = panel;
                 panel.SetActive(true);
             });
+
+            presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
+            RectTransform presetRect = presetButton.GetComponent<RectTransform>();
+            presetRect.sizeDelta = new Vector2(-675, 40);
+            presetRect.anchoredPosition = new Vector2(-10, -77);
+            Button comp = presetButton.GetComponent<Button>();
+            comp.onClick = new Button.ButtonClickedEvent();
+            presetButtonText = presetButton.transform.Find("Text").GetComponent<Text>();
+            presetButtonText.text = $"[DEFAULT({displayName})]";
+            presetButtonText.alignment = TextAnchor.MiddleLeft;
+            RectTransform presetTextRect = presetButtonText.GetComponent<RectTransform>();
+            presetTextRect.anchoredPosition = new Vector2(7, 0);
+            presetButton.SetActive(false);
         }
 
         private void AddFields(ConfigPanel panel, List<ConfigField> fields)

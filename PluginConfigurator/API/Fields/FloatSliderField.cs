@@ -132,6 +132,8 @@ namespace PluginConfig.API.Fields
         {
             this.roundDecimalPoints = roundDecimalPoints;
             this.defaultValue = defaultValue;
+            parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
 
             if (bounds.Item2 < bounds.Item1)
                 throw new ArgumentException("Float slider bounds maximum smaller than minimum in given constructor argument");
@@ -148,8 +150,6 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, _value.ToString());
                 rootConfig.isDirty = true;
             }
-
-            parentPanel.Register(this);
         }
 
         public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue) : this(parentPanel, displayName, guid, bounds, defaultValue, 1)

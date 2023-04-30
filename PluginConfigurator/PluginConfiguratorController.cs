@@ -55,6 +55,7 @@ namespace PluginConfig
         internal GameObject sampleDropdown;
         internal GameObject sampleColor;
         internal GameObject sampleSlider;
+        internal GameObject sampleBigButton;
         private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
@@ -69,6 +70,8 @@ namespace PluginConfig
             sampleColor = optionsMenu.Find("ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation").gameObject;
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Screenshake
             sampleSlider = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Screenshake").gameObject;
+            //Canvas/OptionsMenu/Controls Options/Scroll Rect/Contents/Default
+            sampleBigButton = optionsMenu.Find("Controls Options/Scroll Rect/Contents/Default").gameObject;
         }
 
         internal GameObject MakeInputField(Transform content)
@@ -133,7 +136,7 @@ namespace PluginConfig
             return bg.gameObject;
         }
 
-        private void CreateConfigUI()
+        private void CreateConfigUI(Transform optionsMenu)
         {
             foreach(PluginConfig.API.PluginConfigurator config in configs)
             {
@@ -143,7 +146,7 @@ namespace PluginConfig
                 Button b = configButton.transform.Find("Select").GetComponent<Button>();
                 b.onClick = new Button.ButtonClickedEvent();
 
-                config.CreateUI(b);
+                config.CreateUI(b, optionsMenu);
             }
         }
 
@@ -253,7 +256,7 @@ namespace PluginConfig
             mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
             mainPanel.GetComponentInChildren<Text>().text = "--PLUGIN CONFIG--";
 
-            CreateConfigUI();
+            CreateConfigUI(optionsMenu);
         }
 
         public Harmony configuratorPatches;
