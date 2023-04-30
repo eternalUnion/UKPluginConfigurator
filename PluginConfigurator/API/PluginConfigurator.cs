@@ -376,6 +376,32 @@ namespace PluginConfig.API
                 downButton.sizeDelta = new Vector2(sqSize, sqSize);
                 downButton.anchoredPosition = new Vector2(deleteButton.anchoredPosition.x + deleteButton.sizeDelta.x + 5, -sqSize - 5);
 
+                GameObject fieldActivator = new GameObject();
+                RectTransform fieldActivatorRect = fieldActivator.AddComponent<RectTransform>();
+                fieldActivatorRect.anchorMin = new Vector2(0, 0);
+                fieldActivatorRect.anchorMax = new Vector2(1, 1);
+                fieldActivatorRect.SetParent(mainButton.transform);
+                fieldActivatorRect.sizeDelta = new Vector2(0, 0);
+                fieldActivatorRect.localScale = Vector3.zero;
+                fieldActivatorRect.anchoredPosition = Vector3.zero;
+
+                InputField input = fieldActivatorRect.gameObject.AddComponent<InputField>();
+                Text mainTextComp = mainButton.GetComponentInChildren<Text>();
+                input.textComponent = mainTextComp;
+                input.interactable = false;
+                input.onEndEdit.AddListener((text) =>
+                {
+                    input.interactable = false;
+                });
+
+                editButton.GetComponent<Button>().onClick.AddListener(() =>
+                {
+                    input.interactable = true;
+                    input.Select();
+                });
+
+                input.SetTextWithoutNotify(mainText);
+
                 return new PresetButtonInfo()
                 {
                     container = containerRect.GetComponent<Button>(),
