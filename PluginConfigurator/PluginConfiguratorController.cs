@@ -299,6 +299,13 @@ namespace PluginConfig
             new IntField(div1, "Sample Field", "sampleField1", 0);
             ConfigDivision div2 = new ConfigDivision(div1, "div2");
             new ConfigHeader(div2, "Division 2");
+
+            ButtonArrayField buttons = new ButtonArrayField(div2, "buttons", 4, new float[] { 0.25f, 0.5f, 0.125f, 0.125f }, new string[] { "First", "Second", "Third", "Fourth" });
+            buttons.OnClickEventHandler(0).onClick += () => { Debug.Log("Button 1 pressed"); };
+            buttons.OnClickEventHandler(1).onClick += () => { Debug.Log("Button 2 pressed"); };
+            buttons.OnClickEventHandler(2).onClick += () => { Debug.Log("Button 3 pressed"); };
+            buttons.OnClickEventHandler(3).onClick += () => { Debug.Log("Button 4 pressed"); };
+
             new BoolField(div2, "Sample Field", "sampleField2", true);
             new ConfigPanel(div2, "SamplePanel", "samplePanel");
             FloatSliderField slider = new FloatSliderField(div2, "Slider field", "slider", new Tuple<float, float>(0, 100), 50, 2);
