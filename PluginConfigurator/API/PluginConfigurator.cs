@@ -409,14 +409,14 @@ namespace PluginConfig.API
             }
         }
 
-        private static RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment)
+        internal static RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment, float width = 620)
         {
             GameObject button = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, content);
             RectTransform buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0, 1);
             buttonRect.anchorMax = new Vector2(0, 1);
             buttonRect.pivot = new Vector2(0, 1);
-            buttonRect.sizeDelta = new Vector2(620, 60);
+            buttonRect.sizeDelta = new Vector2(width, 60);
             buttonRect.anchoredPosition = Vector2.zero;
             Button buttonButtonComp = button.GetComponent<Button>();
             buttonButtonComp.onClick = new Button.ButtonClickedEvent();

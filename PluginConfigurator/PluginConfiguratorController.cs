@@ -290,6 +290,11 @@ namespace PluginConfig
             interactable2.presetLoadPriority = 1;
 
             ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
+            ButtonField button = new ButtonField(div1, "A Button...", "button");
+            button.onClick += () =>
+            {
+                Application.OpenURL("http://www.google.com");
+            };
             new ConfigHeader(div1, "Division 1");
             new IntField(div1, "Sample Field", "sampleField1", 0);
             ConfigDivision div2 = new ConfigDivision(div1, "div2");
