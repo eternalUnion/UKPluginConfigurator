@@ -183,12 +183,12 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadFromString(string data)
         {
-            value = data;
+            OnCompValueChange(data);
         }
 
         internal override void ReloadDefault()
         {
-            value = defaultValue;
+            ReloadFromString(defaultValue);
         }
     }
 }

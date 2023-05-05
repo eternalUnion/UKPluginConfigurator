@@ -228,7 +228,8 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
+            OnCompValueChange(data);
+            /*if (float.TryParse(data, out float newValue))
             {
                 value = newValue;
             }
@@ -241,7 +242,7 @@ namespace PluginConfig.API.Fields
                     rootConfig.config[guid] = _value.ToString();
                 else
                     rootConfig.config.Add(guid, _value.ToString());
-            }
+            }*/
         }
 
         internal override void ReloadDefault()

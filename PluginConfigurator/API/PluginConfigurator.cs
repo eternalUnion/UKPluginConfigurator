@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
@@ -92,6 +93,7 @@ namespace PluginConfig.API
         private Preset currentPreset;
         private void LoadPresets()
         {
+            presets.Clear();
             if (!Directory.Exists(configPresetFolderDirectory))
                 Directory.CreateDirectory(configPresetFolderDirectory);
 
@@ -99,12 +101,12 @@ namespace PluginConfig.API
             {
                 using (StreamWriter stream = new StreamWriter(File.Open(configPresetConfigFileDirectory, FileMode.Create, FileAccess.Write)))
                 {
-                    stream.WriteLine("default");
+                    stream.WriteLine("");
                 }
             }
             else
             {
-                string currentPresetPath = "default";
+                string currentPresetPath = "";
 
                 using (StreamReader stream = File.OpenText(configPresetConfigFileDirectory))
                 {
@@ -114,7 +116,7 @@ namespace PluginConfig.API
                     {
                         Debug.LogWarning($"Invalid preset config for {guid}");
 
-                        currentPresetPath = "default";
+                        currentPresetPath = "";
                         currentPreset = null;
                     }
 
@@ -152,7 +154,7 @@ namespace PluginConfig.API
                     }
                 }
 
-                if (currentPresetPath == "default")
+                if (currentPresetPath == "" || string.IsNullOrWhiteSpace(currentPresetPath))
                     currentPreset = null;
                 else
                 {
@@ -162,6 +164,49 @@ namespace PluginConfig.API
                         Debug.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
                     }
                 }
+            }
+
+            DiscoverNewPresetFiles();
+        }
+
+        private void DiscoverNewPresetFiles()
+        {
+            if(!Directory.Exists(configPresetFolderDirectory))
+            {
+                Directory.CreateDirectory(configPresetFolderDirectory);
+                return;
+            }
+
+            foreach(string file in Directory.GetFiles(configPresetFolderDirectory))
+            {
+                if (file == configPresetConfigFileDirectory || !file.EndsWith(".config"))
+                    continue;
+
+                string fileID = Path.GetFileName(file);
+                fileID = fileID.Substring(0, fileID.Length - ".config".Length);
+                if (string.IsNullOrWhiteSpace(fileID))
+                    continue;
+
+                bool exists = false;
+                foreach(Preset preset in presets)
+                    if(preset.fileId == fileID)
+                    {
+                        exists = true;
+                        break;
+                    }
+
+                if (exists)
+                    continue;
+
+                Preset newPreset = new Preset() { filePath = file, fileId = fileID, listIndex = presets.Count, name = fileID };
+                presets.Add(newPreset);
+
+                if(presetButton != null)
+                {
+                    CreateButtonFromPreset(newPreset, content);
+                }
+
+                isPresetHeaderDirty = true;
             }
         }
 
@@ -223,7 +268,7 @@ namespace PluginConfig.API
 
             using(StreamWriter stream = new StreamWriter(File.Open(configPath, FileMode.Truncate)))
             {
-                stream.WriteLine(currentPreset == null ? "default" : currentPreset.fileId);
+                stream.WriteLine(currentPreset == null ? "" : currentPreset.fileId);
                 foreach(KeyValuePair<Preset, PresetButtonInfo> value in buttons)
                 {
                     if(value.Key.markedForDelete)
@@ -234,8 +279,8 @@ namespace PluginConfig.API
                     }
 
                     stream.WriteLine(value.Key.fileId);
-                    stream.WriteLine(value.Value.mainButton.GetComponentInChildren<Text>().text);
-                    stream.WriteLine(value.Value.container.GetSiblingIndex() - 1);
+                    stream.WriteLine(value.Key.name);
+                    stream.WriteLine(value.Value == null ? value.Key.listIndex : value.Value.container.GetSiblingIndex() - 1);
                 }
             }
 
@@ -274,6 +319,11 @@ namespace PluginConfig.API
             string filePath = configFilePath;
             if (currentPreset != null)
                 filePath = currentPreset.filePath;
+
+            if (!Directory.Exists(configFileDirectory))
+                Directory.CreateDirectory(configFileDirectory);
+            if (!Directory.Exists(configPresetFolderDirectory))
+                Directory.CreateDirectory(configPresetFolderDirectory);
 
             if (!File.Exists(filePath))
                 File.Create(filePath).Close();
@@ -358,6 +408,7 @@ namespace PluginConfig.API
                 }
             }
 
+            isPresetHeaderDirty = true;
             Flush();
         }
 
@@ -366,6 +417,43 @@ namespace PluginConfig.API
             Preset lastPreset = currentPreset;
             ChangePreset(preset, true);
             ChangePreset(lastPreset);
+        }
+
+        private void ExportCurrentPreset()
+        {
+            isDirty = true;
+            Flush();
+
+            string configPath = configFilePath;
+            string exportName = "default config";
+            if (currentPreset != null)
+            {
+                configPath = currentPreset.filePath;
+                exportName = currentPreset.name;
+            }
+
+            string exportFolder = Path.Combine(configPresetFolderDirectory, "exports");
+            if (!Directory.Exists(exportFolder))
+                Directory.CreateDirectory(exportFolder);
+
+            string exportPath = Path.Combine(exportFolder, $"{exportName}.cfg");
+            if(File.Exists(exportPath))
+            {
+                int index = 0;
+                string newName = "";
+                do
+                {
+                    newName = $"{exportName}({index})";
+                    index++;
+                    exportPath = Path.Combine(exportFolder, $"{newName}.cfg");
+                }
+                while (File.Exists(exportPath));
+
+                exportName = newName;
+            }
+
+            File.Copy(configPath, exportPath);
+            Application.OpenURL(exportFolder);
         }
 
         public bool firstTime { get; private set; }
@@ -578,6 +666,7 @@ namespace PluginConfig.API
                 }
 
                 currentPresetInfo = info;
+                currentPreset = preset;
                 presetButtonText.text = preset.name;
             });
             info.upButton.onClick.AddListener(() =>
@@ -585,6 +674,7 @@ namespace PluginConfig.API
                 if (info.container.GetSiblingIndex() > 1)
                 {
                     info.container.SetSiblingIndex(info.container.GetSiblingIndex() - 1);
+                    preset.listIndex = info.container.GetSiblingIndex() - 1;
                     isPresetHeaderDirty = true;
                 }
             });
@@ -593,6 +683,7 @@ namespace PluginConfig.API
                 if (info.container.GetSiblingIndex() < content.childCount - 2)
                 {
                     info.container.SetSiblingIndex(info.container.GetSiblingIndex() + 1);
+                    preset.listIndex = info.container.GetSiblingIndex() - 1;
                     isPresetHeaderDirty = true;
                 }
             });
@@ -658,6 +749,8 @@ namespace PluginConfig.API
 
             presetPanelList = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, presetPanel.transform);
             presetPanelList.SetActive(true);
+            RectTransform presetPanelListRect = presetPanelList.GetComponent<RectTransform>();
+            presetPanelListRect.anchoredPosition = new Vector2(0, 40);
             VerticalLayoutGroup contentLayout = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(presetPanelList.transform);
             contentLayout.spacing = 5;
             Transform content = this.content = contentLayout.transform;
@@ -705,6 +798,7 @@ namespace PluginConfig.API
 
             comp.onClick.AddListener(() =>
             {
+                DiscoverNewPresetFiles();
                 presetPanel.SetActive(true);
             });
 
@@ -754,6 +848,20 @@ namespace PluginConfig.API
             }
             presetButtonContainer.transform.SetAsFirstSibling();
             addPresetButton.SetAsLastSibling();
+
+            RectTransform exportRect = CreateBigContentButton(presetPanelListRect, "Export current preset", TextAnchor.MiddleCenter, 325);
+            exportRect.anchoredPosition = new Vector2(328, -680);
+            exportRect.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                ExportCurrentPreset();
+            });
+
+            RectTransform openPresetsRect = CreateBigContentButton(presetPanelListRect, "Open preset folder", TextAnchor.MiddleCenter, 325);
+            openPresetsRect.anchoredPosition = new Vector2(328 + 325 + 5, -680);
+            openPresetsRect.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                Application.OpenURL(configPresetFolderDirectory);
+            });
         }
 
         public bool PresetExists(string presetID)

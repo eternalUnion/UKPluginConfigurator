@@ -191,31 +191,48 @@ namespace PluginConfig.API.Fields
         {
             if (float.TryParse(data, out float newValue))
             {
+                bool dirty = false;
                 if (newValue < bounds.Item1)
                 {
+                    dirty = rootConfig.isDirty = true;
                     newValue = bounds.Item1;
-                    if (rootConfig.config.ContainsKey(guid))
-                        rootConfig.config[guid] = newValue.ToString();
-                    else
-                        rootConfig.config.Add(guid, newValue.ToString());
-                    rootConfig.isDirty = true;
                 }
                 else if (newValue > bounds.Item2)
                 {
+                    dirty = rootConfig.isDirty = true;
                     newValue = bounds.Item2;
+                }
+
+                FloatSliderValueChangeEvent eventData = new FloatSliderValueChangeEvent(bounds) { newValue = newValue };
+                if(onValueChange != null)
+                {
+                    onValueChange.Invoke(eventData);
+                    if (eventData.canceled)
+                        newValue = value;
+                }
+
+                if (dirty)
+                {
                     if (rootConfig.config.ContainsKey(guid))
                         rootConfig.config[guid] = newValue.ToString();
                     else
                         rootConfig.config.Add(guid, newValue.ToString());
-                    rootConfig.isDirty = true;
                 }
-
                 value = newValue;
             }
             else
             {
                 value = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
+
+                FloatSliderValueChangeEvent eventData = new FloatSliderValueChangeEvent(bounds) { newValue = value };
+                if (onValueChange != null)
+                {
+                    onValueChange.Invoke(eventData);
+                }
+
                 rootConfig.isDirty = true;
+                if (value != eventData.newValue)
+                    value = eventData.newValue;
 
                 if (rootConfig.config.ContainsKey(guid))
                     rootConfig.config[guid] = _value.ToString();
