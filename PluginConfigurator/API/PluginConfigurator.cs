@@ -368,6 +368,8 @@ namespace PluginConfig.API
             ChangePreset(lastPreset);
         }
 
+        public bool firstTime { get; private set; }
+
         /// <summary>
         /// Create a new configurator. Use one instance troughtought the session
         /// </summary>
@@ -381,6 +383,12 @@ namespace PluginConfig.API
                 guid = guid
             };
             config.rootPanel = new ConfigPanel(config);
+
+            config.firstTime = !File.Exists(config.configFilePath);
+            if (!Directory.Exists(config.configFileDirectory))
+                Directory.CreateDirectory(config.configFileDirectory);
+            if (!File.Exists(config.configFilePath))
+                File.Create(config.configFilePath).Close();
 
             PluginConfiguratorController.Instance.RegisterConfigurator(config);
             config.LoadPresets();
@@ -522,20 +530,106 @@ namespace PluginConfig.API
             }
         }
 
-        private PresetButtonInfo currentPresetInfo = null;
-        internal Dictionary<Preset, PresetButtonInfo> buttons = new Dictionary<Preset, PresetButtonInfo>();
-        internal void CreatePresetUI(Transform optionsMenu)
+        void SetButtonColor(Button btn, Color clr)
         {
-            void SetButtonColor(Button btn, Color clr)
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+            colors.normalColor = clr;
+            colors.pressedColor = clr * 0.5f;
+            colors.selectedColor = clr * 0.7f;
+            colors.highlightedColor = clr * 0.6f;
+            btn.colors = colors;
+        }
+
+        private PresetButtonInfo CreateButtonFromPreset(Preset preset, Transform content, int index = -1)
+        {
+            PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name, this);
+            buttons.Add(preset, info);
+
+            if(index < 0)
+                index = content.childCount - 2;
+            info.container.SetSiblingIndex(index);
+
+            UnityUtils.GetComponentInChildrenRecursively<InputField>(info.container.transform).onEndEdit.AddListener(name =>
             {
-                ColorBlock colors = ColorBlock.defaultColorBlock;
-                colors.normalColor = clr;
-                colors.pressedColor = clr * 0.5f;
-                colors.selectedColor = clr * 0.7f;
-                colors.highlightedColor = clr * 0.6f;
-                btn.colors = colors;
+                preset.name = name;
+                if (currentPreset == preset)
+                    presetButtonText.text = preset.name;
+            });
+            info.mainButton.onClick.AddListener(() =>
+            {
+                if (currentPreset == preset)
+                    return;
+                isPresetHeaderDirty = true;
+
+                Debug.Log($"Changing preset to {preset.name}");
+                ChangePreset(preset);
+
+                SetButtonColor(info.mainButton, new Color(1, 0, 0));
+
+                ColorBlock newColors = info.mainButton.colors;
+                newColors.normalColor = newColors.highlightedColor = newColors.pressedColor = newColors.selectedColor = new Color(1, 1, 1);
+                if (currentPresetInfo != null)
+                {
+                    SetButtonColor(currentPresetInfo.mainButton, new Color(1, 1, 1));
+                }
+                else
+                {
+                    SetButtonColor(currentDefaultPresetButton, new Color(1, 1, 1));
+                }
+
+                currentPresetInfo = info;
+                presetButtonText.text = preset.name;
+            });
+            info.upButton.onClick.AddListener(() =>
+            {
+                if (info.container.GetSiblingIndex() > 1)
+                {
+                    info.container.SetSiblingIndex(info.container.GetSiblingIndex() - 1);
+                    isPresetHeaderDirty = true;
+                }
+            });
+            info.downButton.onClick.AddListener(() =>
+            {
+                if (info.container.GetSiblingIndex() < content.childCount - 2)
+                {
+                    info.container.SetSiblingIndex(info.container.GetSiblingIndex() + 1);
+                    isPresetHeaderDirty = true;
+                }
+            });
+            info.deleteButton.onClick.AddListener(() =>
+            {
+                if (currentPreset == preset)
+                {
+                    ChangePreset(null);
+                    presetButtonText.text = "[Default Config]";
+                    SetButtonColor(currentDefaultPresetButton, new Color(1, 0, 0));
+                    currentPresetInfo = null;
+                }
+
+                GameObject.Destroy(info.container.gameObject);
+                preset.markedForDelete = true;
+                isPresetHeaderDirty = true;
+            });
+            info.resetButton.onClick.AddListener(() =>
+            {
+                ResetPreset(preset);
+            });
+
+            if (preset == currentPreset)
+            {
+                SetButtonColor(info.mainButton, new Color(1, 0, 0));
+                currentPresetInfo = info;
             }
 
+            return info;
+        }
+
+        private PresetButtonInfo currentPresetInfo = null;
+        private Button currentDefaultPresetButton = null;
+        internal Dictionary<Preset, PresetButtonInfo> buttons = new Dictionary<Preset, PresetButtonInfo>();
+        private Transform content;
+        internal void CreatePresetUI(Transform optionsMenu)
+        {
             this.presetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
             RectTransform presetRect = this.presetButton.GetComponent<RectTransform>();
             presetRect.sizeDelta = new Vector2(-675, 40);
@@ -566,7 +660,7 @@ namespace PluginConfig.API
             presetPanelList.SetActive(true);
             VerticalLayoutGroup contentLayout = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(presetPanelList.transform);
             contentLayout.spacing = 5;
-            Transform content = contentLayout.transform;
+            Transform content = this.content = contentLayout.transform;
             foreach (Transform child in content)
                 GameObject.Destroy(child.gameObject);
             Text presetPanelListText = presetPanelList.transform.Find("Text").GetComponent<Text>();
@@ -584,7 +678,7 @@ namespace PluginConfig.API
 
             RectTransform presetButton = CreateBigContentButton(presetButtonContainer.transform, "[Default Config]", TextAnchor.MiddleLeft);
             presetButton.sizeDelta = new Vector2(515, 60);
-            Button presetButtonComp = presetButton.GetComponent<Button>();
+            Button presetButtonComp = currentDefaultPresetButton = presetButton.GetComponent<Button>();
             presetButtonComp.onClick.AddListener(() =>
             {
                 Debug.Log("Changing preset to default preset");
@@ -617,80 +711,7 @@ namespace PluginConfig.API
             buttons.Clear();
             foreach(Preset preset in presets)
             {
-                PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name, this);
-                buttons.Add(preset, info);
-
-                UnityUtils.GetComponentInChildrenRecursively<InputField>(info.container.transform).onEndEdit.AddListener(name =>
-                {
-                    preset.name = name;
-                    if (currentPreset == preset)
-                        presetButtonText.text = preset.name;
-                });
-                info.mainButton.onClick.AddListener(() =>
-                {
-                    if (currentPreset == preset)
-                        return;
-                    isPresetHeaderDirty = true;
-
-                    Debug.Log($"Changing preset to {preset.name}");
-                    ChangePreset(preset);
-
-                    SetButtonColor(info.mainButton, new Color(1, 0, 0));
-
-                    ColorBlock newColors = info.mainButton.colors;
-                    newColors.normalColor = newColors.highlightedColor = newColors.pressedColor = newColors.selectedColor = new Color(1, 1, 1);
-                    if (currentPresetInfo != null)
-                    {
-                        SetButtonColor(currentPresetInfo.mainButton, new Color(1, 1, 1));
-                    }
-                    else
-                    {
-                        SetButtonColor(presetButtonComp, new Color(1, 1, 1));
-                    }
-
-                    currentPresetInfo = info;
-                    presetButtonText.text = preset.name;
-                });
-                info.upButton.onClick.AddListener(() =>
-                {
-                    if (info.container.GetSiblingIndex() > 1)
-                    {
-                        info.container.SetSiblingIndex(info.container.GetSiblingIndex() - 1);
-                        isPresetHeaderDirty = true;
-                    }
-                });
-                info.downButton.onClick.AddListener(() =>
-                {
-                    if (info.container.GetSiblingIndex() < content.childCount - 2)
-                    {
-                        info.container.SetSiblingIndex(info.container.GetSiblingIndex() + 1);
-                        isPresetHeaderDirty = true;
-                    }
-                });
-                info.deleteButton.onClick.AddListener(() =>
-                {
-                    if (currentPreset == preset)
-                    {
-                        ChangePreset(null);
-                        presetButtonText.text = "[Default Config]";
-                        SetButtonColor(presetButtonComp, new Color(1, 0, 0));
-                        currentPresetInfo = null;
-                    }
-
-                    GameObject.Destroy(info.container.gameObject);
-                    preset.markedForDelete = true;
-                    isPresetHeaderDirty = true;
-                });
-                info.resetButton.onClick.AddListener(() =>
-                {
-                    ResetPreset(preset);
-                });
-
-                if (preset == currentPreset)
-                {
-                    SetButtonColor(info.mainButton, new Color(1, 0, 0));
-                    currentPresetInfo = info;
-                }
+                CreateButtonFromPreset(preset, content);
             }
 
             if (currentPreset == null)
@@ -710,81 +731,13 @@ namespace PluginConfig.API
                 string name = $"Copy of {((currentPreset == null) ? "default config" : currentPreset.name)}";
                 string id = System.Guid.NewGuid().ToString();
                 string originalPath = (currentPreset == null) ? configFilePath : currentPreset.filePath;
-                PresetButtonInfo customPresetInfo = PresetButtonInfo.CreateButton(content, name, this);
-                int index = content.childCount - 2;
 
                 Preset customPreset = new Preset() { name = name, fileId = id,
-                    filePath = Path.Combine(configPresetFolderDirectory, $"{id}.config"), listIndex = index - 1 };
-                customPresetInfo.container.SetSiblingIndex(index);
-
-                buttons.Add(customPreset, customPresetInfo);
+                    filePath = Path.Combine(configPresetFolderDirectory, $"{id}.config") };
                 presets.Add(customPreset);
 
-                UnityUtils.GetComponentInChildrenRecursively<InputField>(customPresetInfo.container.transform).onEndEdit.AddListener(name =>
-                {
-                    customPreset.name = name;
-                    if(currentPreset == customPreset)
-                        presetButtonText.text = customPreset.name;
-                });
-                customPresetInfo.mainButton.onClick.AddListener(() =>
-                {
-                    if (currentPreset == customPreset)
-                        return;
-                    isPresetHeaderDirty = true;
-
-                    Debug.Log($"Changing preset to {customPreset.name}");
-                    ChangePreset(customPreset);
-
-                    SetButtonColor(customPresetInfo.mainButton, new Color(1, 0, 0));
-
-                    ColorBlock newColors = customPresetInfo.mainButton.colors;
-                    newColors.normalColor = newColors.highlightedColor = newColors.pressedColor = newColors.selectedColor = new Color(1, 1, 1);
-                    if (currentPresetInfo != null)
-                    {
-                        SetButtonColor(currentPresetInfo.mainButton, new Color(1, 1, 1));
-                    }
-                    else
-                    {
-                        SetButtonColor(presetButtonComp, new Color(1, 1, 1));
-                    }
-
-                    currentPresetInfo = customPresetInfo;
-                    presetButtonText.text = customPreset.name;
-                });
-                customPresetInfo.upButton.onClick.AddListener(() =>
-                {
-                    if (customPresetInfo.container.GetSiblingIndex() > 1)
-                    {
-                        customPresetInfo.container.SetSiblingIndex(customPresetInfo.container.GetSiblingIndex() - 1);
-                        isPresetHeaderDirty = true;
-                    }
-                });
-                customPresetInfo.downButton.onClick.AddListener(() =>
-                {
-                    if (customPresetInfo.container.GetSiblingIndex() < content.childCount - 2)
-                    {
-                        customPresetInfo.container.SetSiblingIndex(customPresetInfo.container.GetSiblingIndex() + 1);
-                        isPresetHeaderDirty = true;
-                    }
-                });
-                customPresetInfo.deleteButton.onClick.AddListener(() =>
-                {
-                    if (currentPreset == customPreset)
-                    {
-                        ChangePreset(null);
-                        presetButtonText.text = "[Default Config]";
-                        SetButtonColor(presetButtonComp, new Color(1, 0, 0));
-                        currentPresetInfo = null;
-                    }
-
-                    GameObject.Destroy(customPresetInfo.container.gameObject);
-                    customPreset.markedForDelete = true;
-                    isPresetHeaderDirty = true;
-                });
-                customPresetInfo.resetButton.onClick.AddListener(() =>
-                {
-                    ResetPreset(customPreset);
-                });
+                PresetButtonInfo customPresetInfo = CreateButtonFromPreset(customPreset, content);
+                customPreset.listIndex = Mathf.Clamp(customPresetInfo.container.GetSiblingIndex() - 1, 0, int.MaxValue);
 
                 if (!Directory.Exists(configPresetFolderDirectory))
                 {
@@ -801,6 +754,36 @@ namespace PluginConfig.API
             }
             presetButtonContainer.transform.SetAsFirstSibling();
             addPresetButton.SetAsLastSibling();
+        }
+
+        public bool PresetExists(string presetID)
+        {
+            return presets.Find(preset => preset.fileId == presetID) != null;
+        }
+
+        public bool TryAddPreset(string presetID, string presetName, string fileLocation)
+        {
+            if (presets.Find(preset => preset.fileId == presetID) != null)
+                return false;
+
+            if (!Directory.Exists(configPresetFolderDirectory))
+                Directory.CreateDirectory(configPresetFolderDirectory);
+
+            string savePath = Path.Combine(configPresetFolderDirectory, $"{presetID}.cfg");
+            if(File.Exists(savePath))
+            {
+                try { File.Delete(savePath); } catch (Exception) { }
+            }
+
+            try { File.Copy(fileLocation, savePath); } catch(Exception) { return false; }
+
+            Preset preset = new Preset() { fileId = presetID, filePath = savePath, name = presetName, listIndex = presets.Count };
+            presets.Add(preset);
+
+            if (presetButton != null)
+                CreateButtonFromPreset(preset, content);
+
+            return true;
         }
 
         internal void CreateUI(Button configButton, Transform optionsMenu)
