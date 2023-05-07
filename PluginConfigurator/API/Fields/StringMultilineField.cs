@@ -18,10 +18,11 @@ namespace PluginConfig.API.Fields
         private string _value;
         public string value
         {
-            get => _value.Replace(separatorChar.ToString(), "\n"); set
+            get => _value.Replace(separatorChar, '\n').Replace("\r", ""); set
             {
                 value = value.Replace(separatorChar.ToString(), "");
-                value = value.Replace("\n", separatorChar.ToString());
+                value = value.Replace('\n', separatorChar);
+                value = value.Replace("\r", "");
                 if (_value != value)
                     rootConfig.isDirty = true;
 
@@ -33,7 +34,7 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.Replace(separatorChar.ToString(), "\n"));
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.Replace(separatorChar, '\n'));
             }
         }
 
@@ -97,7 +98,7 @@ namespace PluginConfig.API.Fields
                 LoadFromString(data);
             else
             {
-                _value = defaultValue.Replace("\n", separatorChar.ToString());
+                _value = defaultValue.Replace('\n', separatorChar);
                 rootConfig.config.Add(guid, _value);
                 rootConfig.isDirty = true;
             }
@@ -117,7 +118,7 @@ namespace PluginConfig.API.Fields
             input.characterValidation = InputField.CharacterValidation.None;
             input.onEndEdit.AddListener(OnCompValueChange);
             input.lineType = InputField.LineType.MultiLineNewline;
-            input.text = _value.Replace(separatorChar.ToString(), "\n");
+            input.text = _value.Replace(separatorChar, '\n');
             input.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1);
             input.gameObject.AddComponent<Mask>();
             Text inputText = input.GetComponentInChildren<Text>();
@@ -128,8 +129,8 @@ namespace PluginConfig.API.Fields
             RectTransform inputTextRect = inputText.GetComponent<RectTransform>();
             inputTextRect.anchorMin = new Vector2(0, 0);
             inputTextRect.anchorMax = new Vector2(0, 1);
-            inputTextRect.anchoredPosition = new Vector2(5, -2.5f);
-            inputTextRect.sizeDelta = new Vector2(265, 0);
+            inputTextRect.anchoredPosition = new Vector2(5, 5);
+            inputTextRect.sizeDelta = new Vector2(265, -10);
             RectTransform inputRect = input.GetComponent<RectTransform>();
             inputRect.sizeDelta = new Vector2(270, 110);
             inputRect.anchoredPosition = new Vector2(365, -5);
@@ -177,13 +178,13 @@ namespace PluginConfig.API.Fields
 
         internal void OnCompValueChange(string val)
         {
-            string formattedVal = val.Replace("\n", separatorChar.ToString());
+            string formattedVal = val.Replace('\n', separatorChar).Replace("\r", "");
             if (formattedVal == _value)
                 return;
 
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(val))
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar.ToString(), "\n"));
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
@@ -191,27 +192,27 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar.ToString(), "\n"));
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             value = eventData.value;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar.ToString(), "\n"));
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
         }
 
         public void TriggerValueChangeEvent()
         {
-            onValueChange?.Invoke(new StringValueChangeEvent() { value = _value.Replace(separatorChar.ToString(), "\n") });
+            onValueChange?.Invoke(new StringValueChangeEvent() { value = _value.Replace(separatorChar, '\n') });
         }
 
         internal override void LoadFromString(string data)
         {
-            _value = data.Replace(separatorChar.ToString(), "\n");
+            _value = data.Replace(separatorChar, '\n').Replace("\r", "");
         }
 
         internal override void ReloadFromString(string data)
         {
-            OnCompValueChange(data.Replace(separatorChar.ToString(), "\n"));
+            OnCompValueChange(data.Replace(separatorChar, '\n'));
         }
 
         internal override void ReloadDefault()
