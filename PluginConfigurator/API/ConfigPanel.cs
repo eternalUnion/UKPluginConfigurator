@@ -20,10 +20,10 @@ namespace PluginConfig.API
                 gameObject.SetActive(false);
                 if(panel.parentPanel == null)
                 {
+                    panel.rootConfig.Flush();
                     PluginConfiguratorController.Instance.mainPanel.SetActive(true);
                     PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
                     PluginConfiguratorController.Instance.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
-                    panel.rootConfig.Flush();
                 }
                 else
                 {

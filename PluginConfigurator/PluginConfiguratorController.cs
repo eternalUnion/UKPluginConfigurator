@@ -245,7 +245,25 @@ namespace PluginConfig
             pluginConfigButtonComp.onClick.AddListener(() =>
             {
                 if (activePanel != null)
+                {
+                    if(activePanel.TryGetComponent(out ConfigPanelComponent comp))
+                    {
+                        if (comp.panel != null)
+                            comp.panel.rootConfig.Flush();
+                        else
+                            Debug.LogWarning("Panel component does not have a config panel attached, could not flush");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Could not find panel's component");
+                    }
+
                     activePanel.SetActive(false);
+                }
+                activePanel = null;
+
+                backButton.onClick = new Button.ButtonClickedEvent();
+                backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
             });
 
             Transform contents = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(mainPanel.transform).transform;
