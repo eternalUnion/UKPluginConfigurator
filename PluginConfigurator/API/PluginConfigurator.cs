@@ -436,7 +436,7 @@ namespace PluginConfig.API
             if (!Directory.Exists(exportFolder))
                 Directory.CreateDirectory(exportFolder);
 
-            string exportPath = Path.Combine(exportFolder, $"{exportName}.cfg");
+            string exportPath = Path.Combine(exportFolder, $"{exportName}.config");
             if(File.Exists(exportPath))
             {
                 int index = 0;
@@ -445,7 +445,7 @@ namespace PluginConfig.API
                 {
                     newName = $"{exportName}({index})";
                     index++;
-                    exportPath = Path.Combine(exportFolder, $"{newName}.cfg");
+                    exportPath = Path.Combine(exportFolder, $"{newName}.config");
                 }
                 while (File.Exists(exportPath));
 
