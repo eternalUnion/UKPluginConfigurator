@@ -142,12 +142,6 @@ namespace PluginConfig.API.Fields
             if (!lengthEquality || relativeWidths.Length != buttonCount)
                 throw new ArgumentException("Argument sizes don't match");
 
-            float sum = 0;
-            foreach (float f in relativeWidths)
-                sum += f;
-            if (sum != 1)
-                throw new ArgumentException("Sum of relative widths must be 1");
-
             currentButtons = new GameObject[buttonCount];
             currentButtonComps = new Button[buttonCount];
             currentButtonTexts = new Text[buttonCount];

@@ -456,7 +456,7 @@ namespace PluginConfig.API
             Application.OpenURL(exportFolder);
         }
 
-        private bool DeletePreset(string presetID)
+        public bool DeletePreset(string presetID)
         {
             Preset foundPreset = presets.Where(preset => preset.fileId == presetID).FirstOrDefault();
             if (foundPreset == null)
