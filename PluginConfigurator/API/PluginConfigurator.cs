@@ -456,6 +456,39 @@ namespace PluginConfig.API
             Application.OpenURL(exportFolder);
         }
 
+        private bool DeletePreset(string presetID)
+        {
+            Preset foundPreset = presets.Where(preset => preset.fileId == presetID).FirstOrDefault();
+            if (foundPreset == null)
+                return false;
+
+            if (foundPreset == currentPreset)
+            {
+                ChangePreset(null);
+                currentPresetInfo = null;
+
+                if (defaultPresetButton != null)
+                {
+                    SetButtonColor(currentDefaultPresetButton, new Color(1, 0, 0));
+                    //currentDefaultPresetButton.Select();
+                    presetButtonText.text = "[Default Config]";
+                }
+            }
+            
+            presets.Remove(foundPreset);
+            PresetButtonInfo info = buttons[foundPreset];
+            if(info != null && info.container != null)
+                GameObject.Destroy(info.container.gameObject);
+            buttons.Remove(foundPreset);
+
+            if(File.Exists(foundPreset.filePath))
+                try { File.Delete(foundPreset.filePath); } catch(Exception e) { Debug.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
+
+            isPresetHeaderDirty = true;
+            FlushPresets();
+            return true;
+        }
+
         public bool firstTime { get; private set; }
 
         /// <summary>
@@ -877,7 +910,7 @@ namespace PluginConfig.API
             if (!Directory.Exists(configPresetFolderDirectory))
                 Directory.CreateDirectory(configPresetFolderDirectory);
 
-            string savePath = Path.Combine(configPresetFolderDirectory, $"{presetID}.cfg");
+            string savePath = Path.Combine(configPresetFolderDirectory, $"{presetID}.config");
             if(File.Exists(savePath))
             {
                 try { File.Delete(savePath); } catch (Exception) { }
@@ -891,6 +924,8 @@ namespace PluginConfig.API
             if (presetButton != null)
                 CreateButtonFromPreset(preset, content);
 
+            isPresetHeaderDirty = true;
+            FlushPresets();
             return true;
         }
 
