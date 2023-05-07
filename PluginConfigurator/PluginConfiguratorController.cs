@@ -315,6 +315,8 @@ namespace PluginConfig
             };
             new ConfigHeader(div1, "Division 1");
             new IntField(div1, "Sample Field", "sampleField1", 0);
+            new StringMultilineField(div1, "Multiline edit", "strMulti", "Hello!\nThis is a sample multiline field\n\nEnter as many lines as you want!");
+
             ConfigDivision div2 = new ConfigDivision(div1, "div2");
             new ConfigHeader(div2, "Division 2");
 
