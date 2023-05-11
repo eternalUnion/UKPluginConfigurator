@@ -8,26 +8,26 @@ namespace PluginConfig.API.Fields
     public class BoolField : ConfigField
     {
         private GameObject currentUi;
+        private Toggle currentComp;
         private GameObject currentResetButton;
 
         private bool _value;
         /// <summary>
-        /// Get the value of the field. Setting the value will not call the onValueChange event.
+        /// Get the value of the field. Setting the value will not call the <see cref="onValueChange"/> event.
         /// </summary>
         public bool value
         {
             get => _value; set
             {
-                if (currentUi != null)
-                    currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(value);
+                if (currentComp != null)
+                    currentComp.SetIsOnWithoutNotify(value);
                 if (_value != value)
+                {
                     rootConfig.isDirty = true;
+                    rootConfig.config[guid] = value ? "true" : "false";
+                }
 
                 _value = value;
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value ? "true" : "false";
-                else
-                    rootConfig.config.Add(guid, _value ? "true" : "false");
             }
         }
 
@@ -35,8 +35,8 @@ namespace PluginConfig.API.Fields
 
         /// <summary>
         /// Event data passed when the value is changed by the player.
-        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
-        /// New value is passed trough value field and can be changed
+        /// If <see cref="canceled"/> is set to true, value will not be set (if player is not supposed to change the value, <see cref="ConfigField.interactable"/> field might be a good choice).
+        /// New value is passed trough <see cref="value"/> and can be changed
         /// </summary>
         public class BoolValueChangeEvent
         {
@@ -71,9 +71,9 @@ namespace PluginConfig.API.Fields
             get => _interactable; set
             {
                 _interactable = value;
-                if (currentUi != null)
+                if (currentComp != null)
                 {
-                    currentUi.transform.Find("Toggle").GetComponent<Toggle>().interactable = _interactable && parentInteractable;
+                    currentComp.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -132,7 +132,9 @@ namespace PluginConfig.API.Fields
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
             field.SetActive(!_hidden && !parentHidden);
+            currentComp = currentUi.transform.Find("Toggle").GetComponent<Toggle>();
             SetInteractableColor(_interactable && parentInteractable);
+            currentComp.interactable = _interactable && parentInteractable;
             return field;
         }
 
@@ -143,19 +145,18 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(_value);
+                currentComp.SetIsOnWithoutNotify(_value);
                 return;
             }
 
             value = eventData.value;
-            currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(value);
         }
 
         internal void OnReset()
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.transform.Find("Toggle").GetComponent<Toggle>().SetIsOnWithoutNotify(defaultValue);
+            currentComp.SetIsOnWithoutNotify(defaultValue);
             OnCompValueChange(defaultValue);
         }
 
@@ -164,7 +165,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new BoolValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             if (data == "true")
                 _value = true;
@@ -176,29 +177,30 @@ namespace PluginConfig.API.Fields
                 rootConfig.isDirty = true;
 
                 data = _value ? "true" : "false";
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = data;
-                else
-                    rootConfig.config.Add(guid, data);
+                rootConfig.config[guid] = data;
             }
         }
 
         internal override void ReloadFromString(string data)
         {
             if (data == "true")
+            {
+                currentComp?.SetIsOnWithoutNotify(true);
                 OnCompValueChange(true);
+            }
             else if (data == "false")
+            {
+                currentComp?.SetIsOnWithoutNotify(false);
                 OnCompValueChange(false);
+            }
             else
             {
+                currentComp?.SetIsOnWithoutNotify(defaultValue);
                 OnCompValueChange(defaultValue);
                 rootConfig.isDirty = true;
 
                 data = _value ? "true" : "false";
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = data;
-                else
-                    rootConfig.config.Add(guid, data);
+                rootConfig.config[guid] = data;
             }
         }
 

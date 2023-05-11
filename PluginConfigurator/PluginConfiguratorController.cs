@@ -4,6 +4,7 @@ using HarmonyLib;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
+using PluginConfig.API.Functionals;
 using PluginConfig.Patches;
 using System;
 using System.Collections.Generic;
@@ -251,11 +252,11 @@ namespace PluginConfig
                         if (comp.panel != null)
                             comp.panel.rootConfig.FlushAll();
                         else
-                            Debug.LogWarning("Panel component does not have a config panel attached, could not flush");
+                            PluginConfiguratorController.Instance.LogWarning("Panel component does not have a config panel attached, could not flush");
                     }
                     else
                     {
-                        Debug.LogWarning("Could not find panel's component");
+                        PluginConfiguratorController.Instance.LogWarning("Could not find panel's component");
                     }
 
                     activePanel.SetActive(false);
@@ -329,10 +330,10 @@ namespace PluginConfig
             new ConfigHeader(div2, "Division 2");
 
             ButtonArrayField buttons = new ButtonArrayField(div2, "buttons", 4, new float[] { 0.25f, 0.5f, 0.125f, 0.125f }, new string[] { "First", "Second", "Third", "Fourth" });
-            buttons.OnClickEventHandler(0).onClick += () => { Debug.Log("Button 1 pressed"); };
-            buttons.OnClickEventHandler(1).onClick += () => { Debug.Log("Button 2 pressed"); };
-            buttons.OnClickEventHandler(2).onClick += () => { Debug.Log("Button 3 pressed"); };
-            buttons.OnClickEventHandler(3).onClick += () => { Debug.Log("Button 4 pressed"); };
+            buttons.OnClickEventHandler(0).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 1 pressed"); };
+            buttons.OnClickEventHandler(1).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 2 pressed"); };
+            buttons.OnClickEventHandler(2).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 3 pressed"); };
+            buttons.OnClickEventHandler(3).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 4 pressed"); };
 
             new BoolField(div2, "Sample Field", "sampleField2", true);
             new ConfigPanel(div2, "SamplePanel", "samplePanel");

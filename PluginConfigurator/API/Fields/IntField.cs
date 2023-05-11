@@ -18,14 +18,14 @@ namespace PluginConfig.API.Fields
             {
                 if (currentUi != null)
                     currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
-                if (_value != value)
-                    rootConfig.isDirty = true;
 
+                if (_value != value)
+                {
+                    rootConfig.isDirty = true;
+                    rootConfig.config[guid] = value.ToString();
+                }
+                
                 _value = value;
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
             }
         }
 
@@ -209,7 +209,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new IntValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             if (int.TryParse(data, out int newValue))
             {

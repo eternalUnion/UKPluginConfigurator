@@ -4,7 +4,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfig.API.Fields
+namespace PluginConfig.API.Functionals
 {
     public class ButtonField : ConfigField
     {
@@ -13,16 +13,22 @@ namespace PluginConfig.API.Fields
         internal Text currentText;
 
         private bool _hidden = false;
-        public override bool hidden { get => _hidden; set {
+        public override bool hidden
+        {
+            get => _hidden; set
+            {
                 _hidden = value;
                 if (currentUI == null)
                     return;
                 currentUI.SetActive(!_hidden && !parentHidden);
-            } 
+            }
         }
 
         private bool _interactable = true;
-        public override bool interactable { get => _interactable; set {
+        public override bool interactable
+        {
+            get => _interactable; set
+            {
                 _interactable = value;
                 if (currentButton == null)
                     return;
@@ -31,7 +37,9 @@ namespace PluginConfig.API.Fields
         }
 
         private string _text = "";
-        public string text { get => _text; set 
+        public string text
+        {
+            get => _text; set
             {
                 _text = value;
                 if (currentText != null)
@@ -66,19 +74,14 @@ namespace PluginConfig.API.Fields
             return currentUI;
         }
 
-        internal override void LoadFromString(string data)
-        {
-            
-        }
-
         internal override void ReloadDefault()
         {
-            
+
         }
 
         internal override void ReloadFromString(string data)
         {
-            
+
         }
     }
 }

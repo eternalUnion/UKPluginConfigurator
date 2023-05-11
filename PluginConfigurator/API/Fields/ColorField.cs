@@ -64,6 +64,7 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private ColorFieldComponent currentImage;
+        private Text currentText;
         private Slider r;
         private Slider g;
         private Slider b;
@@ -76,8 +77,6 @@ namespace PluginConfig.API.Fields
             g.SetValueWithoutNotify(c.g);
             b.SetValueWithoutNotify(c.b);
             currentImage.SetColor(c.r, c.g, c.b);
-
-            Debug.Log($"Setting to {c}");
         }
 
         private string StringifyColor(Color c)
@@ -87,23 +86,27 @@ namespace PluginConfig.API.Fields
 
         private Color _value;
         /// <summary>
-        /// Get the value of the field. Setting the value will not call the onValueChange event.
+        /// Get the value of the field. Setting the value will not call the <see cref="onValueChange"/> event.
         /// </summary>
         public Color value
         {
             get => _value; set
             {
+                bool dirty = false;
                 if (_value != value)
+                {
                     rootConfig.isDirty = true;
+                    dirty = true;
+                }
+
                 if (currentUi != null)
                     SetSliders(value);
 
                 _value = value;
+                
                 string colorString = StringifyColor(_value);
-                if (rootConfig.config.ContainsKey(guid))
+                if(dirty)
                     rootConfig.config[guid] = colorString;
-                else
-                    rootConfig.config.Add(guid, colorString);
             }
         }
 
@@ -111,8 +114,8 @@ namespace PluginConfig.API.Fields
 
         /// <summary>
         /// Event data passed when the value is changed by the player.
-        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
-        /// New value is passed trough value field and can be changed
+        /// If <see cref="canceled"/> is set to true, value will not be set (if player is not supposed to change the value, <see cref="ConfigField.interactable"/> field might be a good choice).
+        /// New value is passed trough <see cref="value"/> and can be changed
         /// </summary>
         public class ColorValueChangeEvent
         {
@@ -137,7 +140,7 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            currentText.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -249,6 +252,8 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
+            currentText = currentUi.transform.Find("Text").GetComponent<Text>();
+
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(_interactable && parentInteractable);
             return field;
@@ -284,7 +289,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new ColorValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             string[] colorSplit = data.Split(',');
 

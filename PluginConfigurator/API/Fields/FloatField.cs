@@ -15,16 +15,19 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
+                bool dirty = false;
                 if (_value != value)
+                {
                     rootConfig.isDirty = true;
+                    dirty = true;
+                }
                 if (currentUi != null)
                     currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
-
+                
                 _value = value;
-                if (rootConfig.config.ContainsKey(guid))
+
+                if(dirty)
                     rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
             }
         }
 
@@ -208,7 +211,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new FloatValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             if (float.TryParse(data, out float newValue))
             {

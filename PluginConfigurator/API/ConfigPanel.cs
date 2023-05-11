@@ -170,11 +170,6 @@ namespace PluginConfig.API
             return panel;
         }
 
-        internal override void LoadFromString(string data)
-        {
-            throw new NotImplementedException();
-        }
-
         internal override void ReloadFromString(string data)
         {
             throw new NotImplementedException();

@@ -5,7 +5,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PluginConfig.API.Fields
+namespace PluginConfig.API.Functionals
 {
     public class ButtonArrayField : ConfigField
     {
@@ -121,7 +121,7 @@ namespace PluginConfig.API.Fields
 
         public ButtonClickEvent OnClickEventHandler(int index)
         {
-            if(index < 0 || index >= buttonCount)
+            if (index < 0 || index >= buttonCount)
                 throw new ArgumentException("Index out of range");
             return _onClickEvents[index];
         }
@@ -176,7 +176,7 @@ namespace PluginConfig.API.Fields
             rect.anchoredPosition = Vector3.zero;
 
             float currentOffset = 0;
-            for(int i = 0; i < buttonCount; i++)
+            for (int i = 0; i < buttonCount; i++)
             {
                 float width = 600 * _width[i];
                 if (i != buttonCount - 1)
@@ -205,19 +205,19 @@ namespace PluginConfig.API.Fields
             return currentUI;
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
-        
+
         }
 
         internal override void ReloadDefault()
         {
-            
+
         }
 
         internal override void ReloadFromString(string data)
         {
-            
+
         }
     }
 }

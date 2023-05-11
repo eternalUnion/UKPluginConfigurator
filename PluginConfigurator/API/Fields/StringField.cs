@@ -18,15 +18,14 @@ namespace PluginConfig.API.Fields
         {
             get => _value.Replace("\n", ""); set
             {
-                if (_value != value)
-                    rootConfig.isDirty = true;
                 value = value.Replace("\n", "");
-
-                _value = value;
-                if (rootConfig.config.ContainsKey(guid))
+                if (_value != value)
+                {
+                    rootConfig.isDirty = true;
                     rootConfig.config[guid] = value;
-                else
-                    rootConfig.config.Add(guid, value);
+                }
+                
+                _value = value;
 
                 if (currentUi == null)
                     return;
@@ -176,7 +175,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new StringValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             _value = data;
         }

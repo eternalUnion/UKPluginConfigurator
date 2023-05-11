@@ -45,15 +45,19 @@ namespace PluginConfig.API.Fields
             {
                 if (value < 0 || value > 1)
                     throw new ArgumentException("Float slider config's normalized value set outside [0, 1]");
+
+                bool dirty = false;
                 if (_normalizedValue != value)
+                {
                     rootConfig.isDirty = true;
+                    dirty = true;
+                }
 
                 _normalizedValue = value;
                 _value = (float)Math.Round(Denormalize(_normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
-                if (rootConfig.config.ContainsKey(guid))
+
+                if(dirty)
                     rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
 
                 if (currentUi == null)
                     return;
@@ -67,8 +71,12 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
+                bool dirty = false;
                 if (_value != value)
+                {
                     rootConfig.isDirty = true;
+                    dirty = true;
+                }
 
                 if (value < bounds.Item1)
                     _value = bounds.Item1;
@@ -80,10 +88,8 @@ namespace PluginConfig.API.Fields
                 _value = (float)Math.Round(_value, roundDecimalPoints);
                 _normalizedValue = Normalize(_value, bounds.Item1, bounds.Item2);
 
-                if (rootConfig.config.ContainsKey(guid))
+                if(dirty)
                     rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
 
                 if (currentUi == null)
                     return;
@@ -155,7 +161,7 @@ namespace PluginConfig.API.Fields
         public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue) : this(parentPanel, displayName, guid, bounds, defaultValue, 1)
         { }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             if (float.TryParse(data, out float newValue))
             {

@@ -24,13 +24,12 @@ namespace PluginConfig.API.Fields
                 value = value.Replace('\n', separatorChar);
                 value = value.Replace("\r", "");
                 if (_value != value)
+                {
                     rootConfig.isDirty = true;
+                    rootConfig.config[guid] = value;
+                }
 
                 _value = value;
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = value;
-                else
-                    rootConfig.config.Add(guid, value);
 
                 if (currentUi == null)
                     return;
@@ -92,7 +91,7 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
-                throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
+                throw new ArgumentException($"Multiline string field {guid} does not allow empty values but its default value is empty");
 
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);
@@ -205,7 +204,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new StringValueChangeEvent() { value = _value.Replace(separatorChar, '\n') });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             _value = data.Replace(separatorChar, '\n').Replace("\r", "");
         }
