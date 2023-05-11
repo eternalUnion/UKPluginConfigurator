@@ -200,7 +200,7 @@ namespace PluginConfig.API
 
                     if (currentPresetPath == null)
                     {
-                        Debug.LogWarning($"Invalid preset config for {guid}");
+                        PluginConfiguratorController.Instance.LogWarning($"Invalid preset config for {guid}");
 
                         currentPresetPath = "";
                         currentPreset = null;
@@ -217,21 +217,21 @@ namespace PluginConfig.API
                         string name = stream.ReadLine();
                         if(name == null)
                         {
-                            Debug.LogWarning($"Invalid preset config ending for {guid}");
+                            PluginConfiguratorController.Instance.LogWarning($"Invalid preset config ending for {guid}");
                             break;
                         }
 
                         string indexStr = stream.ReadLine();
                         if(indexStr == null)
                         {
-                            Debug.LogWarning($"Invalid preset config ending for {guid}");
+                            PluginConfiguratorController.Instance.LogWarning($"Invalid preset config ending for {guid}");
                             break;
                         }
 
                         int index = 0;
                         if(!int.TryParse(indexStr, out index))
                         {
-                            Debug.LogWarning($"Invalid list index for {guid}:{id}:{name}");
+                            PluginConfiguratorController.Instance.LogWarning($"Invalid list index for {guid}:{id}:{name}");
                             index = 0;
                         }
 
@@ -252,7 +252,7 @@ namespace PluginConfig.API
                     currentPreset = presets.Find(preset => preset.fileId == currentPresetPath);
                     if(currentPreset == null)
                     {
-                        Debug.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
+                        PluginConfiguratorController.Instance.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
                     }
                 }
             }
@@ -319,7 +319,7 @@ namespace PluginConfig.API
                         string data = stream.ReadLine();
                         if (data == null)
                             data = "";
-                        Debug.Log($"{guid}:{data}");
+                        PluginConfiguratorController.Instance.LogDebug($"{guid}:{data}");
                         config[guid] = data;
                     }
                 }
@@ -354,7 +354,7 @@ namespace PluginConfig.API
                     if (preset.markedForDelete)
                     {
                         if (File.Exists(preset.filePath))
-                            try { File.Delete(preset.filePath); } catch (Exception e) { Debug.LogError(e); }
+                            try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.Instance.LogError(e.ToString()); }
                         continue;
                     }
 
@@ -538,7 +538,7 @@ namespace PluginConfig.API
                 GameObject.Destroy(preset.currentUI.container.gameObject);
 
             if (File.Exists(preset.filePath))
-                try { File.Delete(preset.filePath); } catch (Exception e) { Debug.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
+                try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.Instance.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
 
             isPresetHeaderDirty = true;
             FlushPresets();
@@ -724,7 +724,7 @@ namespace PluginConfig.API
                     return;
                 isPresetHeaderDirty = true;
 
-                Debug.Log($"Changing preset to {preset.name}");
+                PluginConfiguratorController.Instance.LogDebug($"Changing preset to {preset.name}");
                 ChangePreset(preset);
             });
             info.upButton.onClick.AddListener(() =>
@@ -817,7 +817,7 @@ namespace PluginConfig.API
             Button defaultPresetButtonComp = currentDefaultPresetButton = defaultPresetButton.GetComponent<Button>();
             defaultPresetButtonComp.onClick.AddListener(() =>
             {
-                Debug.Log("Changing preset to default preset");
+                PluginConfiguratorController.Instance.LogDebug("Changing preset to default preset");
                 ChangePreset(null);
             });
 
@@ -982,19 +982,19 @@ namespace PluginConfig.API
 
             if (nonCriticalConflicts.Count != 0)
             {
-                Debug.LogWarning("Non-critical GUID conflicts:");
+                PluginConfiguratorController.Instance.LogWarning("Non-critical GUID conflicts:");
                 foreach (KeyValuePair<ConfigField, ConfigField> duplicate in nonCriticalConflicts)
                 {
-                    Debug.LogWarning($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+                    PluginConfiguratorController.Instance.LogWarning($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
                 }
             }
 
             if (criticalConflicts.Count != 0)
             {
-                Debug.LogError("Critical GUID conflicts:");
+                PluginConfiguratorController.Instance.LogError("Critical GUID conflicts:");
                 foreach (KeyValuePair<ConfigField, ConfigField> duplicate in criticalConflicts)
                 {
-                    Debug.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+                    PluginConfiguratorController.Instance.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
                 }
             }
         }

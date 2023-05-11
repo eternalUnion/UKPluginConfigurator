@@ -184,7 +184,7 @@ namespace PluginConfig
             ultraTweaker = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("waffle.ultrakill.ultratweaker");
             if (ultraTweaker)
             {
-                Logger.LogInfo("Ultra Tweaker detected");
+                LogDebug("Ultra Tweaker detected");
                 Type SettingUIHandler = Type.GetType("UltraTweaker.Handlers.SettingUIHandler, UltraTweaker");
                 MethodInfo ultraTweakerUIMethod = SettingUIHandler.GetMethod("CreateUI", BindingFlags.Static | BindingFlags.Public);
                 ultraTweakerHarmony.Patch(ultraTweakerUIMethod, postfix: new HarmonyMethod(typeof(PluginConfiguratorController).GetMethod("HandleUltraTweakerUI", BindingFlags.NonPublic | BindingFlags.Static)));
@@ -285,6 +285,14 @@ namespace PluginConfig
         private BoolField patchCheatKeys;
         private BoolField patchPause;
         private BoolField devConfigs;
+        private enum LogLevel
+        {
+            Disabled,
+            Debug,
+            Warning,
+            Error
+        }
+        private EnumField<LogLevel> consoleLogLevel;
 
         internal enum TestEnum
         {
@@ -339,7 +347,7 @@ namespace PluginConfig
             ColorField colorField = new ColorField(div2, "Sample Color", "sampleColor", new Color(0.3f, 0.2f, 0.1f));
             colorField.onValueChange += (ColorField.ColorValueChangeEvent data) =>
             {
-                Logger.LogInfo($"New color: {data.value}");
+                Logger.LogDebug($"New color: {data.value}");
             };
             EnumField<TestEnum> enumField = new EnumField<TestEnum>(div2, "Sample Enum", "sampleEnum1", TestEnum.SampleText);
             enumField.SetEnumDisplayName(TestEnum.SampleText, "Sample Text");
@@ -383,6 +391,16 @@ namespace PluginConfig
             Instance = this;
             logger = Logger;
 
+            configuratorPatches = new Harmony(PLUGIN_GUID);
+            config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
+
+            new ConfigHeader(config.rootPanel, "Patches");
+            patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
+            patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
+            new ConfigHeader(config.rootPanel, "Developer Stuffs");
+            devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
+            consoleLogLevel = new EnumField<LogLevel>(config.rootPanel, "Console log level", "consoleLogLevel", LogLevel.Disabled);
+
             string workingPath = Assembly.GetExecutingAssembly().Location;
             string workingDir = Path.GetDirectoryName(workingPath);
 
@@ -395,17 +413,8 @@ namespace PluginConfig
             }
             catch (Exception e)
             {
-                Logger.LogError($"Could not load the asset bundle:\n{e}");
+                LogError($"Could not load the asset bundle:\n{e}");
             }
-
-            configuratorPatches = new Harmony(PLUGIN_GUID);
-            config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
-
-            new ConfigHeader(config.rootPanel, "Patches");
-            patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
-            patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
-            new ConfigHeader(config.rootPanel, "Developer Stuffs");
-            devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
 
             // TEST CONFIGS
             if(devConfigs.value)
@@ -459,6 +468,27 @@ namespace PluginConfig
         private void OnDisable()
         {
             SceneManager.activeSceneChanged -= OnSceneChange;
+        }
+
+        public void LogDebug(string message)
+        {
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Debug && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
+                return;
+            logger.LogMessage(message);
+        }
+
+        public void LogWarning(string message)
+        {
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
+                return;
+            logger.LogWarning(message);
+        }
+
+        public void LogError(string message)
+        {
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Error)
+                return;
+            logger.LogError(message);
         }
 
         private void OnApplicationQuit()
