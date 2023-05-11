@@ -20,7 +20,7 @@ namespace PluginConfig.API
                 gameObject.SetActive(false);
                 if(panel.parentPanel == null)
                 {
-                    panel.rootConfig.Flush();
+                    panel.rootConfig.FlushAll();
                     PluginConfiguratorController.Instance.mainPanel.SetActive(true);
                     PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
                     PluginConfiguratorController.Instance.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
@@ -32,12 +32,12 @@ namespace PluginConfig.API
                 }
             });
 
-            panel.rootConfig.presetButton.SetActive(true);
+            panel.rootConfig.presetMenuButton.SetActive(true);
         }
 
         void OnDisable()
         {
-            panel.rootConfig.presetButton.SetActive(false);
+            panel.rootConfig.presetMenuButton.SetActive(false);
         }
     }
 

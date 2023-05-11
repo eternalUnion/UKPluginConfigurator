@@ -46,7 +46,7 @@ namespace PluginConfig
         public void FlushAllConfigs()
         {
             foreach (PluginConfigurator config in configs)
-                config.Flush();
+                config.FlushAll();
         }
 
         internal GameObject sampleBoolField;
@@ -249,7 +249,7 @@ namespace PluginConfig
                     if(activePanel.TryGetComponent(out ConfigPanelComponent comp))
                     {
                         if (comp.panel != null)
-                            comp.panel.rootConfig.Flush();
+                            comp.panel.rootConfig.FlushAll();
                         else
                             Debug.LogWarning("Panel component does not have a config panel attached, could not flush");
                     }
@@ -447,7 +447,7 @@ namespace PluginConfig
 
             configuratorPatches.Patch(GetStaticMethod<HUDOptions>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
 
-            config.Flush();
+            config.FlushAll();
             Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
@@ -465,7 +465,7 @@ namespace PluginConfig
         {
             foreach(PluginConfigurator config in configs)
             {
-                config.Flush();
+                config.FlushAll();
             }
         }
 
@@ -474,7 +474,7 @@ namespace PluginConfig
             if (pause)
                 foreach (PluginConfigurator config in PluginConfiguratorController.Instance.configs)
                 {
-                    config.Flush();
+                    config.FlushAll();
                 }
         }
 
@@ -483,7 +483,7 @@ namespace PluginConfig
             if (!hasFocus)
                 foreach (PluginConfigurator config in configs)
                 {
-                    config.Flush();
+                    config.FlushAll();
                 }
         }
     }
