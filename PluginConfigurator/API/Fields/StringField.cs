@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static PluginConfig.API.Fields.IntField;
 
 namespace PluginConfig.API.Fields
 {
@@ -20,20 +18,18 @@ namespace PluginConfig.API.Fields
         {
             get => _value.Replace("\n", ""); set
             {
-                if (_value == value)
-                    return;
                 value = value.Replace("\n", "");
-                rootConfig.isDirty = true;
-
-                _value = value;
-                if (rootConfig.config.ContainsKey(guid))
+                if (_value != value)
+                {
+                    rootConfig.isDirty = true;
                     rootConfig.config[guid] = value;
-                else
-                    rootConfig.config.Add(guid, value);
+                }
+                
+                _value = value;
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponent<InputField>().SetTextWithoutNotify(value.ToString());
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
             }
         }
 
@@ -77,7 +73,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.GetComponent<InputField>().interactable = _interactable && parentInteractable;
+                    currentUi.GetComponentInChildren<InputField>().interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -88,9 +84,10 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
+            parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
                 throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
-            parentPanel.Register(this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);
@@ -108,7 +105,7 @@ namespace PluginConfig.API.Fields
             currentUi = field;
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
-            InputField input = field.GetComponent<InputField>();
+            InputField input = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.None;
             input.text = _value;
@@ -146,7 +143,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.GetComponent<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue);
         }
 
@@ -157,7 +154,7 @@ namespace PluginConfig.API.Fields
 
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(val))
             {
-                currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -165,11 +162,12 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponent<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
             value = eventData.value;
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()
@@ -177,9 +175,19 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new StringValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             _value = data;
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            OnCompValueChange(data);
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(defaultValue);
         }
     }
 }

@@ -4,9 +4,11 @@ using HarmonyLib;
 using PluginConfig.API;
 using PluginConfig.API.Decorators;
 using PluginConfig.API.Fields;
+using PluginConfig.API.Functionals;
 using PluginConfig.Patches;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
@@ -35,7 +37,7 @@ namespace PluginConfig
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-        public const string PLUGIN_VERSION = "1.1.0";
+        public const string PLUGIN_VERSION = "1.3.0";
 
         internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
         internal void RegisterConfigurator(PluginConfigurator config)
@@ -45,7 +47,7 @@ namespace PluginConfig
         public void FlushAllConfigs()
         {
             foreach (PluginConfigurator config in configs)
-                config.Flush();
+                config.FlushAll();
         }
 
         internal GameObject sampleBoolField;
@@ -54,6 +56,8 @@ namespace PluginConfig
         internal GameObject sampleHeader;
         internal GameObject sampleDropdown;
         internal GameObject sampleColor;
+        internal GameObject sampleSlider;
+        internal GameObject sampleBigButton;
         private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
@@ -66,6 +70,10 @@ namespace PluginConfig
             sampleDropdown = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Weapon Position").gameObject;
             //Canvas/OptionsMenu/ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation/
             sampleColor = optionsMenu.Find("ColorBlindness Options/Scroll Rect/Contents/HUD/Gold Variation").gameObject;
+            //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Screenshake
+            sampleSlider = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Screenshake").gameObject;
+            //Canvas/OptionsMenu/Controls Options/Scroll Rect/Contents/Default
+            sampleBigButton = optionsMenu.Find("Controls Options/Scroll Rect/Contents/Default").gameObject;
         }
 
         internal GameObject MakeInputField(Transform content)
@@ -91,14 +99,46 @@ namespace PluginConfig
             txtRect.anchoredPosition = new Vector2(10f, 0);
             Text txtComp = txt.GetComponent<Text>();
 
-            InputField input = field.AddComponent<InputField>();
+            InputField input = bg.gameObject.AddComponent<InputField>();
             input.textComponent = txtComp;
             input.targetGraphic = img;
 
             return field;
         }
 
-        private void CreateConfigUI()
+        internal GameObject MakeInputFieldNoBG(Transform tempContent, Transform parent)
+        {
+            GameObject field = Instantiate(sampleBoolField, tempContent);
+
+            Transform bg = field.transform.Find("Toggle/Background");
+            bg.SetParent(field.transform);
+            bg.GetComponent<RectTransform>().sizeDelta = new Vector2(270, 30);
+
+            Destroy(field.transform.Find("Toggle").gameObject);
+            Destroy(bg.transform.GetChild(0).gameObject);
+
+            Image img = bg.GetComponent<Image>();
+            img.fillMethod = Image.FillMethod.Horizontal;
+            img.pixelsPerUnitMultiplier = 10f;
+            img.SetAllDirty();
+            RectTransform bgRect = bg.GetComponent<RectTransform>();
+            bgRect.pivot = new Vector2(0, 0.5f);
+
+            GameObject txt = GameObject.Instantiate(field.transform.Find("Text").gameObject, bg.transform);
+            RectTransform txtRect = txt.GetComponent<RectTransform>();
+            txtRect.anchoredPosition = new Vector2(10f, 0);
+            Text txtComp = txt.GetComponent<Text>();
+
+            bg.SetParent(parent);
+            InputField input = bg.gameObject.AddComponent<InputField>();
+            input.textComponent = txtComp;
+            input.targetGraphic = img;
+
+            Destroy(field.gameObject);
+            return bg.gameObject;
+        }
+
+        private void CreateConfigUI(Transform optionsMenu)
         {
             foreach(PluginConfig.API.PluginConfigurator config in configs)
             {
@@ -108,7 +148,7 @@ namespace PluginConfig
                 Button b = configButton.transform.Find("Select").GetComponent<Button>();
                 b.onClick = new Button.ButtonClickedEvent();
 
-                config.CreateUI(b);
+                config.CreateUI(b, optionsMenu);
             }
         }
 
@@ -145,7 +185,7 @@ namespace PluginConfig
             ultraTweaker = BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("waffle.ultrakill.ultratweaker");
             if (ultraTweaker)
             {
-                Logger.LogInfo("Ultra Tweaker detected");
+                LogDebug("Ultra Tweaker detected");
                 Type SettingUIHandler = Type.GetType("UltraTweaker.Handlers.SettingUIHandler, UltraTweaker");
                 MethodInfo ultraTweakerUIMethod = SettingUIHandler.GetMethod("CreateUI", BindingFlags.Static | BindingFlags.Public);
                 ultraTweakerHarmony.Patch(ultraTweakerUIMethod, postfix: new HarmonyMethod(typeof(PluginConfiguratorController).GetMethod("HandleUltraTweakerUI", BindingFlags.NonPublic | BindingFlags.Static)));
@@ -162,6 +202,7 @@ namespace PluginConfig
             pluginConfigButtonRect.anchoredPosition = new Vector2(30, ultraTweaker ? 330 : 300);
             Text pluginConfigButtonText = pluginConfigButton.GetComponentInChildren<Text>();
             pluginConfigButtonText.text = "PLUGIN CONFIG";
+            pluginConfigButton.transform.SetSiblingIndex(1);
 
             sampleMenu = mainPanel = Instantiate(optionsMenu.Find("Gameplay Options").gameObject, optionsMenu);
             mainPanel.SetActive(false);
@@ -205,7 +246,25 @@ namespace PluginConfig
             pluginConfigButtonComp.onClick.AddListener(() =>
             {
                 if (activePanel != null)
+                {
+                    if(activePanel.TryGetComponent(out ConfigPanelComponent comp))
+                    {
+                        if (comp.panel != null)
+                            comp.panel.rootConfig.FlushAll();
+                        else
+                            PluginConfiguratorController.Instance.LogWarning("Panel component does not have a config panel attached, could not flush");
+                    }
+                    else
+                    {
+                        PluginConfiguratorController.Instance.LogWarning("Could not find panel's component");
+                    }
+
                     activePanel.SetActive(false);
+                }
+                activePanel = null;
+
+                backButton.onClick = new Button.ButtonClickedEvent();
+                backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
             });
 
             Transform contents = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(mainPanel.transform).transform;
@@ -218,7 +277,7 @@ namespace PluginConfig
             mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
             mainPanel.GetComponentInChildren<Text>().text = "--PLUGIN CONFIG--";
 
-            CreateConfigUI();
+            CreateConfigUI(optionsMenu);
         }
 
         public Harmony configuratorPatches;
@@ -226,6 +285,15 @@ namespace PluginConfig
         private PluginConfigurator config;
         private BoolField patchCheatKeys;
         private BoolField patchPause;
+        private BoolField devConfigs;
+        private enum LogLevel
+        {
+            Disabled,
+            Debug,
+            Warning,
+            Error
+        }
+        private EnumField<LogLevel> consoleLogLevel;
 
         internal enum TestEnum
         {
@@ -240,21 +308,47 @@ namespace PluginConfig
             divConfig.saveToFile = true;
 
             BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
+            enabler1.presetLoadPriority = 1;
             BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
+            enabler2.presetLoadPriority = 1;
             BoolField interactable1 = new BoolField(divConfig.rootPanel, "Enable interacable 1", "interactable1", true);
+            interactable1.presetLoadPriority = 1;
             BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
+            interactable2.presetLoadPriority = 1;
 
             ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
+            ButtonField button = new ButtonField(div1, "A Button...", "button");
+            button.onClick += () =>
+            {
+                Application.OpenURL("http://www.google.com");
+            };
             new ConfigHeader(div1, "Division 1");
             new IntField(div1, "Sample Field", "sampleField1", 0);
+            new StringMultilineField(div1, "Multiline edit", "strMulti", "Hello!\nThis is a sample multiline field\n\nEnter as many lines as you want!");
+
             ConfigDivision div2 = new ConfigDivision(div1, "div2");
             new ConfigHeader(div2, "Division 2");
+
+            ButtonArrayField buttons = new ButtonArrayField(div2, "buttons", 4, new float[] { 0.25f, 0.5f, 0.125f, 0.125f }, new string[] { "First", "Second", "Third", "Fourth" });
+            buttons.OnClickEventHandler(0).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 1 pressed"); };
+            buttons.OnClickEventHandler(1).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 2 pressed"); };
+            buttons.OnClickEventHandler(2).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 3 pressed"); };
+            buttons.OnClickEventHandler(3).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 4 pressed"); };
+
             new BoolField(div2, "Sample Field", "sampleField2", true);
             new ConfigPanel(div2, "SamplePanel", "samplePanel");
+            FloatSliderField slider = new FloatSliderField(div2, "Slider field", "slider", new Tuple<float, float>(0, 100), 50, 2);
+            slider.onValueChange += (FloatSliderField.FloatSliderValueChangeEvent e) =>
+            {
+                if (e.newValue == 20)
+                    e.newValue = 5.5f;
+                else if (e.newValue == 30)
+                    e.canceled = true;
+            };
             ColorField colorField = new ColorField(div2, "Sample Color", "sampleColor", new Color(0.3f, 0.2f, 0.1f));
             colorField.onValueChange += (ColorField.ColorValueChangeEvent data) =>
             {
-                Logger.LogInfo($"New color: {data.value}");
+                Logger.LogDebug($"New color: {data.value}");
             };
             EnumField<TestEnum> enumField = new EnumField<TestEnum>(div2, "Sample Enum", "sampleEnum1", TestEnum.SampleText);
             enumField.SetEnumDisplayName(TestEnum.SampleText, "Sample Text");
@@ -289,18 +383,43 @@ namespace PluginConfig
             new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
         }
 
+        public AssetBundle bundle;
+        public Sprite trashIcon;
+        public Sprite penIcon;
+
         private void Awake()
         {
             Instance = this;
             logger = Logger;
+
             configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
-            // TEST CONFIGS
-            // ConfigTest();
 
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
             patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
+            new ConfigHeader(config.rootPanel, "Developer Stuffs");
+            devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
+            consoleLogLevel = new EnumField<LogLevel>(config.rootPanel, "Console log level", "consoleLogLevel", LogLevel.Disabled);
+
+            string workingPath = Assembly.GetExecutingAssembly().Location;
+            string workingDir = Path.GetDirectoryName(workingPath);
+
+            Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
+            try
+            {
+                bundle = AssetBundle.LoadFromFile(Path.Combine(workingDir, "pluginconfigurator"));
+                trashIcon = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/trash-base.png");
+                penIcon = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/pen-base.png");
+            }
+            catch (Exception e)
+            {
+                LogError($"Could not load the asset bundle:\n{e}");
+            }
+
+            // TEST CONFIGS
+            if(devConfigs.value)
+                ConfigTest();
 
             MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
@@ -338,7 +457,7 @@ namespace PluginConfig
 
             configuratorPatches.Patch(GetStaticMethod<HUDOptions>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
 
-            config.Flush();
+            config.FlushAll();
             Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
         }
 
@@ -352,12 +471,51 @@ namespace PluginConfig
             SceneManager.activeSceneChanged -= OnSceneChange;
         }
 
+        public void LogDebug(string message)
+        {
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Debug && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
+                return;
+            logger.LogMessage(message);
+        }
+
+        public void LogWarning(string message)
+        {
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
+                return;
+            logger.LogWarning(message);
+        }
+
+        public void LogError(string message)
+        {
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Error)
+                return;
+            logger.LogError(message);
+        }
+
         private void OnApplicationQuit()
         {
             foreach(PluginConfigurator config in configs)
             {
-                config.Flush();
+                config.FlushAll();
             }
+        }
+
+        private static void OnApplicationPause(bool pause)
+        {
+            if (pause)
+                foreach (PluginConfigurator config in PluginConfiguratorController.Instance.configs)
+                {
+                    config.FlushAll();
+                }
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+                foreach (PluginConfigurator config in configs)
+                {
+                    config.FlushAll();
+                }
         }
     }
 }

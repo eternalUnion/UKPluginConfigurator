@@ -20,10 +20,10 @@ namespace PluginConfig.API
                 gameObject.SetActive(false);
                 if(panel.parentPanel == null)
                 {
+                    panel.rootConfig.FlushAll();
                     PluginConfiguratorController.Instance.mainPanel.SetActive(true);
                     PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
                     PluginConfiguratorController.Instance.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
-                    panel.rootConfig.Flush();
                 }
                 else
                 {
@@ -31,6 +31,13 @@ namespace PluginConfig.API
                     panel.parentPanel.ActivatePanel();
                 }
             });
+
+            panel.rootConfig.presetMenuButton.SetActive(true);
+        }
+
+        void OnDisable()
+        {
+            panel.rootConfig.presetMenuButton.SetActive(false);
         }
     }
 
@@ -120,8 +127,10 @@ namespace PluginConfig.API
         {
             GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
             panelObject = panel;
-            panel.transform.Find("Text").GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
-            panel.transform.Find("Text").GetComponent<Text>().text = $"--{displayName}--";
+            Text panelText = panel.transform.Find("Text").GetComponent<Text>();
+            panelText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            panelText.text = $"--{displayName}--";
+            panelText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -115);
             panel.SetActive(false);
             ConfigPanelComponent panelComp = panel.AddComponent<ConfigPanelComponent>();
             panelComp.panel = this;
@@ -161,7 +170,12 @@ namespace PluginConfig.API
             return panel;
         }
 
-        internal override void LoadFromString(string data)
+        internal override void ReloadFromString(string data)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal override void ReloadDefault()
         {
             throw new NotImplementedException();
         }

@@ -5,45 +5,51 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
-    public class FloatField : ConfigField
+    /// <summary>
+    /// A field used to store single line of text. This field does not support multi line text.
+    /// </summary>
+    public class StringMultilineField : ConfigField
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
 
-        private float _value;
-        public float value
+        private static char separatorChar = (char)1;
+
+        private string _value;
+        public string value
         {
-            get => _value; set
+            get => _value.Replace(separatorChar, '\n').Replace("\r", ""); set
             {
-                bool dirty = false;
+                value = value.Replace(separatorChar.ToString(), "");
+                value = value.Replace('\n', separatorChar);
+                value = value.Replace("\r", "");
                 if (_value != value)
                 {
                     rootConfig.isDirty = true;
-                    dirty = true;
+                    rootConfig.config[guid] = value;
                 }
-                if (currentUi != null)
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
-                
+
                 _value = value;
 
-                if(dirty)
-                    rootConfig.config[guid] = _value.ToString();
+                if (currentUi == null)
+                    return;
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.Replace(separatorChar, '\n'));
             }
         }
 
-        public float defaultValue;
+        public string defaultValue;
         /// <summary>
         /// Event data passed when the value is changed by the player.
         /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
         /// New value is passed trough value field and can be changed
         /// </summary>
-        public class FloatValueChangeEvent
+        public class StringValueChangeEvent
         {
-            public float value;
+            public string value;
             public bool canceled = false;
         }
-        public delegate void FloatValueChangeEventDelegate(FloatValueChangeEvent data);
-        public event FloatValueChangeEventDelegate onValueChange;
+        public delegate void StringValueChangeEventDelegate(StringValueChangeEvent data);
+        public event StringValueChangeEventDelegate onValueChange;
 
         private bool _hidden = false;
         public override bool hidden
@@ -77,39 +83,24 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public float minimumValue = float.MinValue;
-        public float maximumValue = float.MaxValue;
-        public bool setToNearestValidValueOnUnvalidInput = true;
-        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue) : base(displayName, guid, parentPanel)
+        public bool allowEmptyValues;
+        public StringMultilineField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue, bool allowEmptyValues = false) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
+            this.allowEmptyValues = allowEmptyValues;
             parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
+            if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
+                throw new ArgumentException($"Multiline string field {guid} does not allow empty values but its default value is empty");
 
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);
             else
             {
-                _value = defaultValue;
-                rootConfig.config.Add(guid, _value.ToString());
+                _value = defaultValue.Replace('\n', separatorChar);
+                rootConfig.config.Add(guid, _value);
                 rootConfig.isDirty = true;
             }
-        }
-
-        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue) : this(parentPanel, displayName, guid, defaultValue)
-        {
-            this.minimumValue = minimumValue;
-            this.maximumValue = maximumValue;
-
-            if (minimumValue > maximumValue)
-                throw new ArgumentException($"Float field {guid} has its minimum value larger than maximum value");
-            if (defaultValue < minimumValue || defaultValue > maximumValue)
-                throw new ArgumentException($"Float field {guid} has a range of [{minimumValue}, {maximumValue}], but its default value is {defaultValue}");
-        }
-
-        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue)
-        {
-            this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
         }
 
         internal override GameObject CreateUI(Transform content)
@@ -118,11 +109,35 @@ namespace PluginConfig.API.Fields
             currentUi = field;
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
+            RectTransform fieldRect = field.GetComponent<RectTransform>();
+            fieldRect.sizeDelta = new Vector2(600, 120);
+
             InputField input = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;
-            input.characterValidation = InputField.CharacterValidation.Decimal;
-            input.SetTextWithoutNotify(_value.ToString());
+            input.characterValidation = InputField.CharacterValidation.None;
             input.onEndEdit.AddListener(OnCompValueChange);
+            input.lineType = InputField.LineType.MultiLineNewline;
+            input.text = _value.Replace(separatorChar, '\n');
+            input.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1);
+            input.gameObject.AddComponent<Mask>();
+            Text inputText = input.GetComponentInChildren<Text>();
+            inputText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            inputText.verticalOverflow = VerticalWrapMode.Overflow;
+            inputText.resizeTextForBestFit = false;
+            inputText.alignment = TextAnchor.UpperLeft;
+            RectTransform inputTextRect = inputText.GetComponent<RectTransform>();
+            inputTextRect.anchorMin = new Vector2(0, 0);
+            inputTextRect.anchorMax = new Vector2(0, 1);
+            inputTextRect.anchoredPosition = new Vector2(5, 5);
+            inputTextRect.sizeDelta = new Vector2(265, -10);
+            RectTransform inputRect = input.GetComponent<RectTransform>();
+            inputRect.sizeDelta = new Vector2(270, 110);
+            inputRect.anchoredPosition = new Vector2(365, -5);
+
+            /*ContentSizeFitter fieldFitter = field.AddComponent<ContentSizeFitter>();
+            fieldFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            ContentSizeFitter inputFitter = input.gameObject.AddComponent<ContentSizeFitter>();
+            inputFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;*/
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
@@ -131,7 +146,7 @@ namespace PluginConfig.API.Fields
             RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
             resetRect.anchorMax = new Vector2(1, 0.5f);
             resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
+            resetRect.sizeDelta = new Vector2(70, 110);
             resetRect.anchoredPosition = new Vector2(-85, 0);
             Button resetComp = currentResetButton.GetComponent<Button>();
             resetComp.onClick = new Button.ButtonClickedEvent();
@@ -156,101 +171,52 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue.ToString());
-            OnCompValueChange(defaultValue.ToString());
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue);
+            OnCompValueChange(defaultValue);
         }
 
         internal void OnCompValueChange(string val)
         {
-            float newValue;
-            if (!float.TryParse(val, out newValue))
+            string formattedVal = val.Replace('\n', separatorChar).Replace("\r", "");
+            if (formattedVal == _value)
+                return;
+
+            if (!allowEmptyValues && String.IsNullOrWhiteSpace(val))
             {
-                if(currentUi != null)
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
-            if (newValue < minimumValue)
-            {
-                if (setToNearestValidValueOnUnvalidInput)
-                    newValue = minimumValue;
-                else
-                {
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
-                    return;
-                }
-            }
-            else if (newValue > maximumValue)
-            {
-                if (setToNearestValidValueOnUnvalidInput)
-                    newValue = maximumValue;
-                else
-                {
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
-                    return;
-                }
-            }
-
-            if (newValue == _value)
-                return;
-
-            FloatValueChangeEvent eventData = new FloatValueChangeEvent() { value = newValue };
+            StringValueChangeEvent eventData = new StringValueChangeEvent() { value = val };
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             value = eventData.value;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
         }
 
         public void TriggerValueChangeEvent()
         {
-            onValueChange?.Invoke(new FloatValueChangeEvent() { value = _value });
+            onValueChange?.Invoke(new StringValueChangeEvent() { value = _value.Replace(separatorChar, '\n') });
         }
 
         internal void LoadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
-            {
-                _value = newValue;
-            }
-            else
-            {
-                _value = defaultValue;
-                rootConfig.isDirty = true;
-
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
-            }
+            _value = data.Replace(separatorChar, '\n').Replace("\r", "");
         }
 
         internal override void ReloadFromString(string data)
         {
-            OnCompValueChange(data);
-            /*if (float.TryParse(data, out float newValue))
-            {
-                value = newValue;
-            }
-            else
-            {
-                value = defaultValue;
-                rootConfig.isDirty = true;
-
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
-            }*/
+            OnCompValueChange(data.Replace(separatorChar, '\n'));
         }
 
         internal override void ReloadDefault()
         {
-            ReloadFromString(defaultValue.ToString());
+            ReloadFromString(defaultValue);
         }
     }
 }

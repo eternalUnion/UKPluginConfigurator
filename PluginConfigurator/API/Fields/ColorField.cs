@@ -64,6 +64,7 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private ColorFieldComponent currentImage;
+        private Text currentText;
         private Slider r;
         private Slider g;
         private Slider b;
@@ -76,8 +77,6 @@ namespace PluginConfig.API.Fields
             g.SetValueWithoutNotify(c.g);
             b.SetValueWithoutNotify(c.b);
             currentImage.SetColor(c.r, c.g, c.b);
-
-            Debug.Log($"Setting to {c}");
         }
 
         private string StringifyColor(Color c)
@@ -87,26 +86,27 @@ namespace PluginConfig.API.Fields
 
         private Color _value;
         /// <summary>
-        /// Get the value of the field. Setting the value will not call the onValueChange event.
+        /// Get the value of the field. Setting the value will not call the <see cref="onValueChange"/> event.
         /// </summary>
         public Color value
         {
             get => _value; set
             {
-                if (_value == value)
-                    return;
-                rootConfig.isDirty = true;
+                bool dirty = false;
+                if (_value != value)
+                {
+                    rootConfig.isDirty = true;
+                    dirty = true;
+                }
+
+                if (currentUi != null)
+                    SetSliders(value);
 
                 _value = value;
+                
                 string colorString = StringifyColor(_value);
-                if (rootConfig.config.ContainsKey(guid))
+                if(dirty)
                     rootConfig.config[guid] = colorString;
-                else
-                    rootConfig.config.Add(guid, colorString);
-
-                if (currentUi == null)
-                    return;
-                SetSliders(_value);
             }
         }
 
@@ -114,8 +114,8 @@ namespace PluginConfig.API.Fields
 
         /// <summary>
         /// Event data passed when the value is changed by the player.
-        /// If cancelled is set to true, value will not be set (if player is not supposed to change the value, interactable field might be a good choice).
-        /// New value is passed trough value field and can be changed
+        /// If <see cref="canceled"/> is set to true, value will not be set (if player is not supposed to change the value, <see cref="ConfigField.interactable"/> field might be a good choice).
+        /// New value is passed trough <see cref="value"/> and can be changed
         /// </summary>
         public class ColorValueChangeEvent
         {
@@ -140,7 +140,7 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            currentText.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -163,6 +163,7 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
                 LoadFromString(data);
@@ -251,6 +252,8 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
+            currentText = currentUi.transform.Find("Text").GetComponent<Text>();
+
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(_interactable && parentInteractable);
             return field;
@@ -286,7 +289,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new ColorValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             string[] colorSplit = data.Split(',');
 
@@ -317,6 +320,45 @@ namespace PluginConfig.API.Fields
             {
                 _value = new Color(r, g, b);
             }
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            string[] colorSplit = data.Split(',');
+
+            bool validData = colorSplit.Length == 3;
+            float r = 0, g = 0, b = 0;
+            if (validData)
+            {
+                if (!float.TryParse(colorSplit[0], out r))
+                    validData = false;
+                if (!float.TryParse(colorSplit[1], out g))
+                    validData = false;
+                if (!float.TryParse(colorSplit[2], out b))
+                    validData = false;
+
+                if(validData)
+                {
+                    SetSliders(new Color(r, g, b));
+                    OnCompValueChange();
+                    return;
+                }
+            }
+
+            rootConfig.isDirty = true;
+            SetSliders(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
+            OnCompValueChange();
+
+            data = StringifyColor(_value);
+            if (rootConfig.config.ContainsKey(guid))
+                rootConfig.config[guid] = data;
+            else
+                rootConfig.config.Add(guid, data);
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(StringifyColor(defaultValue));
         }
     }
 }

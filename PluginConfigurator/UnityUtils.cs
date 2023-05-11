@@ -14,7 +14,7 @@ namespace PluginConfig
                 logMessage += '|';
             logMessage += o.name;
 
-            Debug.Log(logMessage);
+            PluginConfiguratorController.Instance.LogDebug(logMessage);
             foreach (Transform t in o.transform)
                 PrintGameobject(t.gameObject, iters + 1);
         }

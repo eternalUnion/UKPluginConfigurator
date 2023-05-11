@@ -15,6 +15,7 @@ namespace PluginConfig.API.Fields
     public class EnumField<T> : ConfigField where T : struct
     {
         private GameObject currentUi;
+        private Dropdown currentDropdown;
         private GameObject currentResetButton;
 
         private readonly T[] values = Enum.GetValues(typeof(T)) as T[];
@@ -24,7 +25,7 @@ namespace PluginConfig.API.Fields
             enumNames[enumNameToChange] = newName;
             if(currentUi != null)
             {
-                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().options[Array.IndexOf(values, enumNameToChange)].text = newName;
+                currentDropdown.options[Array.IndexOf(values, enumNameToChange)].text = newName;
             }
         }
 
@@ -33,20 +34,20 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                if (_value.Equals(value))
-                    return;
-                rootConfig.isDirty = true;
+                bool dirty = false;
+                if (!_value.Equals(value))
+                {
+                    rootConfig.isDirty = true;
+                    dirty = true;
+                }
 
                 _value = value;
-                if (rootConfig.config.ContainsKey(guid))
+
+                if(dirty)
                     rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
 
-                if (currentUi == null)
-                    return;
-
-                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, value));
+                if (currentUi != null)
+                    currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
             }
         }
 
@@ -91,7 +92,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().interactable = _interactable && parentInteractable;
+                    currentDropdown.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -101,8 +102,9 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             parentPanel.Register(this);
+            rootConfig.fields.Add(guid, this);
 
-            foreach(T value in values)
+            foreach (T value in values)
             {
                 enumNames.Add(value, value.ToString());
             }
@@ -171,6 +173,8 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
 
+            currentDropdown = currentUi.transform.Find("Dropdown").GetComponent<Dropdown>();
+
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);
             return field;
@@ -180,7 +184,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, _value));
+            currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
             OnCompValueChange(Array.IndexOf(values, defaultValue));
         }
 
@@ -189,7 +193,7 @@ namespace PluginConfig.API.Fields
             T[] values = Enum.GetValues(typeof(T)) as T[];
             if(val >= values.Length)
             {
-                Debug.LogWarning("Enum index requested does not exist");
+                PluginConfiguratorController.Instance.LogWarning("Enum index requested does not exist");
                 return;
             }
 
@@ -202,11 +206,12 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.transform.Find("Dropdown").GetComponent<Dropdown>().SetValueWithoutNotify(Array.IndexOf(values, _value));
+                currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 
             value = eventData.value;
+            currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
         }
 
         public void TriggerValueChangeEvent()
@@ -214,7 +219,7 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new EnumValueChangeEvent() { value = _value });
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
         {
             if (Enum.TryParse<T>(data, out T newValue))
             {
@@ -225,11 +230,30 @@ namespace PluginConfig.API.Fields
                 _value = defaultValue;
                 rootConfig.isDirty = true;
 
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
+                rootConfig.config[guid] = _value.ToString();
             }
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            if (Enum.TryParse<T>(data, out T newValue))
+            {
+                OnCompValueChange(Array.IndexOf(values, newValue));
+            }
+            else
+            {
+                _value = defaultValue;
+                rootConfig.isDirty = true;
+
+                rootConfig.config[guid] = _value.ToString();
+
+                OnCompValueChange(Array.IndexOf(values, newValue));
+            }
+        }
+
+        internal override void ReloadDefault()
+        {
+            ReloadFromString(defaultValue.ToString());
         }
     }
 }

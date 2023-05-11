@@ -12,6 +12,7 @@ namespace PluginConfig.API.Decorators
     public class ConfigHeader : ConfigField
     {
         private GameObject currentUi;
+        private RectTransform currentRect;
 
         private string _text = "";
         public string text
@@ -30,10 +31,15 @@ namespace PluginConfig.API.Decorators
         {
             get => _textSize; set
             {
-                _textSize = value;
                 if (currentUi == null)
+                {
+                    _textSize = value;
                     return;
+                }
+                
                 currentUi.GetComponent<Text>().fontSize = value;
+                currentRect.sizeDelta *= ((float)value / (float)(_textSize));
+                _textSize = value;
             }
         }
 
@@ -84,15 +90,25 @@ namespace PluginConfig.API.Decorators
             Text text = header.GetComponent<Text>();
             text.text = _text;
             text.fontSize = _textSize;
-            RectTransform rect = header.GetComponent<RectTransform>();
-            rect.sizeDelta *= new Vector2(1f, 0.5f);
+            RectTransform rect = currentRect = header.GetComponent<RectTransform>();
+            rect.sizeDelta *= new Vector2(1f, 0.5f * ((float)_textSize / 24f));
             
             header.SetActive(!_hidden && !parentHidden);
             text.color = (_interactable && parentInteractable)? textColor : textColor * 0.5f;
             return header;
         }
 
-        internal override void LoadFromString(string data)
+        internal void LoadFromString(string data)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal override void ReloadFromString(string data)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal override void ReloadDefault()
         {
             throw new NotImplementedException();
         }
