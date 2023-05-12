@@ -19,6 +19,13 @@
 	<GenerateDocumentationFile>False</GenerateDocumentationFile>
 
 	<RunPostBuildEvent>Always</RunPostBuildEvent>
+
+	<BaseOutputPath>D:\Games\ULTRAKILL-CG\ULTRAKILL\BepInEx\plugins\PluginConfigurator</BaseOutputPath>
+
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+	<OutputPath>D:\Games\ULTRAKILL-CG\ULTRAKILL\BepInEx\plugins\PluginConfigurator</OutputPath>
+	<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <ItemGroup>
