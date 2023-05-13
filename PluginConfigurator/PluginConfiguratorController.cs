@@ -96,12 +96,17 @@ namespace PluginConfig
 
             GameObject txt = GameObject.Instantiate(field.transform.Find("Text").gameObject, bg.transform);
             RectTransform txtRect = txt.GetComponent<RectTransform>();
+            txtRect.anchorMin = new Vector2(0, 0.5f);
+            txtRect.anchorMax = new Vector2(1, 0.5f);
+            txtRect.sizeDelta = new Vector2(-10f, 30f);
             txtRect.anchoredPosition = new Vector2(10f, 0);
             Text txtComp = txt.GetComponent<Text>();
 
             InputField input = bg.gameObject.AddComponent<InputField>();
             input.textComponent = txtComp;
             input.targetGraphic = img;
+
+            bg.gameObject.AddComponent<BackSelectOverride>().Selectable = backButton;
 
             return field;
         }
@@ -126,6 +131,9 @@ namespace PluginConfig
 
             GameObject txt = GameObject.Instantiate(field.transform.Find("Text").gameObject, bg.transform);
             RectTransform txtRect = txt.GetComponent<RectTransform>();
+            txtRect.anchorMin = new Vector2(0, 0.5f);
+            txtRect.anchorMax = new Vector2(1, 0.5f);
+            txtRect.sizeDelta = new Vector2(-10f, 30f);
             txtRect.anchoredPosition = new Vector2(10f, 0);
             Text txtComp = txt.GetComponent<Text>();
 
@@ -133,6 +141,8 @@ namespace PluginConfig
             InputField input = bg.gameObject.AddComponent<InputField>();
             input.textComponent = txtComp;
             input.targetGraphic = img;
+
+            bg.gameObject.AddComponent<BackSelectOverride>().Selectable = backButton;
 
             Destroy(field.gameObject);
             return bg.gameObject;
@@ -285,6 +295,7 @@ namespace PluginConfig
         private PluginConfigurator config;
         private BoolField patchCheatKeys;
         private BoolField patchPause;
+        internal BoolField cancelOnEsc;
         private BoolField devConfigs;
         private enum LogLevel
         {
@@ -322,6 +333,13 @@ namespace PluginConfig
             {
                 Application.OpenURL("http://www.google.com");
             };
+
+            FormattedStringBuilder builder = new FormattedStringBuilder();
+            builder.currentFormat = new API.Fields.CharacterInfo() { bold = true, color = Color.red };
+            builder += "FORMATTED TEXT";
+
+            FormattedStringField format = new FormattedStringField(div1, "Formatted string", "formattedString", builder.Build());
+
             new ConfigHeader(div1, "Division 1");
             new IntField(div1, "Sample Field", "sampleField1", 0);
             new StringMultilineField(div1, "Multiline edit", "strMulti", "Hello!\nThis is a sample multiline field\n\nEnter as many lines as you want!");
@@ -398,6 +416,8 @@ namespace PluginConfig
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
             patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
+            new ConfigHeader(config.rootPanel, "Behaviour");
+            cancelOnEsc = new BoolField(config.rootPanel, "Cancel on ESC", "cancelOnEsc", true);
             new ConfigHeader(config.rootPanel, "Developer Stuffs");
             devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
             consoleLogLevel = new EnumField<LogLevel>(config.rootPanel, "Console log level", "consoleLogLevel", LogLevel.Disabled);

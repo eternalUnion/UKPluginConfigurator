@@ -337,6 +337,8 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(new FloatSliderValueChangeEvent(bounds) { newValue = value });
         }
 
+        string lastInputText = "";
+
         internal override GameObject CreateUI(Transform content)
         {
             GameObject sliderField = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleSlider, content);
@@ -377,8 +379,20 @@ namespace PluginConfig.API.Fields
                 float finalValue = (float)Math.Round(Denormalize(sliderComp.normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
                 inputComp.SetTextWithoutNotify(finalValue.ToString());
             });
+            inputComp.onValueChanged.AddListener(val => { if (!inputComp.wasCanceled) lastInputText = val; });
             inputComp.onEndEdit.AddListener(newValue =>
             {
+                if (inputComp != null && inputComp.wasCanceled)
+                {
+                    if (!PluginConfiguratorController.Instance.cancelOnEsc.value)
+                    {
+                        inputComp.SetTextWithoutNotify(lastInputText);
+                        newValue = lastInputText;
+                    }
+                    else
+                        return;
+                }
+
                 float num = 0;
                 if(!float.TryParse(newValue, out num))
                 {

@@ -12,6 +12,7 @@ namespace PluginConfig.API.Fields
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
+        private InputField currentInput;
 
         private string _value;
         public string value
@@ -99,16 +100,19 @@ namespace PluginConfig.API.Fields
             }
         }
 
+        private string lastInputText = "";
+
         internal override GameObject CreateUI(Transform content)
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
             currentUi = field;
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
-            InputField input = field.GetComponentInChildren<InputField>();
+            InputField input = currentInput = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.None;
             input.text = _value;
+            input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
             input.onEndEdit.AddListener(OnCompValueChange);
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
@@ -149,6 +153,17 @@ namespace PluginConfig.API.Fields
 
         internal void OnCompValueChange(string val)
         {
+            if (currentInput != null && currentInput.wasCanceled)
+            {
+                if (!PluginConfiguratorController.Instance.cancelOnEsc.value)
+                {
+                    currentInput.SetTextWithoutNotify(lastInputText);
+                    val = lastInputText;
+                }
+                else
+                    return;
+            }
+
             if (val == _value)
                 return;
 

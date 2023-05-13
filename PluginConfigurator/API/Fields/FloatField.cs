@@ -9,6 +9,7 @@ namespace PluginConfig.API.Fields
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
+        private InputField currentInput;
 
         private float _value;
         public float value
@@ -22,7 +23,7 @@ namespace PluginConfig.API.Fields
                     dirty = true;
                 }
                 if (currentUi != null)
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+                    currentInput.SetTextWithoutNotify(value.ToString());
                 
                 _value = value;
 
@@ -71,7 +72,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.GetComponentInChildren<InputField>().interactable = _interactable && parentInteractable;
+                    currentInput.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -112,17 +113,20 @@ namespace PluginConfig.API.Fields
             this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
         }
 
+        private string lastInputText = "";
+
         internal override GameObject CreateUI(Transform content)
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
             currentUi = field;
             field.transform.Find("Text").GetComponent<Text>().text = displayName;
 
-            InputField input = field.GetComponentInChildren<InputField>();
+            InputField input = currentInput = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.Decimal;
             input.SetTextWithoutNotify(_value.ToString());
             input.onEndEdit.AddListener(OnCompValueChange);
+            input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
 
             currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
@@ -156,17 +160,28 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            currentInput.SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue.ToString());
         }
 
         internal void OnCompValueChange(string val)
         {
+            if(currentInput != null && currentInput.wasCanceled)
+            {
+                if (!PluginConfiguratorController.Instance.cancelOnEsc.value)
+                {
+                    currentInput.SetTextWithoutNotify(lastInputText);
+                    val = lastInputText;
+                }
+                else
+                    return;
+            }
+
             float newValue;
             if (!float.TryParse(val, out newValue))
             {
                 if(currentUi != null)
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                    currentInput.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -176,7 +191,7 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                    currentInput.SetTextWithoutNotify(_value.ToString());
                     return;
                 }
             }
@@ -186,7 +201,7 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                    currentInput.SetTextWithoutNotify(_value.ToString());
                     return;
                 }
             }
@@ -198,12 +213,12 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentInput.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
             value = eventData.value;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+            currentInput.SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()

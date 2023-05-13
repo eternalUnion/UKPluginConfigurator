@@ -12,6 +12,7 @@ namespace PluginConfig.API.Fields
     {
         private GameObject currentUi;
         private GameObject currentResetButton;
+        private InputField currentInput;
 
         private static char separatorChar = (char)1;
 
@@ -103,6 +104,8 @@ namespace PluginConfig.API.Fields
             }
         }
 
+        private string lastInputText = "";
+
         internal override GameObject CreateUI(Transform content)
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
@@ -112,9 +115,10 @@ namespace PluginConfig.API.Fields
             RectTransform fieldRect = field.GetComponent<RectTransform>();
             fieldRect.sizeDelta = new Vector2(600, 120);
 
-            InputField input = field.GetComponentInChildren<InputField>();
+            InputField input = currentInput = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.None;
+            input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
             input.onEndEdit.AddListener(OnCompValueChange);
             input.lineType = InputField.LineType.MultiLineNewline;
             input.text = _value.Replace(separatorChar, '\n');
@@ -177,6 +181,17 @@ namespace PluginConfig.API.Fields
 
         internal void OnCompValueChange(string val)
         {
+            if (currentInput != null && currentInput.wasCanceled)
+            {
+                if (!PluginConfiguratorController.Instance.cancelOnEsc.value)
+                {
+                    currentInput.SetTextWithoutNotify(lastInputText);
+                    val = lastInputText;
+                }
+                else
+                    return;
+            }
+
             string formattedVal = val.Replace('\n', separatorChar).Replace("\r", "");
             if (formattedVal == _value)
                 return;
