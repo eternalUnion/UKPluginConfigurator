@@ -568,6 +568,7 @@ namespace PluginConfig.API
             private void OnEnable()
             {
                 esc.previousPage = PluginConfiguratorController.Instance.activePanel;
+                transform.SetSiblingIndex(transform.parent.childCount - 1);
             }
 
             private void OnDisable()
@@ -883,15 +884,22 @@ namespace PluginConfig.API
             defaultPresetButtonContainer.transform.SetAsFirstSibling();
             addPresetButton.SetAsLastSibling();
 
+            // old parent: presetPanelListRect
             RectTransform exportRect = CreateBigContentButton(presetPanelListRect, "Export current preset", TextAnchor.MiddleCenter, 325);
-            exportRect.anchoredPosition = new Vector2(328, -680);
+            exportRect.anchorMin = exportRect.anchorMax = new Vector2(0.5f, 0.5f);
+            //exportRect.anchoredPosition = new Vector2(328, -680);
+            exportRect.pivot = new Vector2(0.5f, 1);
+            exportRect.anchoredPosition = new Vector2(-148, -320);
             exportRect.GetComponent<Button>().onClick.AddListener(() =>
             {
                 ExportCurrentPreset();
             });
 
             RectTransform openPresetsRect = CreateBigContentButton(presetPanelListRect, "Open preset folder", TextAnchor.MiddleCenter, 325);
-            openPresetsRect.anchoredPosition = new Vector2(328 + 325 + 5, -680);
+            //openPresetsRect.anchoredPosition = new Vector2(328 + 325 + 5, -680);
+            openPresetsRect.pivot = new Vector2(0.5f, 1);
+            openPresetsRect.anchorMin = openPresetsRect.anchorMax = new Vector2(0.5f, 0.5f);
+            openPresetsRect.anchoredPosition = new Vector2(182, -320);
             openPresetsRect.GetComponent<Button>().onClick.AddListener(() =>
             {
                 Application.OpenURL(configPresetsFolderPath);
