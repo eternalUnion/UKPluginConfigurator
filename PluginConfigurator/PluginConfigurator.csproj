@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>PluginConfigurator</AssemblyName>
     <Description>Ultrakill mod that makes configuring mods easier</Description>
-    <Version>1.1.0</Version>
+    <Version>1.3.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
 
@@ -17,15 +17,6 @@
 	<RootNamespace>PluginConfig</RootNamespace>
 
 	<GenerateDocumentationFile>False</GenerateDocumentationFile>
-
-	<RunPostBuildEvent>Always</RunPostBuildEvent>
-
-	<BaseOutputPath>D:\Games\ULTRAKILL-CG\ULTRAKILL\BepInEx\plugins\PluginConfigurator</BaseOutputPath>
-
-	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-	<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-	<OutputPath>D:\Games\ULTRAKILL-CG\ULTRAKILL\BepInEx\plugins\PluginConfigurator</OutputPath>
-	<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <ItemGroup>
