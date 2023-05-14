@@ -929,9 +929,6 @@ namespace PluginConfig.API
 
             Preset preset = CreatePreset(new Preset() { fileId = presetID, filePath = savePath, name = presetName, listIndex = presets.Count });
 
-            if (presetMenuButton != null)
-                preset.currentUI = CreateButtonFromPreset(preset, content);
-
             isPresetHeaderDirty = true;
             FlushPresets();
             return true;

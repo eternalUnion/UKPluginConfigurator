@@ -525,6 +525,16 @@ namespace PluginConfig.API.Fields
 
             return formatList;
         }
+    
+        public string formattedString
+        {
+            get
+            {
+                List<CharacterInfo> format = GetFormat();
+                RichTextFormatter.AssureFormatMatchesTextSize(format, rawString.Length, new CharacterInfo());
+                return RichTextFormatter.GetFormattedText(rawString, format, 0, rawString.Length);
+            }
+        }
     }
 
     public class FormattedStringBuilder
