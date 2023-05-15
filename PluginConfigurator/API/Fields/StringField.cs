@@ -19,7 +19,7 @@ namespace PluginConfig.API.Fields
         {
             get => _value.Replace("\n", ""); set
             {
-                value = value.Replace("\n", "");
+                value = value.Replace("\n", "").Replace("\r", "");
                 if (_value != value)
                 {
                     rootConfig.isDirty = true;
@@ -94,7 +94,7 @@ namespace PluginConfig.API.Fields
                 LoadFromString(data);
             else
             {
-                _value = defaultValue;
+                _value = defaultValue.Replace("\n", "").Replace("\r", "");
                 rootConfig.config.Add(guid, _value.ToString());
                 rootConfig.isDirty = true;
             }

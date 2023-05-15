@@ -98,7 +98,7 @@ namespace PluginConfig.API.Fields
                 LoadFromString(data);
             else
             {
-                _value = defaultValue.Replace('\n', separatorChar);
+                _value = defaultValue.Replace('\n', separatorChar).Replace("\r", "");
                 rootConfig.config.Add(guid, _value);
                 rootConfig.isDirty = true;
             }
