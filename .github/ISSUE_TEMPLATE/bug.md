@@ -2,7 +2,7 @@
 name: Bug
 about: Issues related to plugin not working as expected
 title: "[BUG]"
-labels: bug, wiki
+labels: bug
 assignees: eternalUnion
 
 ---
