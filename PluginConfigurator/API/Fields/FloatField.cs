@@ -177,6 +177,8 @@ namespace PluginConfig.API.Fields
                     return;
             }
 
+            val = val.Replace(',', '.');
+
             float newValue;
             if (!float.TryParse(val, out newValue))
             {
@@ -207,7 +209,10 @@ namespace PluginConfig.API.Fields
             }
 
             if (newValue == _value)
+            {
+                currentInput.SetTextWithoutNotify(_value.ToString());
                 return;
+            }
 
             FloatValueChangeEvent eventData = new FloatValueChangeEvent() { value = newValue };
             onValueChange?.Invoke(eventData);

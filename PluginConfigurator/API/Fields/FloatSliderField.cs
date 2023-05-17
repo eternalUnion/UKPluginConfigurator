@@ -393,6 +393,8 @@ namespace PluginConfig.API.Fields
                         return;
                 }
 
+                newValue = newValue.Replace(',', '.');
+
                 float num = 0;
                 if(!float.TryParse(newValue, out num))
                 {
