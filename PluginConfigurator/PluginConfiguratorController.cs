@@ -37,7 +37,7 @@ namespace PluginConfig
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-        public const string PLUGIN_VERSION = "1.3.1";
+        public const string PLUGIN_VERSION = "1.3.2";
 
         internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
         internal void RegisterConfigurator(PluginConfigurator config)
