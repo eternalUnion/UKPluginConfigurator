@@ -9,9 +9,46 @@ namespace PluginConfig.API
     class ConfigPanelComponent : MonoBehaviour
     {
         public ConfigPanel panel;
+        private VerticalLayoutGroup layoutGroup;
+        private ScrollRect scrollRect;
+
+        void Awake()
+        {
+            layoutGroup = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(transform);
+            scrollRect = UnityUtils.GetComponentInChildrenRecursively<ScrollRect>(transform);
+        }
+
+        // Why do I even have to do this?
+        void ResetContentBounds()
+        {
+            if (layoutGroup == null)
+            {
+                layoutGroup = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(transform);
+                scrollRect = UnityUtils.GetComponentInChildrenRecursively<ScrollRect>(transform);
+            }
+
+            layoutGroup.CalculateLayoutInputVertical();
+            layoutGroup.SetLayoutVertical();
+            scrollRect.SendMessage("OnRectTransformDimensionsChange");
+        }
+
+        bool dirty = false;
+        void Update()
+        {
+            if(dirty)
+            {
+                ResetContentBounds();
+                dirty = false;
+            }
+        }
 
         void OnEnable()
         {
+
+            //Invoke("SetContent", 0.001f);
+            //SetContent();
+            dirty = true;
+
             PluginConfiguratorController.Instance.activePanel = gameObject;
 
             PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();

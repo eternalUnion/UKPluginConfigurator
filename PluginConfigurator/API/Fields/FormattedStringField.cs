@@ -964,7 +964,10 @@ namespace PluginConfig.API.Fields
         internal void OnCompValueChange(string rawString, List<CharacterInfo> format)
         {
             if (rawString == _rawString && _format.SequenceEqual(format))
+            {
+                currentInputText.text = formattedString;
                 return;
+            }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(rawString))
             {

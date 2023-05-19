@@ -30,7 +30,7 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+                currentInput.SetTextWithoutNotify(value.ToString());
             }
         }
 
@@ -74,7 +74,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.GetComponentInChildren<InputField>().interactable = _interactable && parentInteractable;
+                    currentInput.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -147,7 +147,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            currentInput.SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue);
         }
 
@@ -165,11 +165,14 @@ namespace PluginConfig.API.Fields
             }
 
             if (val == _value)
-                return;
-
-            if (!allowEmptyValues && String.IsNullOrWhiteSpace(val))
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentInput.SetTextWithoutNotify(_value);
+                return;
+            }
+
+            if (!allowEmptyValues && string.IsNullOrWhiteSpace(val))
+            {
+                currentInput.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -177,12 +180,12 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentInput.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
             value = eventData.value;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+            currentInput.SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()

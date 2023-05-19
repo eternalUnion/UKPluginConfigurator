@@ -34,7 +34,7 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.Replace(separatorChar, '\n'));
+                currentInput.SetTextWithoutNotify(value.Replace(separatorChar, '\n'));
             }
         }
 
@@ -78,7 +78,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.GetComponentInChildren<InputField>().interactable = _interactable && parentInteractable;
+                    currentInput.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -175,7 +175,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue);
+            currentInput.SetTextWithoutNotify(defaultValue);
             OnCompValueChange(defaultValue);
         }
 
@@ -194,11 +194,14 @@ namespace PluginConfig.API.Fields
 
             string formattedVal = val.Replace('\n', separatorChar).Replace("\r", "");
             if (formattedVal == _value)
-                return;
-
-            if (!allowEmptyValues && String.IsNullOrWhiteSpace(val))
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                return;
+            }
+
+            if (!allowEmptyValues && string.IsNullOrWhiteSpace(val))
+            {
+                currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
@@ -206,12 +209,12 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             value = eventData.value;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+            currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
         }
 
         public void TriggerValueChangeEvent()

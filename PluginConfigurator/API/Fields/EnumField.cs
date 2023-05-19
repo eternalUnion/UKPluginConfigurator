@@ -194,6 +194,7 @@ namespace PluginConfig.API.Fields
             if(val >= values.Length)
             {
                 PluginConfiguratorController.Instance.LogWarning("Enum index requested does not exist");
+                currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 

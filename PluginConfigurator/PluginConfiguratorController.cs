@@ -37,7 +37,7 @@ namespace PluginConfig
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-        public const string PLUGIN_VERSION = "1.3.1";
+        public const string PLUGIN_VERSION = "1.3.2";
 
         internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
         internal void RegisterConfigurator(PluginConfigurator config)
@@ -172,6 +172,7 @@ namespace PluginConfig
                 Instance.activePanel = null;
                 Instance.mainPanel.SetActive(false);
             });
+            btn.GetComponent<RectTransform>().anchoredPosition = new Vector2(30, 330);
         }
 
         internal Transform configPanelContents;
@@ -209,7 +210,7 @@ namespace PluginConfig
             GameObject pluginConfigButton = Instantiate(sampleButton, optionsMenu);
             pluginConfigButton.SetActive(true);
             RectTransform pluginConfigButtonRect = pluginConfigButton.GetComponent<RectTransform>();
-            pluginConfigButtonRect.anchoredPosition = new Vector2(30, ultraTweaker ? 330 : 300);
+            pluginConfigButtonRect.anchoredPosition = new Vector2(30, 270);
             Text pluginConfigButtonText = pluginConfigButton.GetComponentInChildren<Text>();
             pluginConfigButtonText.text = "PLUGIN CONFIG";
             pluginConfigButton.transform.SetSiblingIndex(1);
