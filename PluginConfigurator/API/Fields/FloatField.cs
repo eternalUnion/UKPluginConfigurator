@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -180,7 +181,7 @@ namespace PluginConfig.API.Fields
             val = val.Replace(',', '.');
 
             float newValue;
-            if (!float.TryParse(val, out newValue))
+            if (!float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out newValue))
             {
                 if(currentUi != null)
                     currentInput.SetTextWithoutNotify(_value.ToString());
@@ -233,7 +234,7 @@ namespace PluginConfig.API.Fields
 
         internal void LoadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
+            if (float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
                 _value = newValue;
             }

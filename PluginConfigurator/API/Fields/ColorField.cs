@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine;
 using static PluginConfig.API.Fields.BoolField;
+using System.Globalization;
 
 namespace PluginConfig.API.Fields
 {
@@ -297,11 +298,11 @@ namespace PluginConfig.API.Fields
             float r = 0, g = 0, b = 0;
             if (validData)
             {
-                if (!float.TryParse(colorSplit[0], out r))
+                if (!float.TryParse(colorSplit[0], NumberStyles.Float, CultureInfo.InvariantCulture, out r))
                     validData = false;
-                if (!float.TryParse(colorSplit[1], out g))
+                if (!float.TryParse(colorSplit[1], NumberStyles.Float, CultureInfo.InvariantCulture, out g))
                     validData = false;
-                if (!float.TryParse(colorSplit[2], out b))
+                if (!float.TryParse(colorSplit[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b))
                     validData = false;
             }
 
@@ -330,11 +331,11 @@ namespace PluginConfig.API.Fields
             float r = 0, g = 0, b = 0;
             if (validData)
             {
-                if (!float.TryParse(colorSplit[0], out r))
+                if (!float.TryParse(colorSplit[0], NumberStyles.Float, CultureInfo.InvariantCulture, out r))
                     validData = false;
-                if (!float.TryParse(colorSplit[1], out g))
+                if (!float.TryParse(colorSplit[1], NumberStyles.Float, CultureInfo.InvariantCulture, out g))
                     validData = false;
-                if (!float.TryParse(colorSplit[2], out b))
+                if (!float.TryParse(colorSplit[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b))
                     validData = false;
 
                 if(validData)

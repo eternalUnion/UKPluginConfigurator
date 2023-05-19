@@ -1,6 +1,7 @@
 ﻿using Logic;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Events;
@@ -163,7 +164,7 @@ namespace PluginConfig.API.Fields
 
         internal void LoadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
+            if (float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
                 if(newValue < bounds.Item1)
                 {
@@ -195,7 +196,7 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
+            if (float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
                 bool dirty = false;
                 if (newValue < bounds.Item1)
@@ -396,7 +397,7 @@ namespace PluginConfig.API.Fields
                 newValue = newValue.Replace(',', '.');
 
                 float num = 0;
-                if(!float.TryParse(newValue, out num))
+                if(!float.TryParse(newValue, NumberStyles.Float, CultureInfo.InvariantCulture, out num))
                 {
                     inputComp.SetTextWithoutNotify(Math.Round(_value, roundDecimalPoints).ToString());
                     return;
