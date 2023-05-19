@@ -17,7 +17,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 if (currentUi != null)
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+                    currentInputComp.SetTextWithoutNotify(value.ToString());
 
                 if (_value != value)
                 {
@@ -69,7 +69,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.GetComponentInChildren<InputField>().interactable = _interactable && parentInteractable;
+                    currentInputComp.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -158,7 +158,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(defaultValue.ToString());
+            currentInputComp.SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue.ToString());
         }
 
@@ -178,7 +178,7 @@ namespace PluginConfig.API.Fields
             int newValue;
             if(!int.TryParse(val, out newValue))
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentInputComp.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -188,7 +188,7 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                    currentInputComp.SetTextWithoutNotify(_value.ToString());
                     return;
                 }
             }
@@ -198,24 +198,27 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                    currentInputComp.SetTextWithoutNotify(_value.ToString());
                     return;
                 }
             }
 
             if (newValue == _value)
+            {
+                currentInputComp.SetTextWithoutNotify(_value.ToString());
                 return;
+            }
 
             IntValueChangeEvent eventData = new IntValueChangeEvent() { value = newValue };
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(_value.ToString());
+                currentInputComp.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
             value = eventData.value;
-            currentUi.GetComponentInChildren<InputField>().SetTextWithoutNotify(value.ToString());
+            currentInputComp.SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()

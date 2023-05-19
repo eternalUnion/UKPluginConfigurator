@@ -1,6 +1,7 @@
 ﻿using Logic;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Events;
@@ -57,11 +58,11 @@ namespace PluginConfig.API.Fields
                 _value = (float)Math.Round(Denormalize(_normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
 
                 if(dirty)
-                    rootConfig.config[guid] = _value.ToString();
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
 
                 if (currentUi == null)
                     return;
-                currentInputField.SetTextWithoutNotify(_value.ToString());
+                currentInputField.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 currentSlider.SetNormalizedValueWithoutNotify(_normalizedValue);
             }
         }
@@ -89,11 +90,11 @@ namespace PluginConfig.API.Fields
                 _normalizedValue = Normalize(_value, bounds.Item1, bounds.Item2);
 
                 if(dirty)
-                    rootConfig.config[guid] = _value.ToString();
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
 
                 if (currentUi == null)
                     return;
-                currentInputField.SetTextWithoutNotify(_value.ToString());
+                currentInputField.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 currentSlider.SetNormalizedValueWithoutNotify(_normalizedValue);
             }
         }
@@ -153,7 +154,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = defaultValue;
                 _normalizedValue = (_value - bounds.Item1) / (bounds.Item2 - bounds.Item1);
-                rootConfig.config.Add(guid, _value.ToString());
+                rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
                 rootConfig.isDirty = true;
             }
         }
@@ -163,18 +164,18 @@ namespace PluginConfig.API.Fields
 
         internal void LoadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
+            if (float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
                 if(newValue < bounds.Item1)
                 {
                     newValue = bounds.Item1;
-                    rootConfig.config[guid] = newValue.ToString();
+                    rootConfig.config[guid] = newValue.ToString(CultureInfo.InvariantCulture);
                     rootConfig.isDirty = true;
                 }
                 else if(newValue > bounds.Item2)
                 {
                     newValue = bounds.Item2;
-                    rootConfig.config[guid] = newValue.ToString();
+                    rootConfig.config[guid] = newValue.ToString(CultureInfo.InvariantCulture);
                     rootConfig.isDirty = true;
                 }
 
@@ -187,15 +188,15 @@ namespace PluginConfig.API.Fields
                 rootConfig.isDirty = true;
 
                 if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
                 else
-                    rootConfig.config.Add(guid, _value.ToString());
+                    rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
             }
         }
 
         internal override void ReloadFromString(string data)
         {
-            if (float.TryParse(data, out float newValue))
+            if (float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
                 bool dirty = false;
                 if (newValue < bounds.Item1)
@@ -220,9 +221,9 @@ namespace PluginConfig.API.Fields
                 if (dirty)
                 {
                     if (rootConfig.config.ContainsKey(guid))
-                        rootConfig.config[guid] = newValue.ToString();
+                        rootConfig.config[guid] = newValue.ToString(CultureInfo.InvariantCulture);
                     else
-                        rootConfig.config.Add(guid, newValue.ToString());
+                        rootConfig.config.Add(guid, newValue.ToString(CultureInfo.InvariantCulture));
                 }
                 value = newValue;
             }
@@ -241,9 +242,9 @@ namespace PluginConfig.API.Fields
                     value = eventData.newValue;
 
                 if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
                 else
-                    rootConfig.config.Add(guid, _value.ToString());
+                    rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -377,7 +378,7 @@ namespace PluginConfig.API.Fields
             sliderComp.onValueChanged.AddListener(newValue =>
             {
                 float finalValue = (float)Math.Round(Denormalize(sliderComp.normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
-                inputComp.SetTextWithoutNotify(finalValue.ToString());
+                inputComp.SetTextWithoutNotify(finalValue.ToString(CultureInfo.InvariantCulture));
             });
             inputComp.onValueChanged.AddListener(val => { if (!inputComp.wasCanceled) lastInputText = val; });
             inputComp.onEndEdit.AddListener(newValue =>
@@ -393,10 +394,12 @@ namespace PluginConfig.API.Fields
                         return;
                 }
 
+                newValue = newValue.Replace(',', '.');
+
                 float num = 0;
-                if(!float.TryParse(newValue, out num))
+                if(!float.TryParse(newValue, NumberStyles.Float, CultureInfo.InvariantCulture, out num))
                 {
-                    inputComp.SetTextWithoutNotify(Math.Round(_value, roundDecimalPoints).ToString());
+                    inputComp.SetTextWithoutNotify(Math.Round(_value, roundDecimalPoints).ToString(CultureInfo.InvariantCulture));
                     return;
                 }
 
@@ -441,7 +444,7 @@ namespace PluginConfig.API.Fields
             trigger.triggers.Add(mouseOff);
             Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(sliderField.transform));
 
-            inputComp.text = _value.ToString();
+            inputComp.text = _value.ToString(CultureInfo.InvariantCulture);
             sliderComp.SetNormalizedValueWithoutNotify(_normalizedValue);
 
             currentUi = sliderField;
@@ -456,7 +459,7 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadDefault()
         {
-            ReloadFromString(defaultValue.ToString());
+            ReloadFromString(defaultValue.ToString(CultureInfo.InvariantCulture));
         }
     }
 }
