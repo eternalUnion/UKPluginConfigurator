@@ -24,12 +24,12 @@ namespace PluginConfig.API.Fields
                     dirty = true;
                 }
                 if (currentUi != null)
-                    currentInput.SetTextWithoutNotify(value.ToString());
+                    currentInput.SetTextWithoutNotify(value.ToString(CultureInfo.InvariantCulture));
                 
                 _value = value;
 
                 if(dirty)
-                    rootConfig.config[guid] = _value.ToString();
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -93,7 +93,7 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(guid, _value.ToString());
+                rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
                 rootConfig.isDirty = true;
             }
         }
@@ -125,7 +125,7 @@ namespace PluginConfig.API.Fields
             InputField input = currentInput = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.Decimal;
-            input.SetTextWithoutNotify(_value.ToString());
+            input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
             input.onEndEdit.AddListener(OnCompValueChange);
             input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
 
@@ -161,8 +161,8 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentInput.SetTextWithoutNotify(defaultValue.ToString());
-            OnCompValueChange(defaultValue.ToString());
+            currentInput.SetTextWithoutNotify(defaultValue.ToString(CultureInfo.InvariantCulture));
+            OnCompValueChange(defaultValue.ToString(CultureInfo.InvariantCulture));
         }
 
         internal void OnCompValueChange(string val)
@@ -184,7 +184,7 @@ namespace PluginConfig.API.Fields
             if (!float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out newValue))
             {
                 if(currentUi != null)
-                    currentInput.SetTextWithoutNotify(_value.ToString());
+                    currentInput.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 return;
             }
 
@@ -194,7 +194,7 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    currentInput.SetTextWithoutNotify(_value.ToString());
+                    currentInput.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                     return;
                 }
             }
@@ -204,14 +204,14 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    currentInput.SetTextWithoutNotify(_value.ToString());
+                    currentInput.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                     return;
                 }
             }
 
             if (newValue == _value)
             {
-                currentInput.SetTextWithoutNotify(_value.ToString());
+                currentInput.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 return;
             }
 
@@ -219,12 +219,12 @@ namespace PluginConfig.API.Fields
             onValueChange?.Invoke(eventData);
             if (eventData.canceled)
             {
-                currentInput.SetTextWithoutNotify(_value.ToString());
+                currentInput.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 return;
             }
 
             value = eventData.value;
-            currentInput.SetTextWithoutNotify(value.ToString());
+            currentInput.SetTextWithoutNotify(value.ToString(CultureInfo.InvariantCulture));
         }
 
         public void TriggerValueChangeEvent()
@@ -244,9 +244,9 @@ namespace PluginConfig.API.Fields
                 rootConfig.isDirty = true;
 
                 if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
                 else
-                    rootConfig.config.Add(guid, _value.ToString());
+                    rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -271,7 +271,7 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadDefault()
         {
-            ReloadFromString(defaultValue.ToString());
+            ReloadFromString(defaultValue.ToString(CultureInfo.InvariantCulture));
         }
     }
 }
