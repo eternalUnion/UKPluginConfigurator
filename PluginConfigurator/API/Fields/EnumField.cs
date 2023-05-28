@@ -101,7 +101,6 @@ namespace PluginConfig.API.Fields
         public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
 
             foreach (T value in values)
@@ -117,6 +116,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, _value.ToString());
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         internal override GameObject CreateUI(Transform content)

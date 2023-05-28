@@ -59,8 +59,8 @@ namespace PluginConfig.API
         internal override GameObject CreateUI(Transform content)
         {
             panelObject = parentPanel.panelObject;
-            //foreach (ConfigField field in fields)
-            //    field.CreateUI(content);
+            panelContent = parentPanel.panelContent;
+
             return null;
         }
     }

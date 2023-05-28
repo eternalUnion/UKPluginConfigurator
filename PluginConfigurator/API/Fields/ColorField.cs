@@ -163,7 +163,6 @@ namespace PluginConfig.API.Fields
         public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
@@ -174,6 +173,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, StringifyColor(_value));
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         internal override GameObject CreateUI(Transform content)
