@@ -82,7 +82,7 @@ namespace PluginConfig.API.Fields
 
         private string StringifyColor(Color c)
         {
-            return $"{c.r},{c.g},{c.b}";
+            return $"{c.r.ToString(CultureInfo.InvariantCulture)},{c.g.ToString(CultureInfo.InvariantCulture)},{c.b.ToString(CultureInfo.InvariantCulture)}";
         }
 
         private Color _value;

@@ -6,9 +6,9 @@ using UnityEngine;
 namespace PluginConfig.API.Fields
 {
     /// <summary>
-    /// Base class for custom user fields. This field will not store any value. To store a value in the config, use <see cref="CustomConfigValueField"/>
+    /// Base class for custom user fields. This field will not store any value. To store a value in the config, use <see cref="CustomValueField"/>
     /// </summary>
-    public abstract class CustomConfigField : ConfigField
+    public abstract class CustomConfigValueField : ConfigField
     {
         private bool _hidden = false;
         public override bool hidden
@@ -54,12 +54,15 @@ namespace PluginConfig.API.Fields
         public float fieldHeight = 60;
 
         private bool initialized = false;
-        public CustomConfigField(ConfigPanel parentPanel, float width, float height, string displayName) : base(displayName, "", parentPanel)
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height, string displayName) : base(displayName, guid, parentPanel)
         {
             fieldWidth = width;
             fieldHeight = height;
 
             strictGuid = false;
+            rootConfig.fields.Add(guid, this);
+            if (rootConfig.config.TryGetValue(guid, out string val))
+                _fieldValue = val;
             parentPanel.Register(this);
 
             initialized = true;
@@ -67,11 +70,11 @@ namespace PluginConfig.API.Fields
                 CreateUI(parentPanel.panelContent);
         }
 
-        public CustomConfigField(ConfigPanel parentPanel, float width, float height) : this(parentPanel, width, height, "") { }
-        
-        public CustomConfigField(ConfigPanel parentPanel, string displayName) : this(parentPanel, 600, 60, displayName) { }
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height) : this(parentPanel, guid, width, height, "") { }
 
-        public CustomConfigField(ConfigPanel parentPanel) : this(parentPanel, "") { }
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, string displayName) : this(parentPanel, guid, 600, 60, displayName) { }
+
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid) : this(parentPanel, guid, "") { }
 
         internal override GameObject CreateUI(Transform content)
         {
@@ -98,12 +101,38 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadDefault()
         {
-            throw new NotImplementedException();
+            LoadDefaultValue();
         }
 
         internal override void ReloadFromString(string data)
         {
-            throw new NotImplementedException();
+            LoadFromString(data);
         }
+
+        private string _fieldValue = null;
+
+        /// <summary>
+        /// The string value of the field. This value must not contain any new line characters and must not be set to null. This value will be null if the field is initialized and there is no value for the string in the config file
+        /// </summary>
+        protected string fieldValue
+        {
+            get => _fieldValue; set
+            {
+                _fieldValue = value.Replace("\n", "");
+                rootConfig.config[guid] = _fieldValue;
+                rootConfig.isDirty = true;
+            }
+        }
+
+        /// <summary>
+        /// Called on preset reset
+        /// </summary>
+        protected abstract void LoadDefaultValue();
+
+        /// <summary>
+        /// Called on preset change
+        /// </summary>
+        /// <param name="data">The value from the config file</param>
+        protected abstract void LoadFromString(string data);
     }
 }
