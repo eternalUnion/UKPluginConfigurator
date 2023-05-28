@@ -11,6 +11,7 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private InputField currentInput;
+        private readonly bool _saveToConfig = true;
 
         private float _value;
         public float value
@@ -18,7 +19,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 bool dirty = false;
-                if (_value != value)
+                if (_value != value && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -82,25 +83,37 @@ namespace PluginConfig.API.Fields
         public float minimumValue = float.MinValue;
         public float maximumValue = float.MaxValue;
         public bool setToNearestValidValueOnUnvalidInput = true;
-        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue) : base(displayName, guid, parentPanel)
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            rootConfig.fields.Add(guid, this);
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                LoadFromString(data);
+            if (_saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    LoadFromString(data);
+                else
+                {
+                    _value = defaultValue;
+                    rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
-                rootConfig.isDirty = true;
             }
 
             parentPanel.Register(this);
         }
 
-        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue) : this(parentPanel, displayName, guid, defaultValue)
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
+
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue, bool setToNearestValidValueOnUnvalidInput, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig)
         {
+            this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
             this.minimumValue = minimumValue;
             this.maximumValue = maximumValue;
 
@@ -110,10 +123,9 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException($"Float field {guid} has a range of [{minimumValue}, {maximumValue}], but its default value is {defaultValue}");
         }
 
-        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue)
-        {
-            this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
-        }
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, setToNearestValidValueOnUnvalidInput, true) { }
+
+        public FloatField(ConfigPanel parentPanel, string displayName, string guid, float defaultValue, float minimumValue, float maximumValue) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, true, true) { }
 
         private string lastInputText = "";
 
@@ -217,7 +229,15 @@ namespace PluginConfig.API.Fields
             }
 
             FloatValueChangeEvent eventData = new FloatValueChangeEvent() { value = newValue };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
+
             if (eventData.canceled)
             {
                 currentInput.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
@@ -242,32 +262,21 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
-                rootConfig.isDirty = true;
 
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
-                else
-                    rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    if (rootConfig.config.ContainsKey(guid))
+                        rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
+                    else
+                        rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
+                }
             }
         }
 
         internal override void ReloadFromString(string data)
         {
             OnCompValueChange(data);
-            /*if (float.TryParse(data, out float newValue))
-            {
-                value = newValue;
-            }
-            else
-            {
-                value = defaultValue;
-                rootConfig.isDirty = true;
-
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
-            }*/
         }
 
         internal override void ReloadDefault()

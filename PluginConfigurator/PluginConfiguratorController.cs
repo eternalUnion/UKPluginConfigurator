@@ -590,7 +590,7 @@ namespace PluginConfig
             string bannerUrl = "https://c4.wallpaperflare.com/wallpaper/981/954/357/ultrakill-red-background-v1-ultrakill-weapon-hd-wallpaper-thumb.jpg";
             CustomImageField imgField = new CustomImageField(customFieldTest.rootPanel, null);
 
-            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false);
+            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false, false);
             ButtonField setImgButton = new ButtonField(customFieldTest.rootPanel, "Load Image From URL", "imgUrlLoad");
             setImgButton.onClick += () =>
             {

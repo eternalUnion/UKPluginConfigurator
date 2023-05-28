@@ -10,6 +10,7 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private Toggle currentComp;
         private GameObject currentResetButton;
+        private readonly bool _saveToConfig = true;
 
         private bool _value;
         /// <summary>
@@ -21,7 +22,7 @@ namespace PluginConfig.API.Fields
             {
                 if (currentComp != null)
                     currentComp.SetIsOnWithoutNotify(value);
-                if (_value != value)
+                if (_value != value && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = value ? "true" : "false";
@@ -79,22 +80,34 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue) : base(displayName, guid, parentPanel)
+        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            rootConfig.fields.Add(guid, this);
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                LoadFromString(data);
+            if (saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+            
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    LoadFromString(data);
+                else
+                {
+                    _value = defaultValue;
+                    rootConfig.config.Add(guid, _value ? "true" : "false");
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(guid, _value ? "true" : "false");
-                rootConfig.isDirty = true;
             }
 
             parentPanel.Register(this);
         }
+
+        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
@@ -142,7 +155,14 @@ namespace PluginConfig.API.Fields
         internal void OnCompValueChange(bool val)
         {
             BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch(Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
 
             if (eventData.canceled)
             {
@@ -175,10 +195,13 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
-                rootConfig.isDirty = true;
 
-                data = _value ? "true" : "false";
-                rootConfig.config[guid] = data;
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    data = _value ? "true" : "false";
+                    rootConfig.config[guid] = data;
+                }
             }
         }
 
@@ -198,10 +221,13 @@ namespace PluginConfig.API.Fields
             {
                 currentComp?.SetIsOnWithoutNotify(defaultValue);
                 OnCompValueChange(defaultValue);
-                rootConfig.isDirty = true;
 
-                data = _value ? "true" : "false";
-                rootConfig.config[guid] = data;
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    data = _value ? "true" : "false";
+                    rootConfig.config[guid] = data;
+                }
             }
         }
 

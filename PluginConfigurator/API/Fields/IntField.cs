@@ -10,6 +10,7 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private InputField currentInputComp;
+        private readonly bool _saveToConfig = true;
 
         private int _value;
         public int value
@@ -19,7 +20,7 @@ namespace PluginConfig.API.Fields
                 if (currentUi != null)
                     currentInputComp.SetTextWithoutNotify(value.ToString());
 
-                if (_value != value)
+                if (_value != value && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = value.ToString();
@@ -79,25 +80,37 @@ namespace PluginConfig.API.Fields
         public int maximumValue = int.MaxValue;
         public bool setToNearestValidValueOnUnvalidInput = true;
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : base(displayName, guid, parentPanel)
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            rootConfig.fields.Add(guid, this);
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                LoadFromString(data);
+            if (_saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    LoadFromString(data);
+                else
+                {
+                    _value = defaultValue;
+                    rootConfig.config.Add(guid, _value.ToString());
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(guid, _value.ToString());
-                rootConfig.isDirty = true;
             }
 
             parentPanel.Register(this);
         }
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue) : this(parentPanel, displayName, guid, defaultValue)
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
+
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig)
         {
+            this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
             this.minimumValue = minimumValue;
             this.maximumValue = maximumValue;
 
@@ -107,10 +120,9 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException($"Int field {guid} has a range of [{minimumValue}, {maximumValue}], but its default value is {defaultValue}");
         }
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue)
-        {
-            this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
-        }
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, setToNearestValidValueOnUnvalidInput, true) { }
+
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, true, true) { }
 
         private string lastInputText = "";
 
@@ -211,7 +223,15 @@ namespace PluginConfig.API.Fields
             }
 
             IntValueChangeEvent eventData = new IntValueChangeEvent() { value = newValue };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
+
             if (eventData.canceled)
             {
                 currentInputComp.SetTextWithoutNotify(_value.ToString());
@@ -236,32 +256,21 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
-                rootConfig.isDirty = true;
 
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    if (rootConfig.config.ContainsKey(guid))
+                        rootConfig.config[guid] = _value.ToString();
+                    else
+                        rootConfig.config.Add(guid, _value.ToString());
+                }
             }
         }
 
         internal override void ReloadFromString(string data)
         {
             OnCompValueChange(data);
-            /*if (int.TryParse(data, out int newValue))
-            {
-                value = newValue;
-            }
-            else
-            {
-                value = defaultValue;
-                rootConfig.isDirty = true;
-
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = _value.ToString();
-                else
-                    rootConfig.config.Add(guid, _value.ToString());
-            }*/
         }
 
         internal override void ReloadDefault()

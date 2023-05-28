@@ -69,6 +69,8 @@ namespace PluginConfig.API.Fields
         private Slider r;
         private Slider g;
         private Slider b;
+        private readonly bool _saveToConfig = true;
+
         private void SetSliders(Color c)
         {
             if (currentUi == null)
@@ -94,7 +96,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 bool dirty = false;
-                if (_value != value)
+                if (_value != value && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -105,9 +107,8 @@ namespace PluginConfig.API.Fields
 
                 _value = value;
                 
-                string colorString = StringifyColor(_value);
                 if(dirty)
-                    rootConfig.config[guid] = colorString;
+                    rootConfig.config[guid] = StringifyColor(_value);
             }
         }
 
@@ -160,22 +161,33 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue) : base(displayName, guid, parentPanel)
+        public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            rootConfig.fields.Add(guid, this);
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                LoadFromString(data);
+            if (saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    LoadFromString(data);
+                else
+                {
+                    _value = defaultValue;
+                    rootConfig.config.Add(guid, StringifyColor(_value));
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(guid, StringifyColor(_value));
-                rootConfig.isDirty = true;
             }
 
             parentPanel.Register(this);
         }
+
+        public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
@@ -268,7 +280,15 @@ namespace PluginConfig.API.Fields
                 return;
 
             ColorValueChangeEvent eventData = new ColorValueChangeEvent() { value = newColor };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
+
             if (eventData.canceled)
             {
                 SetSliders(_value);
@@ -310,13 +330,16 @@ namespace PluginConfig.API.Fields
             if (!validData)
             {
                 _value = defaultValue;
-                rootConfig.isDirty = true;
 
-                data = StringifyColor(_value);
-                if (rootConfig.config.ContainsKey(guid))
-                    rootConfig.config[guid] = data;
-                else
-                    rootConfig.config.Add(guid, data);
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    data = StringifyColor(_value);
+                    if (rootConfig.config.ContainsKey(guid))
+                        rootConfig.config[guid] = data;
+                    else
+                        rootConfig.config.Add(guid, data);
+                }
             }
             else
             {
@@ -339,7 +362,7 @@ namespace PluginConfig.API.Fields
                 if (!float.TryParse(colorSplit[2], NumberStyles.Float, CultureInfo.InvariantCulture, out b))
                     validData = false;
 
-                if(validData)
+                if (validData)
                 {
                     SetSliders(new Color(r, g, b));
                     OnCompValueChange();
@@ -351,11 +374,14 @@ namespace PluginConfig.API.Fields
             SetSliders(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
             OnCompValueChange();
 
-            data = StringifyColor(_value);
-            if (rootConfig.config.ContainsKey(guid))
-                rootConfig.config[guid] = data;
-            else
-                rootConfig.config.Add(guid, data);
+            if (_saveToConfig)
+            {
+                data = StringifyColor(_value);
+                if (rootConfig.config.ContainsKey(guid))
+                    rootConfig.config[guid] = data;
+                else
+                    rootConfig.config.Add(guid, data);
+            }
         }
 
         internal override void ReloadDefault()

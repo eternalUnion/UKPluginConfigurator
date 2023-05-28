@@ -94,7 +94,6 @@ namespace PluginConfig.API
             }
         }
 
-        internal Transform panelHolder;
         internal GameObject presetMenuButton;
         internal Text presetButtonText;
 
@@ -102,7 +101,6 @@ namespace PluginConfig.API
         internal GameObject presetPanelList;
 
         internal GameObject defaultPresetButtonContainer;
-        internal Text defaultResetButtonText;
 
         internal RectTransform addPresetButton;
 
@@ -326,6 +324,12 @@ namespace PluginConfig.API
             }
         }
 
+        public delegate void PreConfigChangeEvent();
+        /// <summary>
+        /// Triggered before the config is flushed (either by a menu close, a game quit or by a call)
+        /// </summary>
+        public event PreConfigChangeEvent preConfigChange;
+
         public delegate void PostConfigChangeEvent();
         /// <summary>
         /// Triggered after the config is flushed (either by a menu close, a game quit or by a call)
@@ -385,9 +389,26 @@ namespace PluginConfig.API
             if (!isDirty)
                 return;
 
+            try
+            {
+                preConfigChange?.Invoke();
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Pre config event for {guid} threw an error: {e}");
+            }
+
             if (!saveToFile)
             {
-                postConfigChange?.Invoke();
+                try
+                {
+                    postConfigChange?.Invoke();
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.Instance.LogError($"Post config event for {guid} threw an error: {e}");
+                }
+
                 return;
             }
 
@@ -418,7 +439,15 @@ namespace PluginConfig.API
             }
 
             isDirty = false;
-            postConfigChange?.Invoke();
+
+            try
+            {
+                postConfigChange?.Invoke();
+            }
+            catch(Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Post config event for {guid} threw an error: {e}");
+            }    
         }
 
         private void ChangePreset(Preset newPreset, bool reset = false)

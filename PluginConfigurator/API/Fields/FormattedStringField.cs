@@ -463,7 +463,7 @@ namespace PluginConfig.API.Fields
     {
         internal string _rawString;
         internal List<FormattedStringBuilder.FormatRange> _format;
-        internal CharacterInfo backupCharacter;
+        internal CharacterInfo backupCharacter = new CharacterInfo();
 
         public string rawString { get => _rawString; }
 
@@ -620,8 +620,9 @@ namespace PluginConfig.API.Fields
         private GameObject currentEditButton;
         private Button currentEditButtonComp;
         private Text currentInputText;
+        private readonly bool _saveToConfig = true;
 
-        private static char formatIndicator = (char)2;
+        private const char formatIndicator = (char)2;
 
         internal string _rawString;
         internal List<CharacterInfo> _format = new List<CharacterInfo>();
@@ -784,8 +785,11 @@ namespace PluginConfig.API.Fields
                     _rawString = value;
                     RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
 
-                    rootConfig.isDirty = true;
-                    rootConfig.config[guid] = TurnToDataString();
+                    if (_saveToConfig)
+                    {
+                        rootConfig.isDirty = true;
+                        rootConfig.config[guid] = TurnToDataString();
+                    }
                 }
 
                 SetFormattedString();
@@ -852,30 +856,48 @@ namespace PluginConfig.API.Fields
         }
 
         public bool allowEmptyValues;
-        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues = false) : base(displayName, guid, parentPanel)
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             if (defaultValue == null)
                 defaultValue = new FormattedString("", new List<FormattedStringBuilder.FormatRange>());
             else
                 defaultValue = new FormattedString(defaultValue);
+
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
-            rootConfig.fields.Add(guid, this);
-            if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue.rawString))
-                throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                GetFromDataString(data);
+            if (_saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+                if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue.rawString))
+                    throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
+
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    GetFromDataString(data);
+                else
+                {
+                    GetFromFormattedString(defaultValue);
+                    rootConfig.config.Add(guid, TurnToDataString());
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
+                if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue.rawString))
+                    throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
+
                 GetFromFormattedString(defaultValue);
-                rootConfig.config.Add(guid, TurnToDataString());
-                rootConfig.isDirty = true;
             }
 
             SetFormattedString();
             parentPanel.Register(this);
         }
+
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues) : this(parentPanel, displayName, guid, defaultValue, allowEmptyValues, true) { }
+
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue) : this(parentPanel, displayName, guid, defaultValue, false, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
@@ -976,7 +998,15 @@ namespace PluginConfig.API.Fields
             }
 
             FormattedStringValueChangeEvent eventData = new FormattedStringValueChangeEvent() { formattedString = new FormattedString(rawString, format) };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
+
             if (eventData.canceled)
             {
                 currentInputText.text = formattedString;
@@ -987,8 +1017,11 @@ namespace PluginConfig.API.Fields
             _format = eventData.formattedString.GetFormat();
             RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
 
-            rootConfig.config[guid] = TurnToDataString();
-            rootConfig.isDirty = true;
+            if (_saveToConfig)
+            {
+                rootConfig.config[guid] = TurnToDataString();
+                rootConfig.isDirty = true;
+            }
 
             SetFormattedString();
             currentInputText.text = formattedString;
