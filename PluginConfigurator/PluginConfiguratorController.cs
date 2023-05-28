@@ -7,11 +7,13 @@ using PluginConfig.API.Fields;
 using PluginConfig.API.Functionals;
 using PluginConfig.Patches;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -314,6 +316,69 @@ namespace PluginConfig
             Third
         }
 
+        private class CustomImageField : CustomConfigField
+        {
+            private class ControllerComp : MonoBehaviour
+            {
+                public IEnumerator LoadSprite(CustomImageField field, string url)
+                {
+                    UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+                    yield return request.SendWebRequest();
+
+                    if (request.isNetworkError || request.isHttpError)
+                    {
+                        Debug.LogError("Error: " + request.error);
+                    }
+                    else
+                    {
+                        Texture2D loadedTexture = DownloadHandlerTexture.GetContent(request);
+                        field.sprite = Sprite.Create(loadedTexture, new Rect(0f, 0f, loadedTexture.width, loadedTexture.height), Vector2.zero);
+                        field.SetImageSprite();
+                        PluginConfiguratorController.Instance.LogDebug($"Loaded sprite from {url} successfully");
+                    }
+                }
+            }
+
+            private Sprite sprite;
+            private Image currentUI;
+            private static ControllerComp controller;
+
+            public CustomImageField(ConfigPanel parentPanel, string url) : base(parentPanel)
+            {
+                if (controller == null)
+                {
+                    GameObject controllerObj = new GameObject();
+                    DontDestroyOnLoad(controllerObj);
+                    controller = controllerObj.AddComponent<ControllerComp>();
+                }
+
+                controller.StartCoroutine(controller.LoadSprite(this, url));
+            }
+
+            public void ReloadImage(string newUrl)
+            {
+                controller.StartCoroutine(controller.LoadSprite(this, newUrl));
+            }
+
+            protected override void OnCreateUI(RectTransform fieldUI)
+            {
+                Image img = currentUI = fieldUI.gameObject.AddComponent<Image>();
+                if (sprite != null)
+                    SetImageSprite();
+            }
+
+            private void SetImageSprite()
+            {
+                if (currentUI == null || sprite == null)
+                    return;
+
+                RectTransform rect = currentUI.GetComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(600f, 600f * (sprite.rect.height / sprite.rect.width));
+
+                currentUI.sprite = sprite;
+            }
+        }
+
         private void ConfigTest()
         {
             PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
@@ -400,6 +465,20 @@ namespace PluginConfig
             new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
             new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
             new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
+
+            PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
+            customFieldTest.saveToFile = false;
+
+            new ConfigHeader(customFieldTest.rootPanel, "Test Image Field:");
+            string bannerUrl = "https://c4.wallpaperflare.com/wallpaper/981/954/357/ultrakill-red-background-v1-ultrakill-weapon-hd-wallpaper-thumb.jpg";
+            CustomImageField imgField = new CustomImageField(customFieldTest.rootPanel, bannerUrl);
+
+            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false);
+            ButtonField setImgButton = new ButtonField(customFieldTest.rootPanel, "Load Image From URL", "imgUrlLoad");
+            setImgButton.onClick += () =>
+            {
+                imgField.ReloadImage(urlField.value);
+            };
         }
 
         public AssetBundle bundle;
