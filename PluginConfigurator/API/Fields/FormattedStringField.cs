@@ -860,7 +860,6 @@ namespace PluginConfig.API.Fields
                 defaultValue = new FormattedString(defaultValue);
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue.rawString))
                 throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
@@ -875,6 +874,7 @@ namespace PluginConfig.API.Fields
             }
 
             SetFormattedString();
+            parentPanel.Register(this);
         }
 
         internal override GameObject CreateUI(Transform content)

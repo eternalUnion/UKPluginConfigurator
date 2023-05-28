@@ -82,7 +82,6 @@ namespace PluginConfig.API.Fields
         public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
@@ -93,6 +92,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, _value ? "true" : "false");
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         internal override GameObject CreateUI(Transform content)

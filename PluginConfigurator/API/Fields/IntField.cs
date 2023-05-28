@@ -82,7 +82,6 @@ namespace PluginConfig.API.Fields
         public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
@@ -93,6 +92,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, _value.ToString());
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue) : this(parentPanel, displayName, guid, defaultValue)

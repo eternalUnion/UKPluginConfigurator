@@ -139,7 +139,6 @@ namespace PluginConfig.API.Fields
         {
             this.roundDecimalPoints = roundDecimalPoints;
             this.defaultValue = defaultValue;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
 
             if (bounds.Item2 < bounds.Item1)
@@ -157,6 +156,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue) : this(parentPanel, displayName, guid, bounds, defaultValue, 1)

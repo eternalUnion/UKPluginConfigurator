@@ -84,6 +84,7 @@ namespace PluginConfig.API
     public class ConfigPanel : ConfigField
     {
         internal GameObject panelObject;
+        internal Transform panelContent;
         internal GameObject panelButton;
 
         protected List<ConfigField> fields = new List<ConfigField>();
@@ -142,6 +143,8 @@ namespace PluginConfig.API
         internal virtual void Register(ConfigField field)
         {
             fields.Add(field);
+            if (panelContent != null)
+                field.CreateUI(panelContent);
         }
 
         internal virtual void ActivatePanel()
@@ -172,7 +175,7 @@ namespace PluginConfig.API
             ConfigPanelComponent panelComp = panel.AddComponent<ConfigPanelComponent>();
             panelComp.panel = this;
 
-            Transform contents = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(panel.transform).transform;
+            Transform contents = panelContent = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(panel.transform).transform;
             foreach (Transform t in contents)
                 GameObject.Destroy(t.gameObject);
 

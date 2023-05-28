@@ -81,7 +81,7 @@ namespace PluginConfig.API.Decorators
 
         public ConfigHeader(ConfigPanel parentPanel, string text, int textSize, TextAnchor anchor = TextAnchor.MiddleCenter) : this(parentPanel, text, textSize)
         {
-            _anchor = anchor;
+            this.anchor = anchor;
         }
 
         private bool _hidden = false;

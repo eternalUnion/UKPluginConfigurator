@@ -89,7 +89,6 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
                 throw new ArgumentException($"Multiline string field {guid} does not allow empty values but its default value is empty");
@@ -102,6 +101,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, _value);
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         private string lastInputText = "";

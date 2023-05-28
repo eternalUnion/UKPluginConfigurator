@@ -82,7 +82,7 @@ namespace PluginConfig.API.Fields
 
         private string StringifyColor(Color c)
         {
-            return $"{c.r},{c.g},{c.b}";
+            return $"{c.r.ToString(CultureInfo.InvariantCulture)},{c.g.ToString(CultureInfo.InvariantCulture)},{c.b.ToString(CultureInfo.InvariantCulture)}";
         }
 
         private Color _value;
@@ -163,7 +163,6 @@ namespace PluginConfig.API.Fields
         public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            parentPanel.Register(this);
             rootConfig.fields.Add(guid, this);
 
             if (rootConfig.config.TryGetValue(guid, out string data))
@@ -174,6 +173,8 @@ namespace PluginConfig.API.Fields
                 rootConfig.config.Add(guid, StringifyColor(_value));
                 rootConfig.isDirty = true;
             }
+
+            parentPanel.Register(this);
         }
 
         internal override GameObject CreateUI(Transform content)

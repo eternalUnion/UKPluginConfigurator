@@ -7,11 +7,15 @@ using PluginConfig.API.Fields;
 using PluginConfig.API.Functionals;
 using PluginConfig.Patches;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -37,7 +41,7 @@ namespace PluginConfig
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-        public const string PLUGIN_VERSION = "1.3.2";
+        public const string PLUGIN_VERSION = "1.4.0";
 
         internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
         internal void RegisterConfigurator(PluginConfigurator config)
@@ -314,6 +318,184 @@ namespace PluginConfig
             Third
         }
 
+        private class CustomImageField : CustomConfigField
+        {
+            private class ControllerComp : MonoBehaviour
+            {
+                public IEnumerator LoadSprite(CustomImageField field, string url)
+                {
+                    UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+                    yield return request.SendWebRequest();
+
+                    if (request.isNetworkError || request.isHttpError)
+                    {
+                        Debug.LogError("Error: " + request.error);
+                    }
+                    else
+                    {
+                        Texture2D loadedTexture = DownloadHandlerTexture.GetContent(request);
+                        field.sprite = Sprite.Create(loadedTexture, new Rect(0f, 0f, loadedTexture.width, loadedTexture.height), Vector2.zero);
+                        field.SetImageSprite();
+                        PluginConfiguratorController.Instance.LogDebug($"Loaded sprite from {url} successfully");
+                    }
+                }
+            }
+
+            private Sprite sprite;
+            private Image currentUI;
+            private static ControllerComp controller;
+
+            public CustomImageField(ConfigPanel parentPanel, string url) : base(parentPanel)
+            {
+                if (controller == null)
+                {
+                    GameObject controllerObj = new GameObject();
+                    DontDestroyOnLoad(controllerObj);
+                    controller = controllerObj.AddComponent<ControllerComp>();
+                }
+
+                if (!string.IsNullOrWhiteSpace(url))
+                    controller.StartCoroutine(controller.LoadSprite(this, url));
+            }
+
+            public void ReloadImage(string newUrl)
+            {
+                controller.StartCoroutine(controller.LoadSprite(this, newUrl));
+            }
+
+            protected override void OnCreateUI(RectTransform fieldUI)
+            {
+                Image img = currentUI = fieldUI.gameObject.AddComponent<Image>();
+                if (sprite != null)
+                    SetImageSprite();
+
+                fieldUI.gameObject.SetActive(!hierarchyHidden);
+            }
+
+            public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
+            {
+                if (currentUI != null)
+                    currentUI.gameObject.SetActive(!hierarchyHidden);
+            }
+
+            private void SetImageSprite()
+            {
+                if (currentUI == null || sprite == null)
+                    return;
+
+                RectTransform rect = currentUI.GetComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(600f, 600f * (sprite.rect.height / sprite.rect.width));
+
+                currentUI.sprite = sprite;
+            }
+        }
+
+        private class CustomRandomColorPickerField : CustomConfigValueField
+        {
+            private class RandomColorPickerComp : MonoBehaviour
+            {
+                public CustomRandomColorPickerField callback;
+
+                private void Awake()
+                {
+                    EventTrigger trigger = gameObject.AddComponent<EventTrigger>();
+                    EventTrigger.Entry mouseClick = new EventTrigger.Entry() { eventID = EventTriggerType.PointerClick };
+                    mouseClick.callback.AddListener((BaseEventData e) => { OnPointerClick(); });
+                    trigger.triggers.Add(mouseClick);
+                }
+
+                private void OnPointerClick()
+                {
+                    if (!callback.hierarchyInteractable)
+                        return;
+
+                    Color randomColor = new Color();
+                    randomColor.r = UnityEngine.Random.Range(0f, 1f);
+                    randomColor.g = UnityEngine.Random.Range(0f, 1f);
+                    randomColor.b = UnityEngine.Random.Range(0f, 1f);
+                    randomColor.a = 1f;
+
+                    callback.value = randomColor;
+                }
+            }
+
+            private Image currentImg;
+
+            public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
+            {
+                if (currentImg != null)
+                    currentImg.gameObject.SetActive(!hierarchyHidden);
+            }
+
+            private void SetFieldValue(Color c)
+            {
+                fieldValue = $"{c.r.ToString(CultureInfo.InvariantCulture)},{c.g.ToString(CultureInfo.InvariantCulture)},{c.b.ToString(CultureInfo.InvariantCulture)}";
+            }
+
+            private Color _value = new Color();
+            public Color value
+            {
+                get => _value; set
+                {
+                    _value = value;
+                    SetFieldValue(value);
+
+                    if (currentImg != null)
+                        currentImg.color = value;
+                }
+            }
+
+            private Color defaultValue;
+            public CustomRandomColorPickerField(ConfigPanel parentPanel, string guid, Color defaultValue) : base(parentPanel, guid)
+            {
+                this.defaultValue = defaultValue;
+
+                if (fieldValue != null)
+                {
+                    LoadFromString(fieldValue);
+                }
+                else
+                {
+                    value = defaultValue;
+                }
+            }
+
+            protected override void OnCreateUI(RectTransform fieldUI)
+            {
+                fieldUI.gameObject.AddComponent<RandomColorPickerComp>().callback = this;
+                currentImg = fieldUI.gameObject.AddComponent<Image>();
+                currentImg.color = value;
+
+                currentImg.gameObject.SetActive(!hierarchyHidden);
+            }
+
+            protected override void LoadDefaultValue()
+            {
+                value = defaultValue;
+            }
+
+            protected override void LoadFromString(string data)
+            {
+                string[] colors = data.Split(',');
+                if (colors.Length != 3)
+                {
+                    value = defaultValue;
+                    return;
+                }
+
+                Color newColor = new Color();
+                newColor.a = 1f;
+                if (float.TryParse(colors[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float r))
+                    newColor.r = r;
+                if (float.TryParse(colors[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float g))
+                    newColor.g = g;
+                if (float.TryParse(colors[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float b))
+                    newColor.b = b;
+
+                value = newColor;
+            }
+        }
+
         private void ConfigTest()
         {
             PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
@@ -400,6 +582,24 @@ namespace PluginConfig
             new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
             new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
             new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
+
+            PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
+            customFieldTest.saveToFile = true;
+
+            new ConfigHeader(customFieldTest.rootPanel, "Test Image Field:");
+            string bannerUrl = "https://c4.wallpaperflare.com/wallpaper/981/954/357/ultrakill-red-background-v1-ultrakill-weapon-hd-wallpaper-thumb.jpg";
+            CustomImageField imgField = new CustomImageField(customFieldTest.rootPanel, null);
+
+            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false);
+            ButtonField setImgButton = new ButtonField(customFieldTest.rootPanel, "Load Image From URL", "imgUrlLoad");
+            setImgButton.onClick += () =>
+            {
+                imgField.ReloadImage(urlField.value);
+            };
+            imgField.ReloadImage(urlField.value);
+
+            new ConfigHeader(customFieldTest.rootPanel, "Random Color Picker (peak laziness)", 16);
+            new CustomRandomColorPickerField(customFieldTest.rootPanel, "randomColor", new Color(1, 0, 0));
         }
 
         public AssetBundle bundle;
