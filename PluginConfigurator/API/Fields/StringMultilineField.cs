@@ -13,8 +13,9 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private InputField currentInput;
+        private readonly bool _saveToConfig = true;
 
-        private static char separatorChar = (char)1;
+        private const char separatorChar = (char)1;
 
         private string _value;
         public string value
@@ -24,7 +25,7 @@ namespace PluginConfig.API.Fields
                 value = value.Replace(separatorChar.ToString(), "");
                 value = value.Replace('\n', separatorChar);
                 value = value.Replace("\r", "");
-                if (_value != value)
+                if (_value != value && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = value;
@@ -84,26 +85,40 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public bool allowEmptyValues;
-        public StringMultilineField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue, bool allowEmptyValues = false) : base(displayName, guid, parentPanel)
+        public bool allowEmptyValues = false;
+        public StringMultilineField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue, bool allowEmptyValues, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
-            rootConfig.fields.Add(guid, this);
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
+
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
                 throw new ArgumentException($"Multiline string field {guid} does not allow empty values but its default value is empty");
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                LoadFromString(data);
+            if (_saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    LoadFromString(data);
+                else
+                {
+                    _value = defaultValue.Replace('\n', separatorChar).Replace("\r", "");
+                    rootConfig.config.Add(guid, _value);
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
                 _value = defaultValue.Replace('\n', separatorChar).Replace("\r", "");
-                rootConfig.config.Add(guid, _value);
-                rootConfig.isDirty = true;
             }
 
             parentPanel.Register(this);
         }
+
+        public StringMultilineField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue, bool allowEmptyValues) : this(parentPanel, displayName, guid, defaultValue, allowEmptyValues, true) { }
+
+        public StringMultilineField(ConfigPanel parentPanel, string displayName, string guid, string defaultValue) : this(parentPanel, displayName, guid, defaultValue, false, true) { }
 
         private string lastInputText = "";
 
@@ -207,7 +222,15 @@ namespace PluginConfig.API.Fields
             }
 
             StringValueChangeEvent eventData = new StringValueChangeEvent() { value = val };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
+
             if (eventData.canceled)
             {
                 currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));

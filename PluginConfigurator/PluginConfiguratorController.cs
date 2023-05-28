@@ -41,7 +41,7 @@ namespace PluginConfig
 
         public const string PLUGIN_NAME = "PluginConfigurator";
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-        public const string PLUGIN_VERSION = "1.4.0";
+        public const string PLUGIN_VERSION = "1.5.0";
 
         internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
         internal void RegisterConfigurator(PluginConfigurator config)
@@ -510,6 +510,7 @@ namespace PluginConfig
             BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
             interactable2.presetLoadPriority = 1;
 
+
             ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
             ButtonField button = new ButtonField(div1, "A Button...", "button");
             button.onClick += () =>
@@ -522,6 +523,8 @@ namespace PluginConfig
             builder += "FORMATTED TEXT";
 
             FormattedStringField format = new FormattedStringField(div1, "Formatted string", "formattedString", builder.Build());
+
+            StringListField strList = new StringListField(div1, "Sample list", "strList", new string[] { "Item 1", "2", "Item 3" }, "2");
 
             new ConfigHeader(div1, "Division 1");
             new IntField(div1, "Sample Field", "sampleField1", 0);
@@ -590,7 +593,7 @@ namespace PluginConfig
             string bannerUrl = "https://c4.wallpaperflare.com/wallpaper/981/954/357/ultrakill-red-background-v1-ultrakill-weapon-hd-wallpaper-thumb.jpg";
             CustomImageField imgField = new CustomImageField(customFieldTest.rootPanel, null);
 
-            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false);
+            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false, false);
             ButtonField setImgButton = new ButtonField(customFieldTest.rootPanel, "Load Image From URL", "imgUrlLoad");
             setImgButton.onClick += () =>
             {

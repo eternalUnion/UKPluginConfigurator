@@ -17,6 +17,7 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private Dropdown currentDropdown;
         private GameObject currentResetButton;
+        private readonly bool _saveToConfig = true;
 
         private readonly T[] values = Enum.GetValues(typeof(T)) as T[];
         private Dictionary<T, string> enumNames = new Dictionary<T, string>();
@@ -35,7 +36,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 bool dirty = false;
-                if (!_value.Equals(value))
+                if (!_value.Equals(value) && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -98,27 +99,38 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue) : base(displayName, guid, parentPanel)
+        public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
-            rootConfig.fields.Add(guid, this);
+            _saveToConfig = saveToConfig;
+            strictGuid = saveToConfig;
 
             foreach (T value in values)
             {
                 enumNames.Add(value, value.ToString());
             }
 
-            if (rootConfig.config.TryGetValue(guid, out string data))
-                LoadFromString(data);
+            if (saveToConfig)
+            {
+                rootConfig.fields.Add(guid, this);
+                if (rootConfig.config.TryGetValue(guid, out string data))
+                    LoadFromString(data);
+                else
+                {
+                    _value = defaultValue;
+                    rootConfig.config.Add(guid, _value.ToString());
+                    rootConfig.isDirty = true;
+                }
+            }
             else
             {
                 _value = defaultValue;
-                rootConfig.config.Add(guid, _value.ToString());
-                rootConfig.isDirty = true;
             }
 
             parentPanel.Register(this);
         }
+
+        public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
@@ -204,7 +216,14 @@ namespace PluginConfig.API.Fields
                 return;
 
             EnumValueChangeEvent eventData = new EnumValueChangeEvent() { value = newValue };
-            onValueChange?.Invoke(eventData);
+            try
+            {
+                onValueChange?.Invoke(eventData);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+            }
 
             if (eventData.canceled)
             {
@@ -230,9 +249,12 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
-                rootConfig.isDirty = true;
 
-                rootConfig.config[guid] = _value.ToString();
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    rootConfig.config[guid] = _value.ToString();
+                }
             }
         }
 
@@ -245,11 +267,13 @@ namespace PluginConfig.API.Fields
             else
             {
                 _value = defaultValue;
-                rootConfig.isDirty = true;
-
-                rootConfig.config[guid] = _value.ToString();
-
                 OnCompValueChange(Array.IndexOf(values, newValue));
+
+                if (_saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    rootConfig.config[guid] = _value.ToString();
+                }
             }
         }
 
