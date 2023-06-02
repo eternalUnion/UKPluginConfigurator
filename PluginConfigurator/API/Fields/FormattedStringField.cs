@@ -924,6 +924,7 @@ namespace PluginConfig.API.Fields
             currentResetButton.AddComponent<DisableWhenHidden>();
             currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
             RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
+            resetRect.transform.localScale = Vector3.one;
             resetRect.anchorMax = new Vector2(1, 0.5f);
             resetRect.anchorMin = new Vector2(1, 0.5f);
             resetRect.sizeDelta = new Vector2(70, 40);
@@ -934,6 +935,7 @@ namespace PluginConfig.API.Fields
             currentResetButton.SetActive(false);
 
             currentEditButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            currentEditButton.transform.localScale = Vector3.one;
             GameObject.Destroy(currentEditButton.GetComponent<HudOpenEffect>());
             
             GameObject img = currentEditButton.transform.Find("Text").gameObject;
