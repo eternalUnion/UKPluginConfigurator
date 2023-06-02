@@ -944,12 +944,18 @@ namespace PluginConfig.API.Fields
             currentEditButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             currentEditButton.transform.localScale = Vector3.one;
             GameObject.Destroy(currentEditButton.GetComponent<HudOpenEffect>());
-            
-            GameObject img = currentEditButton.transform.Find("Text").gameObject;
-            GameObject.DestroyImmediate(img.GetComponent<Text>());
+
+            GameObject.Destroy(currentEditButton.transform.Find("Text").gameObject);
+            GameObject img = new GameObject();
+            RectTransform imgRect = img.AddComponent<RectTransform>();
+            imgRect.transform.SetParent(currentEditButton.transform);
+            imgRect.localScale = Vector3.one;
+            imgRect.anchorMin = Vector2.zero;
+            imgRect.anchorMax = Vector2.one;
+            imgRect.anchoredPosition = Vector2.zero;
+            imgRect.sizeDelta = new Vector2(-10, -10);
             Image imgComp = img.AddComponent<Image>();
             imgComp.sprite = PluginConfiguratorController.Instance.penIcon;
-            img.GetComponent<RectTransform>().sizeDelta = new Vector2(-10, -10);
             
             RectTransform editRect = currentEditButton.GetComponent<RectTransform>();
             editRect.anchorMax = new Vector2(1, 0.5f);
