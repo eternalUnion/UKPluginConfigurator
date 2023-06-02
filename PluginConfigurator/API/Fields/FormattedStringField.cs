@@ -519,7 +519,7 @@ namespace PluginConfig.API.Fields
                     formatList.Add(_format[i].format);
             }
 
-            int remaining = _rawString.Length - _format.Count;
+            int remaining = _rawString.Length - formatList.Count;
             for (int i = 0; i < remaining; i++)
                 formatList.Add(backupCharacter);
 
@@ -638,13 +638,20 @@ namespace PluginConfig.API.Fields
             bool italic = _format[0].italic;
             Color color = _format[0].color;
 
+            char ValidateChar(char c)
+            {
+                if (c == '\n' || c == '\r')
+                    return (char)(c + 1);
+                return c;
+            }
+
             void AppendColor(Color c)
             {
                 data.Append(formatIndicator);
                 data.Append('C');
-                data.Append((char)((byte)(c.r * 255)));
-                data.Append((char)((byte)(c.g * 255)));
-                data.Append((char)((byte)(c.b * 255)));
+                data.Append(ValidateChar((char)((byte)(c.r * 255))));
+                data.Append(ValidateChar((char)((byte)(c.g * 255))));
+                data.Append(ValidateChar((char)((byte)(c.b * 255))));
             }
 
             if(bold)
