@@ -13,9 +13,22 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private InputField currentInput;
-        private readonly bool _saveToConfig = true;
+        private Text currentDisplayName;
+		private readonly bool _saveToConfig = true;
 
-        private string _value;
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		private string _value;
         public string value
         {
             get => _value.Replace("\n", ""); set
@@ -123,7 +136,8 @@ namespace PluginConfig.API.Fields
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
             currentUi = field;
-            field.transform.Find("Text").GetComponent<Text>().text = displayName;
+            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
 
             InputField input = currentInput = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;

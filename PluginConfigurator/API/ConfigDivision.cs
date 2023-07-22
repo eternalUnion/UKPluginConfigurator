@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PluginConfig.API
 {
     public class ConfigDivision : ConfigPanel
     {
-        public override bool hidden { get => base.hidden; set
+		public override string displayName { get; set; }
+
+		public override bool hidden { get => base.hidden; set
             {
                 base.hidden = value;
                 foreach (ConfigField field in fields)

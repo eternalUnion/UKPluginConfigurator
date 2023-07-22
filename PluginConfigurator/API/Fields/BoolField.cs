@@ -10,9 +10,22 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private Toggle currentComp;
         private GameObject currentResetButton;
+        private Text currentDisplayName;
         private readonly bool _saveToConfig = true;
 
-        private bool _value;
+        private string _displayName;
+		public override string displayName
+        {
+            get => _displayName;
+            set
+            {
+                _displayName = value;
+                if (currentDisplayName != null)
+                    currentDisplayName.text = _displayName;
+            }
+        }
+
+		private bool _value;
         /// <summary>
         /// Get the value of the field. Setting the value will not call the <see cref="onValueChange"/> event.
         /// </summary>
@@ -114,7 +127,8 @@ namespace PluginConfig.API.Fields
         {
             GameObject field = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBoolField, content);
             currentUi = field;
-            field.transform.Find("Text").GetComponent<Text>().text = displayName;
+            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
 
             Transform toggle = field.transform.Find("Toggle");
             toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();

@@ -10,9 +10,22 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private InputField currentInputComp;
-        private readonly bool _saveToConfig = true;
+        private Text currentDisplayName;
+		private readonly bool _saveToConfig = true;
 
-        private int _value;
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		private int _value;
         public int value
         {
             get => _value; set
@@ -131,7 +144,8 @@ namespace PluginConfig.API.Fields
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
             currentUi = field;
-            field.transform.Find("Text").GetComponent<Text>().text = displayName;
+            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
 
             InputField input = currentInputComp = field.GetComponentInChildren<InputField>();
             input.interactable = interactable && parentInteractable;

@@ -119,8 +119,21 @@ namespace PluginConfig.API.Fields
 		private GameObject currentUi;
 		private GameObject currentResetButton;
 		private Text currentText;
+		private Text currentDisplayName;
 		internal Button currentButton;
 		private readonly bool _saveToConfig = true;
+
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
 
 		private KeyCode _value;
 		public KeyCode value
@@ -223,8 +236,9 @@ namespace PluginConfig.API.Fields
 			buttonRect.anchoredPosition = new Vector2(220, 0);
 			buttonRect.pivot = new Vector2(0, 0.5f);
 			GameObject.DestroyImmediate(rect.Find("Text").GetComponent<GearCheckText>());
-			rect.Find("Text").GetComponent<Text>().text = displayName;
-			rect.Find("Text").GetComponent<RectTransform>().anchoredPosition = new Vector2(40, 0);
+			currentDisplayName = rect.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
+			currentDisplayName.GetComponent<RectTransform>().anchoredPosition = new Vector2(40, 0);
 			currentText = rect.Find("ChangeFist/Text").GetComponent<Text>();
 			currentText.text = ControlsOptions.GetKeyName(_value);
 			KeyCodeListener listener = field.AddComponent<KeyCodeListener>();

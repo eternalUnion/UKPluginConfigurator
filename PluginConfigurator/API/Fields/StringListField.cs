@@ -11,10 +11,23 @@ namespace PluginConfig.API.Fields
     {
         private GameObject currentUi;
         private Dropdown currentDropdown;
-        private GameObject currentResetButton;
+        private Text currentDisplayName;
+		private GameObject currentResetButton;
         private readonly bool _saveToConfig = true;
 
-        private List<string> values;
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		private List<string> values;
 
         public static bool IsValidValue(string str)
         {
@@ -255,7 +268,8 @@ namespace PluginConfig.API.Fields
         {
             GameObject field = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleDropdown, content);
             currentUi = field;
-            field.transform.Find("Text").GetComponent<Text>().text = displayName;
+            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
 
             Dropdown dropdown = field.transform.Find("Dropdown").GetComponent<Dropdown>();
             dropdown.interactable = interactable && parentInteractable;

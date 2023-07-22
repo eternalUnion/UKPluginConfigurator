@@ -15,7 +15,12 @@ namespace PluginConfig.API.Decorators
         private Text currentText;
         private RectTransform currentRect;
 
-        private string _text = "";
+		public override string displayName
+		{
+			get => text; set => text = value;
+		}
+
+		private string _text = "";
         public string text
         {
             get => _text; set

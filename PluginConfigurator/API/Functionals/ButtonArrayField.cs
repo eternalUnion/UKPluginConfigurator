@@ -14,7 +14,14 @@ namespace PluginConfig.API.Functionals
         private Button[] currentButtonComps;
         private Text[] currentButtonTexts;
 
-        public int buttonCount = 0;
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set => _displayName = value;
+		}
+
+		public int buttonCount = 0;
 
         private bool _hidden = false;
         private bool[] _hiddens;

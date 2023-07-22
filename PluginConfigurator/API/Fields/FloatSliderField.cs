@@ -16,10 +16,23 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private Slider currentSlider;
-        private InputField currentInputField;
+        private Text currentDisplayName;
+		private InputField currentInputField;
         private readonly bool _saveToConfig = true;
 
-        private Tuple<float, float> _bounds = new Tuple<float, float>(0, 100);
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		private Tuple<float, float> _bounds = new Tuple<float, float>(0, 100);
         public Tuple<float, float> bounds { get => _bounds; set {
                 if (value.Item1 > value.Item2)
                     throw new ArgumentException("Tried to set float slider bounds where maximum value is smaller than minimum value");
@@ -401,7 +414,8 @@ namespace PluginConfig.API.Fields
         internal override GameObject CreateUI(Transform content)
         {
             GameObject sliderField = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleSlider, content);
-            sliderField.transform.Find("Text").GetComponent<Text>().text = displayName;
+            currentDisplayName = sliderField.transform.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
             sliderField.transform.Find("Button").GetComponent<Button>().onClick = new Button.ButtonClickedEvent();
             GameObject.Destroy(sliderField.transform.Find("Button/Slider (1)/Text (2)").gameObject);
             RectTransform sliderRect = sliderField.transform.Find("Button/Slider (1)").gameObject.GetComponent<RectTransform>();

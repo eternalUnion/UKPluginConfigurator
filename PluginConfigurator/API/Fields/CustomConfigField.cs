@@ -10,7 +10,23 @@ namespace PluginConfig.API.Fields
     /// </summary>
     public abstract class CustomConfigField : ConfigField
     {
-        private bool _hidden = false;
+        private string _displayName;
+        public override string displayName
+        {
+            get => _displayName;
+            set
+            { 
+                _displayName = value;
+
+                if (!initialized)
+                    return;
+                OnDisplayNameChange(value);
+			}
+        }
+
+		public virtual void OnDisplayNameChange(string newName) { }
+        
+		private bool _hidden = false;
         public override bool hidden
         {
             get => _hidden; set

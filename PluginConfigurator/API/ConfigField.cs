@@ -14,7 +14,7 @@ namespace PluginConfig.API
         /// <summary>
         /// On screen text used for the field
         /// </summary>
-        public string displayName { private set; get; }
+        public abstract string displayName { set; get; }
 
         /// <summary>
         /// ID of the field, must be unique in a configurator. Do not change this field after releasing (this field is used to find the value of the field inside the config file). If a change is required, changing the <see cref="ConfigField.displayName"/> is adviced

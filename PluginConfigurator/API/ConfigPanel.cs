@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
@@ -92,8 +93,21 @@ namespace PluginConfig.API
         internal GameObject panelButton;
         internal Button panelButtonComp;
         internal Text panelButtonText;
-        
-        public enum PanelFieldType
+        private Text currentDisplayName;
+
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		public enum PanelFieldType
         {
             Standard,
             StandardWithIcon,
@@ -155,7 +169,20 @@ namespace PluginConfig.API
             }
         }
 
-        public int fieldCount
+		public ConfigField this[string guid]
+		{
+			get
+			{
+                return fields.Where(field => field.guid == guid).FirstOrDefault();
+			}
+		}
+
+        public ConfigField[] GetAllFields()
+        {
+            return fields.ToArray();
+        }
+
+		public int fieldCount
         {
             get
             {
@@ -293,7 +320,8 @@ namespace PluginConfig.API
                     panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
                     panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
 					panelButtonText.text = displayName;
-                    Transform buttonSelect = panelButton.transform.Find("Select");
+                    currentDisplayName = panelButtonText;
+					Transform buttonSelect = panelButton.transform.Find("Select");
                     buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
                     Button buttonComp = panelButtonComp = buttonSelect.gameObject.GetComponent<Button>();
                     buttonComp.onClick = new Button.ButtonClickedEvent();
@@ -304,7 +332,7 @@ namespace PluginConfig.API
                     {
                         if (fieldType == PanelFieldType.StandardWithBigIcon)
                             panelButton.GetComponent<RectTransform>().sizeDelta = new Vector2(600, 100);
-						panelButtonText.GetComponent<RectTransform>().anchoredPosition += new Vector2(fieldType == PanelFieldType.StandardWithBigIcon ? 80 : 40, 0);
+						panelButtonText.GetComponent<RectTransform>().anchoredPosition += new Vector2(fieldType == PanelFieldType.StandardWithBigIcon ? 70 : 30, 0);
 
 						GameObject pluginImage = new GameObject();
 						RectTransform imageRect = pluginImage.AddComponent<RectTransform>();
@@ -317,6 +345,7 @@ namespace PluginConfig.API
                         {
 							imageRect.sizeDelta = new Vector2(80, 80);
 							imageRect.anchoredPosition = new Vector2(10, 0);
+                            panelButtonText.GetComponent<RectTransform>().sizeDelta = new Vector2(180, 70);
 						}
                         else
                         {
@@ -340,6 +369,7 @@ namespace PluginConfig.API
                 {
 					panelButton = PluginConfigurator.CreateBigContentButton(content, displayName, TextAnchor.MiddleCenter, 600).gameObject;
                     panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
+                    currentDisplayName = panelButtonText;
 					Button currentButton = panelButtonComp = panelButton.GetComponent<Button>();
 					currentButton.onClick.AddListener(OpenPanel);
 

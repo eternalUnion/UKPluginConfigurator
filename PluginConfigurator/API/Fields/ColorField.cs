@@ -65,13 +65,26 @@ namespace PluginConfig.API.Fields
         private GameObject currentUi;
         private GameObject currentResetButton;
         private ColorFieldComponent currentImage;
+        private Text currentDisplayName;
         private Text currentText;
         private Slider r;
         private Slider g;
         private Slider b;
         private readonly bool _saveToConfig = true;
 
-        private void SetSliders(Color c)
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		private void SetSliders(Color c)
         {
             if (currentUi == null)
                 return;
@@ -220,6 +233,7 @@ namespace PluginConfig.API.Fields
             textComp.resizeTextForBestFit = true;
             textComp.alignment = TextAnchor.MiddleLeft;
             textComp.text = displayName;
+            currentDisplayName = textComp;
 
             ColorFieldComponent comp = field.AddComponent<ColorFieldComponent>();
             currentImage = comp;

@@ -12,7 +12,12 @@ namespace PluginConfig.API.Functionals
         internal Button currentButton;
         internal Text currentText;
 
-        private bool _hidden = false;
+		public override string displayName
+		{
+			get => text; set => text = value;
+		}
+
+		private bool _hidden = false;
         public override bool hidden
         {
             get => _hidden; set

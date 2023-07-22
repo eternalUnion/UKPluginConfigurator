@@ -464,8 +464,8 @@ namespace PluginConfig.API.Fields
         internal string _rawString;
         internal List<FormattedStringBuilder.FormatRange> _format;
         internal CharacterInfo backupCharacter = new CharacterInfo();
-
-        public string rawString { get => _rawString; }
+        
+		public string rawString { get => _rawString; }
 
         public FormattedString(FormattedString other)
         {
@@ -553,7 +553,7 @@ namespace PluginConfig.API.Fields
         private CharacterInfo lastFormat = new CharacterInfo();
         private int lastPosition = 0;
 
-        public void Append(string str)
+		public void Append(string str)
         {
             if (_rawString.Length == 0)
                 lastFormat = currentFormat;
@@ -619,10 +619,23 @@ namespace PluginConfig.API.Fields
         private GameObject currentResetButton;
         private GameObject currentEditButton;
         private Button currentEditButtonComp;
+		private Text currentDisplayName;
         private Text currentInputText;
         private readonly bool _saveToConfig = true;
 
-        private const char formatIndicator = (char)2;
+		private string _displayName;
+		public override string displayName
+		{
+			get => _displayName;
+			set
+			{
+				_displayName = value;
+				if (currentDisplayName != null)
+					currentDisplayName.text = _displayName;
+			}
+		}
+
+		private const char formatIndicator = (char)2;
 
         internal string _rawString;
         internal List<CharacterInfo> _format = new List<CharacterInfo>();
@@ -912,7 +925,8 @@ namespace PluginConfig.API.Fields
         {
             GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
             currentUi = field;
-            field.transform.Find("Text").GetComponent<Text>().text = displayName;
+            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
+			currentDisplayName.text = displayName;
 
             InputField input = field.GetComponentInChildren<InputField>();
             //input.interactable = interactable && parentInteractable;
