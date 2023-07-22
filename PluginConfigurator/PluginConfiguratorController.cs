@@ -63,7 +63,8 @@ namespace PluginConfig
         internal GameObject sampleColor;
         internal GameObject sampleSlider;
         internal GameObject sampleBigButton;
-        private void LoadSamples(Transform optionsMenu)
+		internal GameObject sampleKeyCodeField;
+		private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
             sampleBoolField = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Variation Memory").gameObject;
@@ -79,9 +80,11 @@ namespace PluginConfig
             sampleSlider = optionsMenu.Find("Gameplay Options/Scroll Rect (1)/Contents/Screenshake").gameObject;
             //Canvas/OptionsMenu/Controls Options/Scroll Rect/Contents/Default
             sampleBigButton = optionsMenu.Find("Controls Options/Scroll Rect/Contents/Default").gameObject;
-        }
+			//Canvas/OptionsMenu/Controls Options/Scroll Rect/Contents/Default
+			sampleKeyCodeField = optionsMenu.Find("Controls Options/Scroll Rect/Contents/Change Arm").gameObject;
+		}
 
-        internal GameObject MakeInputField(Transform content)
+		internal GameObject MakeInputField(Transform content)
         {
             GameObject field = Instantiate(sampleBoolField, content);
 
@@ -514,16 +517,16 @@ namespace PluginConfig
             interactable1.presetLoadPriority = 1;
             BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
             interactable2.presetLoadPriority = 1;
-
-
+            
             ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
             ButtonField button = new ButtonField(div1, "A Button...", "button");
             button.onClick += () =>
             {
                 Application.OpenURL("http://www.google.com");
             };
+            KeyCodeField keyCodeField = new KeyCodeField(div1, "A key", "aKey", KeyCode.None);
 
-            FormattedStringBuilder builder = new FormattedStringBuilder();
+			FormattedStringBuilder builder = new FormattedStringBuilder();
             builder.currentFormat = new API.Fields.CharacterInfo() { bold = true, color = Color.red };
             builder += "FORMATTED TEXT";
 
