@@ -97,6 +97,7 @@ namespace PluginConfig.API
         {
             Standard,
             StandardWithIcon,
+            StandardWithBigIcon,
             BigButton,
         }
         private PanelFieldType fieldType = PanelFieldType.Standard;
@@ -104,7 +105,7 @@ namespace PluginConfig.API
         private Sprite _icon;
         private Image currentImage;
         /// <summary>
-        /// If panel's field type is <see cref="PanelFieldType.StandardWithIcon"/>, the sprite will be used as an icon. Can be set trough <see cref="SetIconWithURL(string)"/>
+        /// If panel's field type is <see cref="PanelFieldType.StandardWithBigIcon"/>, the sprite will be used as an icon. Can be set trough <see cref="SetIconWithURL(string)"/>
         /// </summary>
         public Sprite icon
         {
@@ -287,7 +288,7 @@ namespace PluginConfig.API
 
 			if (content != null)
             {
-                if (fieldType == PanelFieldType.Standard || fieldType == PanelFieldType.StandardWithIcon)
+                if (fieldType == PanelFieldType.Standard || fieldType == PanelFieldType.StandardWithBigIcon || fieldType == PanelFieldType.StandardWithIcon)
                 {
                     panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
                     panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
@@ -299,10 +300,11 @@ namespace PluginConfig.API
                     buttonComp.onClick.AddListener(OpenPanel);
 
 					buttonSelect.GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
-					if (fieldType == PanelFieldType.StandardWithIcon)
+					if (fieldType == PanelFieldType.StandardWithBigIcon || fieldType == PanelFieldType.StandardWithIcon)
                     {
-                        panelButton.GetComponent<RectTransform>().sizeDelta = new Vector2(600, 100);
-						panelButtonText.GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
+                        if (fieldType == PanelFieldType.StandardWithBigIcon)
+                            panelButton.GetComponent<RectTransform>().sizeDelta = new Vector2(600, 100);
+						panelButtonText.GetComponent<RectTransform>().anchoredPosition += new Vector2(fieldType == PanelFieldType.StandardWithBigIcon ? 80 : 40, 0);
 
 						GameObject pluginImage = new GameObject();
 						RectTransform imageRect = pluginImage.AddComponent<RectTransform>();
@@ -311,8 +313,17 @@ namespace PluginConfig.API
 						imageRect.pivot = new Vector2(0, 0.5f);
 						imageRect.anchorMin = new Vector2(0, 0.5f);
 						imageRect.anchorMax = new Vector2(0, 0.5f);
-						imageRect.sizeDelta = new Vector2(80, 80);
-						imageRect.anchoredPosition = new Vector2(20, 0);
+                        if (fieldType == PanelFieldType.StandardWithBigIcon)
+                        {
+							imageRect.sizeDelta = new Vector2(80, 80);
+							imageRect.anchoredPosition = new Vector2(10, 0);
+						}
+                        else
+                        {
+							imageRect.sizeDelta = new Vector2(40, 40);
+							imageRect.anchoredPosition = new Vector2(20, 0);
+						}
+
 						Image img = pluginImage.AddComponent<Image>();
 						currentImage = img;
 						img.sprite = icon;
