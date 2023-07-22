@@ -53,7 +53,8 @@ namespace PluginConfig.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(!_hidden && !parentHidden);
+                if (currentUi != null)
+                    currentUi.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -157,7 +158,8 @@ namespace PluginConfig.API.Fields
             BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
             try
             {
-                onValueChange?.Invoke(eventData);
+				if (onValueChange != null)
+					onValueChange.Invoke(eventData);
             }
             catch(Exception e)
             {
@@ -183,7 +185,8 @@ namespace PluginConfig.API.Fields
 
         public void TriggerValueChangeEvent()
         {
-            onValueChange?.Invoke(new BoolValueChangeEvent() { value = _value });
+			if (onValueChange != null)
+				onValueChange.Invoke(new BoolValueChangeEvent() { value = _value });
         }
 
         internal void LoadFromString(string data)
@@ -209,17 +212,20 @@ namespace PluginConfig.API.Fields
         {
             if (data == "true")
             {
-                currentComp?.SetIsOnWithoutNotify(true);
+                if (currentComp != null)
+                    currentComp.SetIsOnWithoutNotify(true);
                 OnCompValueChange(true);
             }
             else if (data == "false")
             {
-                currentComp?.SetIsOnWithoutNotify(false);
+                if (currentComp != null)
+                    currentComp.SetIsOnWithoutNotify(false);
                 OnCompValueChange(false);
             }
             else
             {
-                currentComp?.SetIsOnWithoutNotify(defaultValue);
+                if (currentComp != null)
+                    currentComp.SetIsOnWithoutNotify(defaultValue);
                 OnCompValueChange(defaultValue);
 
                 if (_saveToConfig)

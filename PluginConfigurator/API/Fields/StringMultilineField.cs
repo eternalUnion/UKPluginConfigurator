@@ -59,7 +59,8 @@ namespace PluginConfig.API.Fields
             get => _hidden; set
             {
                 _hidden = value;
-                currentUi?.SetActive(!_hidden && !parentHidden);
+				if (currentUi != null)
+					currentUi.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -224,7 +225,8 @@ namespace PluginConfig.API.Fields
             StringValueChangeEvent eventData = new StringValueChangeEvent() { value = val };
             try
             {
-                onValueChange?.Invoke(eventData);
+                if (onValueChange != null)
+                    onValueChange.Invoke(eventData);
             }
             catch (Exception e)
             {
@@ -243,7 +245,8 @@ namespace PluginConfig.API.Fields
 
         public void TriggerValueChangeEvent()
         {
-            onValueChange?.Invoke(new StringValueChangeEvent() { value = _value.Replace(separatorChar, '\n') });
+			if (onValueChange != null)
+				onValueChange.Invoke(new StringValueChangeEvent() { value = _value.Replace(separatorChar, '\n') });
         }
 
         internal void LoadFromString(string data)

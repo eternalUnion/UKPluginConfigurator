@@ -486,7 +486,8 @@ namespace PluginConfig.API
 
             try
             {
-                preConfigChange?.Invoke();
+                if (preConfigChange != null)
+                    preConfigChange.Invoke();
             }
             catch (Exception e)
             {
@@ -497,7 +498,8 @@ namespace PluginConfig.API
             {
                 try
                 {
-                    postConfigChange?.Invoke();
+                    if (postConfigChange != null)
+                        postConfigChange.Invoke();
                 }
                 catch (Exception e)
                 {
@@ -537,7 +539,8 @@ namespace PluginConfig.API
 
             try
             {
-                postConfigChange?.Invoke();
+                if (postConfigChange != null)
+                    postConfigChange.Invoke();
             }
             catch(Exception e)
             {

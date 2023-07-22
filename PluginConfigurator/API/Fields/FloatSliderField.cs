@@ -311,7 +311,8 @@ namespace PluginConfig.API.Fields
 
             public void OnPointerUp(PointerEventData eventData)
             {
-                onEditEnd?.Invoke(comp.normalizedValue);
+                if (onEditEnd != null)
+                    onEditEnd.Invoke(comp.normalizedValue);
             }
         }
 
@@ -391,7 +392,8 @@ namespace PluginConfig.API.Fields
         public event OnValueChangeEventDelegate onValueChange;
         public void TriggerValueChangeEvent()
         {
-            onValueChange?.Invoke(new FloatSliderValueChangeEvent(bounds) { newValue = value });
+            if (onValueChange != null)
+                onValueChange.Invoke(new FloatSliderValueChangeEvent(bounds) { newValue = value });
         }
 
         string lastInputText = "";

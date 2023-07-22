@@ -342,8 +342,10 @@ namespace PluginConfig.API
 
         public void OpenPanel()
         {
-			PluginConfiguratorController.Instance.activePanel?.SetActive(false);
-			panelObject?.SetActive(true);
+            if (PluginConfiguratorController.Instance.activePanel != null)
+			    PluginConfiguratorController.Instance.activePanel.SetActive(false);
+			if (panelObject != null)
+                panelObject.SetActive(true);
 			PluginConfiguratorController.Instance.activePanel = panelObject;
 		}
 
