@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 
 namespace PluginConfig.API
@@ -25,7 +26,77 @@ namespace PluginConfig.API
         /// </summary>
         public ConfigPanel rootPanel { private set; get; }
 
-        internal bool isDirty = false;
+        internal GameObject pluginPanel;
+        internal Button pluginButton;
+
+        private bool _hidden = false;
+        /// <summary>
+        /// If set to true, plugin will be hidden from the list
+        /// </summary>
+        public bool hidden
+        {
+            get => _hidden;
+            set
+            {
+                _hidden = value;
+                if (pluginPanel != null)
+                    pluginPanel.SetActive(!value);
+            }
+        }
+
+		private bool _interactable = true;
+		/// <summary>
+		/// If set to true, plugin config button will be disabled
+		/// </summary>
+		public bool interactable
+		{
+			get => _interactable;
+			set
+			{
+				_interactable = value;
+				if (pluginButton != null)
+					pluginButton.interactable = value;
+			}
+		}
+
+        private Sprite _image = null;
+		internal Image pluginImage;
+        /// <summary>
+        /// Icon of the plugin. Can be set with a URL via <see cref="SetIconWithURL(string)"/>
+        /// </summary>
+		public Sprite image
+        {
+            get => _image;
+            set
+            {
+                _image = value;
+                if (pluginImage != null)
+                    pluginImage.sprite = _image ?? PluginConfiguratorController.Instance.defaultPluginImage;
+            }
+        }
+
+        public void SetIconWithURL(string url)
+        {
+			UnityWebRequest iconDownload = UnityWebRequestTexture.GetTexture(url);
+            iconDownload.SendWebRequest().completed += (e) =>
+            {
+                try
+                {
+                    if (iconDownload.isHttpError || iconDownload.isNetworkError)
+                        return;
+
+					Texture2D icon = DownloadHandlerTexture.GetContent(iconDownload);
+                    Sprite iconSprite = Sprite.Create(icon, new Rect(0, 0, icon.width, icon.height), new Vector2(0.5f, 0.5f));
+                    image = iconSprite;
+				}
+                finally
+                {
+                    iconDownload.Dispose();
+                }
+            };
+        }
+
+		internal bool isDirty = false;
         internal Dictionary<string, string> config = new Dictionary<string, string>();
         internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
 

@@ -163,10 +163,32 @@ namespace PluginConfig
                 try
                 {
                     GameObject configButton = Instantiate(sampleMenuButton, configPanelContents);
+                    config.pluginPanel = configButton;
                     configButton.transform.Find("Text").GetComponent<Text>().text = config.displayName;
+                    configButton.transform.Find("Text").GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
                     configButton.transform.Find("Select/Text").GetComponent<Text>().text = "Configure";
                     Button b = configButton.transform.Find("Select").GetComponent<Button>();
+                    config.pluginButton = b;
                     b.onClick = new Button.ButtonClickedEvent();
+					configButton.transform.Find("Select").GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
+
+					RectTransform fieldRect = configButton.GetComponent<RectTransform>();
+                    fieldRect.sizeDelta = new Vector2(600, 100);
+                    GameObject pluginImage = new GameObject();
+					RectTransform imageRect = pluginImage.AddComponent<RectTransform>();
+                    imageRect.SetParent(fieldRect);
+                    imageRect.localScale = Vector3.one;
+                    imageRect.pivot = new Vector2(0, 0.5f);
+                    imageRect.anchorMin = new Vector2(0, 0.5f);
+                    imageRect.anchorMax = new Vector2(0, 0.5f);
+                    imageRect.sizeDelta = new Vector2(80, 80);
+                    imageRect.anchoredPosition = new Vector2(20, 0);
+                    Image img = pluginImage.AddComponent<Image>();
+                    config.pluginImage = img;
+                    img.sprite = config.image ?? defaultPluginImage;
+
+                    configButton.SetActive(!config.hidden);
+                    b.interactable = config.interactable;
 
                     config.CreateUI(b, optionsMenu);
                 }
@@ -616,6 +638,7 @@ namespace PluginConfig
         public AssetBundle bundle;
         public Sprite trashIcon;
         public Sprite penIcon;
+        public Sprite defaultPluginImage;
 
         private void Awake()
         {
@@ -623,8 +646,12 @@ namespace PluginConfig
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             logger = Logger;
 
-            configuratorPatches = new Harmony(PLUGIN_GUID);
+			string workingPath = Assembly.GetExecutingAssembly().Location;
+			string workingDir = Path.GetDirectoryName(workingPath);
+
+			configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
+            config.SetIconWithURL(Path.Combine(workingDir, "icon.png"));
 
             new ConfigHeader(config.rootPanel, "Patches");
             patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
@@ -635,16 +662,14 @@ namespace PluginConfig
             devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
             consoleLogLevel = new EnumField<LogLevel>(config.rootPanel, "Console log level", "consoleLogLevel", LogLevel.Disabled);
 
-            string workingPath = Assembly.GetExecutingAssembly().Location;
-            string workingDir = Path.GetDirectoryName(workingPath);
-
             Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
             try
             {
                 bundle = AssetBundle.LoadFromFile(Path.Combine(workingDir, "pluginconfigurator"));
                 trashIcon = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/trash-base.png");
                 penIcon = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/pen-base.png");
-            }
+                defaultPluginImage = bundle.LoadAsset<Sprite>("assets/pluginconfigurator/plugin-default-icon.png");
+			}
             catch (Exception e)
             {
                 LogError($"Could not load the asset bundle:\n{e}");
