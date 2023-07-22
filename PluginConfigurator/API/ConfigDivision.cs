@@ -30,15 +30,17 @@ namespace PluginConfig.API
 
         public ConfigDivision(ConfigPanel panel, string guid) : base(panel, guid)
         {
-            panel.Register(this);
-            currentDirectory = parentPanel.currentDirectory + '/' + guid;
+            // panel.Register(this);
+            GetPanel().divisions.Add(this);
+
+			currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
 
         internal override void Register(ConfigField field)
         {
             fields.Add(field);
-            GetPanel().Register(field);
-        }
+			GetPanel().Register(field);
+		}
 
         internal override void ActivatePanel()
         {
@@ -58,10 +60,13 @@ namespace PluginConfig.API
 
         internal override GameObject CreateUI(Transform content)
         {
-            panelObject = parentPanel.panelObject;
-            panelContent = parentPanel.panelContent;
-
             return null;
         }
+
+        internal void SetupDivision()
+        {
+			panelObject = parentPanel.panelObject;
+			panelContent = parentPanel.panelContent;
+		}
     }
 }

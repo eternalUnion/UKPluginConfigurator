@@ -3,8 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -95,6 +93,7 @@ namespace PluginConfig.API
         }
 
         internal GameObject presetMenuButton;
+        internal Button presetMenuButtonComp;
         internal Text presetButtonText;
 
         internal GameObject presetPanel;
@@ -103,6 +102,31 @@ namespace PluginConfig.API
         internal GameObject defaultPresetButtonContainer;
 
         internal RectTransform addPresetButton;
+
+        internal bool presetButtonCanBeShown = false;
+		private bool _presetButtonHidden = false;
+		public bool presetButtonHidden
+		{
+			get => _presetButtonHidden;
+			set
+			{
+				_presetButtonHidden = value;
+                if (presetMenuButton != null)
+                    presetMenuButton.SetActive(presetButtonCanBeShown && !_presetButtonHidden);
+			}
+		}
+
+		private bool _presetButtonInteractable = true;
+        public bool presetButtonInteractable
+        {
+            get => _presetButtonInteractable;
+            set
+            {
+                _presetButtonInteractable = value;
+                if (presetMenuButtonComp != null)
+                    presetMenuButtonComp.interactable = value;
+			}
+        }
 
         private bool UIActive
         {
@@ -798,7 +822,8 @@ namespace PluginConfig.API
             RectTransform presetMenuButtonRect = this.presetMenuButton.GetComponent<RectTransform>();
             presetMenuButtonRect.sizeDelta = new Vector2(-675, 40);
             presetMenuButtonRect.anchoredPosition = new Vector2(-10, -77);
-            Button presetMenuButtonComp = this.presetMenuButton.GetComponent<Button>();
+            Button presetMenuButtonComp = this.presetMenuButtonComp = this.presetMenuButton.GetComponent<Button>();
+            presetMenuButtonComp.interactable = _presetButtonInteractable;
             presetMenuButtonComp.onClick = new Button.ButtonClickedEvent();
             presetButtonText = this.presetMenuButton.transform.Find("Text").GetComponent<Text>();
             presetButtonText.alignment = TextAnchor.MiddleLeft;
@@ -980,7 +1005,7 @@ namespace PluginConfig.API
 
         private void AddFields(ConfigPanel panel, List<ConfigField> fields)
         {
-            foreach(ConfigField field in panel.GetFields())
+            foreach(ConfigField field in panel.fields)
             {
                 if (field is ConfigPanel childPanel)
                 {

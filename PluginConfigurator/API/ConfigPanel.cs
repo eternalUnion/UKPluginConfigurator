@@ -66,15 +66,17 @@ namespace PluginConfig.API
                 {
                     //panel.parentPanel.panelObject.SetActive(true);
                     panel.parentPanel.ActivatePanel();
-                }
-            });
+				}
+			});
 
-            panel.rootConfig.presetMenuButton.SetActive(true);
+			panel.rootConfig.presetButtonCanBeShown = true;
+			panel.rootConfig.presetMenuButton.SetActive(!panel.rootConfig.presetButtonHidden);
         }
 
         void OnDisable()
         {
-            panel.rootConfig.presetMenuButton.SetActive(false);
+			panel.rootConfig.presetButtonCanBeShown = false;
+			panel.rootConfig.presetMenuButton.SetActive(false);
         }
     }
 
@@ -87,8 +89,30 @@ namespace PluginConfig.API
         internal Transform panelContent;
         internal GameObject panelButton;
 
-        protected List<ConfigField> fields = new List<ConfigField>();
-        internal List<ConfigField> GetFields() => fields;
+		internal List<ConfigField> fields = new List<ConfigField>();
+		internal List<ConfigDivision> divisions = new List<ConfigDivision>();
+        public ConfigField FieldAt(int index)
+        {
+            if (index < 0 || index >= fields.Count)
+                return null;
+            return fields[index];
+        }
+
+        public ConfigField this[int index]
+        {
+            get
+            {
+                return FieldAt(index);
+            }
+        }
+
+        public int fieldCount
+        {
+            get
+            {
+                return fields.Count;
+            }
+        }
 
         public string currentDirectory { get; protected set; }
 
@@ -144,7 +168,14 @@ namespace PluginConfig.API
         {
             fields.Add(field);
             if (panelContent != null)
+            {
+                int currentIndex = panelContent.childCount;
                 field.CreateUI(panelContent);
+                List<Transform> objects = new List<Transform>();
+                for (; currentIndex < panelContent.childCount; currentIndex++)
+                    objects.Add(panelContent.GetChild(currentIndex));
+                fieldObjects.Add(objects);
+            }
         }
 
         internal virtual void ActivatePanel()
@@ -163,6 +194,7 @@ namespace PluginConfig.API
             return this;
         }
 
+        internal List<List<Transform>> fieldObjects = new List<List<Transform>>();
         internal override GameObject CreateUI(Transform content)
         {
             GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
@@ -185,10 +217,20 @@ namespace PluginConfig.API
             else
                 esc.previousPage = parentPanel.GetPanelObj();
 
-            foreach (ConfigField config in fields)
-                config.CreateUI(contents);
+            fieldObjects.Clear();
+            int currentChildIndex = contents.childCount;
+			foreach (ConfigField config in fields)
+            {
+                List<Transform> fieldUI = new List<Transform>();
+				config.CreateUI(contents);
+                for (; currentChildIndex < contents.childCount; currentChildIndex++)
+                    fieldUI.Add(contents.GetChild(currentChildIndex));
+                fieldObjects.Add(fieldUI);
+			}
+            foreach (ConfigDivision div in divisions)
+                div.SetupDivision();
 
-            if (content != null)
+			if (content != null)
             {
                 panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
                 panelButton.transform.Find("Text").GetComponent<Text>().text = displayName;
@@ -196,12 +238,7 @@ namespace PluginConfig.API
                 buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
                 Button buttonComp = buttonSelect.gameObject.GetComponent<Button>();
                 buttonComp.onClick = new Button.ButtonClickedEvent();
-                buttonComp.onClick.AddListener(() =>
-                {
-                    PluginConfiguratorController.Instance.activePanel?.SetActive(false);
-                    panelObject?.SetActive(true);
-                    PluginConfiguratorController.Instance.activePanel = panelObject;
-                });
+                buttonComp.onClick.AddListener(OpenPanel);
 
                 panelButton.SetActive(!_hidden);
                 buttonComp.interactable = _interactable;
@@ -210,7 +247,14 @@ namespace PluginConfig.API
             return panel;
         }
 
-        internal override void ReloadFromString(string data)
+        public void OpenPanel()
+        {
+			PluginConfiguratorController.Instance.activePanel?.SetActive(false);
+			panelObject?.SetActive(true);
+			PluginConfiguratorController.Instance.activePanel = panelObject;
+		}
+
+		internal override void ReloadFromString(string data)
         {
             throw new NotImplementedException();
         }

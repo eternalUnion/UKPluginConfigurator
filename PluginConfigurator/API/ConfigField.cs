@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEngine;
@@ -60,6 +61,48 @@ namespace PluginConfig.API
 
         public PluginConfigurator rootConfig { private set; get; }
         public ConfigPanel parentPanel { internal set; get; }
+
+        public int siblingIndex
+        {
+            get
+            {
+                if (parentPanel == null)
+                    return 0;
+                return parentPanel.fields.IndexOf(this);
+            }
+            set
+            {
+                if (parentPanel == null)
+                    return;
+
+				List<ConfigField> fields = parentPanel.fields;
+
+				int fieldCount = fields.Count;
+                if (value < 0)
+                    value = 0;
+                else if (value >= fieldCount)
+                    value = fieldCount - 1;
+
+                int previousIndex = fields.IndexOf(this);
+                if (previousIndex == value)
+                    return;
+
+				fields.RemoveAt(previousIndex);
+                fields.Insert(value, this);
+
+                if (parentPanel.panelObject != null)
+                {
+                    var ui = parentPanel.fieldObjects[previousIndex];
+                    parentPanel.fieldObjects.RemoveAt(previousIndex);
+                    parentPanel.fieldObjects.Insert(value, ui);
+
+                    int currentChildIndex = 0;
+                    foreach (var objects in parentPanel.fieldObjects)
+                        foreach (var child in objects)
+                            child.SetSiblingIndex(currentChildIndex++);
+				}
+            }
+        }
 
         internal ConfigField(string displayName, string guid, PluginConfigurator rootConfig)
         {

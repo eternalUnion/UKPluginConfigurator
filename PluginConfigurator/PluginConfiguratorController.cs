@@ -13,6 +13,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
@@ -156,13 +157,17 @@ namespace PluginConfig
         {
             foreach(PluginConfig.API.PluginConfigurator config in configs)
             {
-                GameObject configButton = Instantiate(sampleMenuButton, configPanelContents);
-                configButton.transform.Find("Text").GetComponent<Text>().text = config.displayName;
-                configButton.transform.Find("Select/Text").GetComponent<Text>().text = "Configure";
-                Button b = configButton.transform.Find("Select").GetComponent<Button>();
-                b.onClick = new Button.ButtonClickedEvent();
+                try
+                {
+                    GameObject configButton = Instantiate(sampleMenuButton, configPanelContents);
+                    configButton.transform.Find("Text").GetComponent<Text>().text = config.displayName;
+                    configButton.transform.Find("Select/Text").GetComponent<Text>().text = "Configure";
+                    Button b = configButton.transform.Find("Select").GetComponent<Button>();
+                    b.onClick = new Button.ButtonClickedEvent();
 
-                config.CreateUI(b, optionsMenu);
+                    config.CreateUI(b, optionsMenu);
+                }
+                catch (Exception e) { Debug.LogError($"Error while creating ui for {config.guid}: {e}"); }
             }
         }
 
@@ -612,6 +617,7 @@ namespace PluginConfig
         private void Awake()
         {
             Instance = this;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             logger = Logger;
 
             configuratorPatches = new Harmony(PLUGIN_GUID);
