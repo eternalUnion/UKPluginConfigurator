@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
+using static HarmonyLib.AccessTools;
 
 namespace PluginConfig.API
 {
@@ -88,6 +90,52 @@ namespace PluginConfig.API
         internal GameObject panelObject;
         internal Transform panelContent;
         internal GameObject panelButton;
+        internal Button panelButtonComp;
+        internal Text panelButtonText;
+        
+        public enum PanelFieldType
+        {
+            Standard,
+            StandardWithIcon,
+            BigButton,
+        }
+        private PanelFieldType fieldType = PanelFieldType.Standard;
+
+        private Sprite _icon;
+        private Image currentImage;
+        /// <summary>
+        /// If panel's field type is <see cref="PanelFieldType.StandardWithIcon"/>, the sprite will be used as an icon. Can be set trough <see cref="SetIconWithURL(string)"/>
+        /// </summary>
+        public Sprite icon
+        {
+            get => _icon;
+            set {
+                _icon = value;
+                if (currentImage != null)
+                    currentImage.sprite = icon;
+            }
+        }
+
+		public void SetIconWithURL(string url)
+		{
+			UnityWebRequest iconDownload = UnityWebRequestTexture.GetTexture(url);
+			iconDownload.SendWebRequest().completed += (e) =>
+			{
+				try
+				{
+					if (iconDownload.isHttpError || iconDownload.isNetworkError)
+						return;
+
+					Texture2D icon = DownloadHandlerTexture.GetContent(iconDownload);
+					Sprite iconSprite = Sprite.Create(icon, new Rect(0, 0, icon.width, icon.height), new Vector2(0.5f, 0.5f));
+					this.icon = iconSprite;
+				}
+				finally
+				{
+					iconDownload.Dispose();
+				}
+			};
+		}
 
 		internal List<ConfigField> fields = new List<ConfigField>();
 		internal List<ConfigDivision> divisions = new List<ConfigDivision>();
@@ -131,7 +179,7 @@ namespace PluginConfig.API
             if (panelButton == null)
                 return;
 
-            panelButton.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            panelButtonText.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -140,9 +188,9 @@ namespace PluginConfig.API
             get => _interactable; set
             {
                 _interactable = value;
-                if (panelButton != null)
+                if (panelButtonComp != null)
                 {
-                    panelButton.transform.Find("Select").GetComponent<Button>().interactable = _interactable && parentInteractable;
+					panelButtonComp.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -164,7 +212,14 @@ namespace PluginConfig.API
             currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
 
-        internal virtual void Register(ConfigField field)
+		public ConfigPanel(ConfigPanel parentPanel, string name, string guid, PanelFieldType fieldType) : base(name, guid, parentPanel)
+		{
+            this.fieldType = fieldType;
+			parentPanel.Register(this);
+			currentDirectory = parentPanel.currentDirectory + '/' + guid;
+		}
+
+		internal virtual void Register(ConfigField field)
         {
             fields.Add(field);
             if (panelContent != null)
@@ -232,16 +287,54 @@ namespace PluginConfig.API
 
 			if (content != null)
             {
-                panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
-                panelButton.transform.Find("Text").GetComponent<Text>().text = displayName;
-                Transform buttonSelect = panelButton.transform.Find("Select");
-                buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
-                Button buttonComp = buttonSelect.gameObject.GetComponent<Button>();
-                buttonComp.onClick = new Button.ButtonClickedEvent();
-                buttonComp.onClick.AddListener(OpenPanel);
+                if (fieldType == PanelFieldType.Standard || fieldType == PanelFieldType.StandardWithIcon)
+                {
+                    panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
+                    panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
+					panelButtonText.text = displayName;
+                    Transform buttonSelect = panelButton.transform.Find("Select");
+                    buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
+                    Button buttonComp = panelButtonComp = buttonSelect.gameObject.GetComponent<Button>();
+                    buttonComp.onClick = new Button.ButtonClickedEvent();
+                    buttonComp.onClick.AddListener(OpenPanel);
 
-                panelButton.SetActive(!_hidden);
-                buttonComp.interactable = _interactable;
+					buttonSelect.GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
+					if (fieldType == PanelFieldType.StandardWithIcon)
+                    {
+                        panelButton.GetComponent<RectTransform>().sizeDelta = new Vector2(600, 100);
+						panelButtonText.GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
+
+						GameObject pluginImage = new GameObject();
+						RectTransform imageRect = pluginImage.AddComponent<RectTransform>();
+						imageRect.SetParent(panelButton.transform);
+						imageRect.localScale = Vector3.one;
+						imageRect.pivot = new Vector2(0, 0.5f);
+						imageRect.anchorMin = new Vector2(0, 0.5f);
+						imageRect.anchorMax = new Vector2(0, 0.5f);
+						imageRect.sizeDelta = new Vector2(80, 80);
+						imageRect.anchoredPosition = new Vector2(20, 0);
+						Image img = pluginImage.AddComponent<Image>();
+						currentImage = img;
+						img.sprite = icon;
+					}
+                    else
+                    {
+                        panelButton.transform.Find("Text").GetComponent<RectTransform>().sizeDelta *= new Vector2(2, 1);
+					}
+
+                    panelButton.SetActive(!_hidden && !parentHidden);
+                    buttonComp.interactable = _interactable && parentInteractable;
+                }
+				else
+                {
+					panelButton = PluginConfigurator.CreateBigContentButton(content, displayName, TextAnchor.MiddleCenter, 600).gameObject;
+                    panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
+					Button currentButton = panelButtonComp = panelButton.GetComponent<Button>();
+					currentButton.onClick.AddListener(OpenPanel);
+
+					panelButton.SetActive(!hidden && !parentHidden);
+					currentButton.interactable = interactable && parentInteractable;
+				}
             }
 
             return panel;

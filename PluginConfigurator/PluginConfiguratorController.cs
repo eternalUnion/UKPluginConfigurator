@@ -548,6 +548,9 @@ namespace PluginConfig
             };
             KeyCodeField keyCodeField = new KeyCodeField(div1, "A key", "aKey", KeyCode.None);
 
+            ConfigPanel bigButtonPanel = new ConfigPanel(div1, "Big Button Panel", "bigButtonPanel", ConfigPanel.PanelFieldType.BigButton);
+			ConfigPanel iconPanel = new ConfigPanel(div1, "Icon panel", "iconPanel", ConfigPanel.PanelFieldType.StandardWithIcon);
+
 			FormattedStringBuilder builder = new FormattedStringBuilder();
             builder.currentFormat = new API.Fields.CharacterInfo() { bold = true, color = Color.red };
             builder += "FORMATTED TEXT";
