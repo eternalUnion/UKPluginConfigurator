@@ -153,7 +153,6 @@ namespace PluginConfig.API
 		}
 
 		internal List<ConfigField> fields = new List<ConfigField>();
-		internal List<ConfigDivision> divisions = new List<ConfigDivision>();
         public ConfigField FieldAt(int index)
         {
             if (index < 0 || index >= fields.Count)
@@ -169,6 +168,11 @@ namespace PluginConfig.API
             }
         }
 
+        /// <summary>
+        /// Returns a field under this panel by guid. Null if not found. Does not include fields under divisions
+        /// </summary>
+        /// <param name="guid">GUID of the field</param>
+        /// <returns>Reference to field if found, else null</returns>
 		public ConfigField this[string guid]
 		{
 			get
@@ -177,6 +181,9 @@ namespace PluginConfig.API
 			}
 		}
 
+        /// <summary>
+        /// Returns all the fields under this panel, not including fields under divisions
+        /// </summary>
         public ConfigField[] GetAllFields()
         {
             return fields.ToArray();
@@ -310,8 +317,6 @@ namespace PluginConfig.API
                     fieldUI.Add(contents.GetChild(currentChildIndex));
                 fieldObjects.Add(fieldUI);
 			}
-            foreach (ConfigDivision div in divisions)
-                div.SetupDivision();
 
 			if (content != null)
             {

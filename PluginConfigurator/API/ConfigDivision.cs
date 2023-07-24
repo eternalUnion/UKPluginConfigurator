@@ -34,7 +34,8 @@ namespace PluginConfig.API
         public ConfigDivision(ConfigPanel panel, string guid) : base(panel, guid)
         {
             // panel.Register(this);
-            GetPanel().divisions.Add(this);
+            // GetPanel().divisions.Add(this);
+            panel.Register(this);
 
 			currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
@@ -42,7 +43,16 @@ namespace PluginConfig.API
         internal override void Register(ConfigField field)
         {
             fields.Add(field);
-			GetPanel().Register(field);
+
+			if (panelContent != null)
+			{
+				int currentIndex = panelContent.childCount;
+				field.CreateUI(panelContent);
+				List<Transform> objects = new List<Transform>();
+				for (; currentIndex < panelContent.childCount; currentIndex++)
+					objects.Add(panelContent.GetChild(currentIndex));
+				fieldObjects.Add(objects);
+			}
 		}
 
         internal override void ActivatePanel()
@@ -63,13 +73,39 @@ namespace PluginConfig.API
 
         internal override GameObject CreateUI(Transform content)
         {
-            return null;
-        }
+            RectTransform ui = new GameObject().AddComponent<RectTransform>();
+            panelContent = ui;
+            panelObject = ui.gameObject;
+			ui.SetParent(content);
+            ui.pivot = new Vector2(0.5f, 1);
+            ui.anchorMin = new Vector2(0, 0);
+            ui.anchorMax = new Vector2(1, 0);
+            ui.sizeDelta = new Vector2(0, 500);
+            ui.anchoredPosition = new Vector2(0, 0);
+            ui.localScale = Vector3.one;
 
-        internal void SetupDivision()
-        {
-			panelObject = parentPanel.panelObject;
-			panelContent = parentPanel.panelContent;
+            ContentSizeFitter fitter = ui.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.MinSize;
+            VerticalLayoutGroup layout = ui.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = false;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.spacing = 16;
+
+			fieldObjects.Clear();
+			int currentChildIndex = ui.childCount;
+			foreach (ConfigField config in fields)
+			{
+				List<Transform> fieldUI = new List<Transform>();
+				config.CreateUI(ui);
+				for (; currentChildIndex < ui.childCount; currentChildIndex++)
+					fieldUI.Add(ui.GetChild(currentChildIndex));
+				fieldObjects.Add(fieldUI);
+			}
+
+            return ui.gameObject;
 		}
     }
 }

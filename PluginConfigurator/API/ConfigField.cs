@@ -62,6 +62,9 @@ namespace PluginConfig.API
         public PluginConfigurator rootConfig { private set; get; }
         public ConfigPanel parentPanel { internal set; get; }
 
+        /// <summary>
+        /// Position of the field in the panel
+        /// </summary>
         public int siblingIndex
         {
             get
