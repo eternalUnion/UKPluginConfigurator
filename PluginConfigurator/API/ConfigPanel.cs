@@ -131,8 +131,15 @@ namespace PluginConfig.API
             }
         }
 
+        /// <summary>
+        /// Sets the icon of the panel if panel type is <see cref="PanelFieldType.StandardWithIcon"/> or <see cref="PanelFieldType.StandardWithBigIcon"/>
+        /// </summary>
+        /// <param name="url">Location of the icon</param>
 		public void SetIconWithURL(string url)
 		{
+            if (fieldType != PanelFieldType.StandardWithIcon && fieldType != PanelFieldType.StandardWithBigIcon)
+                return;
+
 			UnityWebRequest iconDownload = UnityWebRequestTexture.GetTexture(url);
 			iconDownload.SendWebRequest().completed += (e) =>
 			{
@@ -153,6 +160,7 @@ namespace PluginConfig.API
 		}
 
 		internal List<ConfigField> fields = new List<ConfigField>();
+
         public ConfigField FieldAt(int index)
         {
             if (index < 0 || index >= fields.Count)
@@ -274,12 +282,12 @@ namespace PluginConfig.API
                 panelObject.SetActive(true);
         }
 
-        internal virtual GameObject GetPanelObj()
+        internal virtual GameObject GetConcretePanelObj()
         {
             return panelObject;
         }
 
-        internal virtual ConfigPanel GetPanel()
+        internal virtual ConfigPanel GetConcretePanel()
         {
             return this;
         }
@@ -305,7 +313,7 @@ namespace PluginConfig.API
             if (parentPanel == null)
                 esc.previousPage = PluginConfiguratorController.Instance.mainPanel;
             else
-                esc.previousPage = parentPanel.GetPanelObj();
+                esc.previousPage = parentPanel.GetConcretePanelObj();
 
             fieldObjects.Clear();
             int currentChildIndex = contents.childCount;
@@ -330,7 +338,7 @@ namespace PluginConfig.API
                     buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
                     Button buttonComp = panelButtonComp = buttonSelect.gameObject.GetComponent<Button>();
                     buttonComp.onClick = new Button.ButtonClickedEvent();
-                    buttonComp.onClick.AddListener(OpenPanel);
+                    buttonComp.onClick.AddListener(() => OpenPanelInternally(false));
 
 					buttonSelect.GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
 					if (fieldType == PanelFieldType.StandardWithBigIcon || fieldType == PanelFieldType.StandardWithIcon)
@@ -376,7 +384,7 @@ namespace PluginConfig.API
                     panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
                     currentDisplayName = panelButtonText;
 					Button currentButton = panelButtonComp = panelButton.GetComponent<Button>();
-					currentButton.onClick.AddListener(OpenPanel);
+					currentButton.onClick.AddListener(() => OpenPanelInternally(false));
 
 					panelButton.SetActive(!hidden && !parentHidden);
 					currentButton.interactable = interactable && parentInteractable;
@@ -386,13 +394,37 @@ namespace PluginConfig.API
             return panel;
         }
 
-        public void OpenPanel()
+        /// <summary>
+        /// Called when the panel is opened by the user or via <see cref="OpenPanel"/>
+        /// </summary>
+        /// <param name="openedExternally">True if the panel is opened trough <see cref="OpenPanel"/>, false if panel is opened by the user</param>
+        public delegate void OpenPanelEventDelegate(bool openedExternally);
+		/// <summary>
+		/// Invoked when the panel is opened by the user or via <see cref="OpenPanel"/>
+		/// </summary>
+		public event OpenPanelEventDelegate onPannelOpenEvent;
+
+        private void OpenPanelInternally(bool openedExternally)
         {
+            if (openedExternally && PluginConfiguratorController.Instance.activePanel == null)
+                return;
+
             if (PluginConfiguratorController.Instance.activePanel != null)
 			    PluginConfiguratorController.Instance.activePanel.SetActive(false);
 			if (panelObject != null)
                 panelObject.SetActive(true);
 			PluginConfiguratorController.Instance.activePanel = panelObject;
+
+            if (onPannelOpenEvent != null)
+                onPannelOpenEvent.Invoke(openedExternally);
+		}
+
+        /// <summary>
+        /// Open the panel if in the plugin page
+        /// </summary>
+        public void OpenPanel()
+        {
+            OpenPanelInternally(true);
 		}
 
 		internal override void ReloadFromString(string data)

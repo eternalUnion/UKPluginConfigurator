@@ -61,14 +61,14 @@ namespace PluginConfig.API
                 parentPanel.ActivatePanel();
         }
 
-        internal override GameObject GetPanelObj()
+        internal override GameObject GetConcretePanelObj()
         {
-            return parentPanel.GetPanelObj();
+            return parentPanel.GetConcretePanelObj();
         }
 
-        internal override ConfigPanel GetPanel()
+        internal override ConfigPanel GetConcretePanel()
         {
-            return parentPanel.GetPanel();
+            return parentPanel.GetConcretePanel();
         }
 
         internal override GameObject CreateUI(Transform content)
