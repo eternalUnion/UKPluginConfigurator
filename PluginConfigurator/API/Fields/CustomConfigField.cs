@@ -79,8 +79,8 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
 
             initialized = true;
-            if (parentPanel.panelContent != null)
-                CreateUI(parentPanel.panelContent);
+            if (currentRect != null)
+                OnCreateUI(currentRect);
         }
 
         public CustomConfigField(ConfigPanel parentPanel, float width, float height) : this(parentPanel, width, height, "") { }
@@ -89,20 +89,21 @@ namespace PluginConfig.API.Fields
 
         public CustomConfigField(ConfigPanel parentPanel) : this(parentPanel, "") { }
 
-        internal override GameObject CreateUI(Transform content)
+        private RectTransform currentRect;
+		internal override GameObject CreateUI(Transform content)
         {
-            if (!initialized)
-                return null;
-
             GameObject container = new GameObject();
-            RectTransform rect = container.AddComponent<RectTransform>();
+            RectTransform rect = currentRect = container.AddComponent<RectTransform>();
 
             rect.SetParent(content);
             rect.localScale = Vector3.one;
             rect.pivot = new Vector2(0.5f, 1f);
             rect.sizeDelta = new Vector2(fieldWidth, fieldHeight);
 
-            OnCreateUI(rect);
+			if (!initialized)
+				return container;
+
+			OnCreateUI(rect);
 
             return container;
         }
