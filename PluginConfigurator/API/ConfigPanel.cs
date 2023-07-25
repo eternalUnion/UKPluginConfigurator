@@ -331,8 +331,9 @@ namespace PluginConfig.API
             Transform contents = panelContent = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(panel.transform).transform;
             foreach (Transform t in contents)
                 GameObject.Destroy(t.gameObject);
+			panel.GetComponentInChildren<ScrollRect>().normalizedPosition = new Vector2(0, 1);
 
-            MenuEsc esc = panel.AddComponent<MenuEsc>();
+			MenuEsc esc = panel.AddComponent<MenuEsc>();
             if (parentPanel == null)
                 esc.previousPage = PluginConfiguratorController.Instance.mainPanel;
             else

@@ -318,8 +318,9 @@ namespace PluginConfig
             configPanelContents = contents;
             foreach (Transform t in contents)
                 Destroy(t.gameObject);
+			mainPanel.transform.GetComponentInChildren<ScrollRect>().normalizedPosition = new Vector2(0, 1);
 
-            mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
+			mainPanel.GetComponentInChildren<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
             mainPanel.GetComponentInChildren<Text>().text = "--PLUGIN CONFIG--";
 
             CreateConfigUI(optionsMenu);
