@@ -323,6 +323,7 @@ namespace PluginConfig
             mainPanel.GetComponentInChildren<Text>().text = "--PLUGIN CONFIG--";
 
             CreateConfigUI(optionsMenu);
+            NotificationPanel.InitUI();
         }
 
         public Harmony configuratorPatches;

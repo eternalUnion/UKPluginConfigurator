@@ -45,8 +45,11 @@ namespace PluginConfig.API
             }
         }
 
+        public static ConfigPanelComponent lastActivePanel;
+
         void OnEnable()
         {
+            lastActivePanel = this;
 
             //Invoke("SetContent", 0.001f);
             //SetContent();
@@ -94,6 +97,7 @@ namespace PluginConfig.API
         internal Button panelButtonComp;
         internal Text panelButtonText;
         private Text currentDisplayName;
+        internal Text currentHeaderText;
 
 		private string _displayName;
 		public override string displayName
@@ -106,6 +110,21 @@ namespace PluginConfig.API
 					currentDisplayName.text = _displayName;
 			}
 		}
+
+        private string _headerText;
+        /// <summary>
+        /// Text on top of the pannel, set to --{display name}-- by default
+        /// </summary>
+        public string headerText
+        {
+            get => _headerText;
+            set
+            {
+                _headerText = value;
+                if (currentHeaderText != null)
+                    currentHeaderText.text = _headerText;
+            }
+        }
 
 		public enum PanelFieldType
         {
@@ -251,12 +270,16 @@ namespace PluginConfig.API
 
         public ConfigPanel(ConfigPanel parentPanel, string name, string guid) : base(name, guid, parentPanel)
         {
-            parentPanel.Register(this);
+            headerText = $"--{displayName}--";
+
+			parentPanel.Register(this);
             currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
 
 		public ConfigPanel(ConfigPanel parentPanel, string name, string guid, PanelFieldType fieldType) : base(name, guid, parentPanel)
 		{
+            headerText = $"--{displayName}--";
+			
             this.fieldType = fieldType;
 			parentPanel.Register(this);
 			currentDirectory = parentPanel.currentDirectory + '/' + guid;
@@ -297,9 +320,9 @@ namespace PluginConfig.API
         {
             GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
             panelObject = panel;
-            Text panelText = panel.transform.Find("Text").GetComponent<Text>();
+            Text panelText = currentHeaderText = panel.transform.Find("Text").GetComponent<Text>();
             panelText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            panelText.text = $"--{displayName}--";
+            panelText.text = _headerText;
             panelText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -115);
             panel.SetActive(false);
             ConfigPanelComponent panelComp = panel.AddComponent<ConfigPanelComponent>();
