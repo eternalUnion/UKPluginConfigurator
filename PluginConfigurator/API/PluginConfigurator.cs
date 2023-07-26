@@ -1071,7 +1071,7 @@ namespace PluginConfig.API
             configButton.onClick.AddListener(() =>
             {
                 PluginConfiguratorController.Instance.activePanel = panel;
-                panel.SetActive(true);
+                rootPanel.OpenPanelInternally(false);
             });
 
             CreatePresetUI(optionsMenu);

@@ -71,7 +71,7 @@ namespace PluginConfig
 				root.gameObject.AddComponent<NotificationPanelComp>();
 
 				Image bg = root.gameObject.AddComponent<Image>();
-				bg.color = new Color(0, 0, 0, 0.6f);
+				bg.color = new Color(0, 0, 0, 0.8964f);
 
 				MenuEsc esc = root.gameObject.AddComponent<MenuEsc>();
 				esc.DontClose = true;
@@ -88,14 +88,13 @@ namespace PluginConfig
 			}
 		}
 
-		public static void ClearUI()
+		private static void ClearUI()
 		{
 			if (root == null)
 				return;
 
 			foreach (Transform t in root.transform)
 			{
-				t.SetParent(null);
 				GameObject.Destroy(t.gameObject);
 			}
 		}
@@ -146,6 +145,11 @@ namespace PluginConfig
 			{
 				root.gameObject.SetActive(false);
 			}
+		}
+	
+		public static int CurrentNotificationCount()
+		{
+			return notificationQueue.Count + (currentNotification == null ? 0 : 1);
 		}
 	}
 }

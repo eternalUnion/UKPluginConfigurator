@@ -428,7 +428,7 @@ namespace PluginConfig.API
 		/// </summary>
 		public event OpenPanelEventDelegate onPannelOpenEvent;
 
-        private void OpenPanelInternally(bool openedExternally)
+        internal void OpenPanelInternally(bool openedExternally)
         {
             if (openedExternally && PluginConfiguratorController.Instance.activePanel == null)
                 return;
