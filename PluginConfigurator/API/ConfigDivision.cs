@@ -7,6 +7,31 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace PluginConfig.API
 {
+    public class VerticalLayoutGroupWithCallback : VerticalLayoutGroup
+    {
+        public RectTransform childPanel;
+        public static RectTransform currentConcretePanel;
+
+		public override void SetLayoutVertical()
+		{
+			base.SetLayoutVertical();
+
+			if (childPanel.gameObject.activeInHierarchy && currentConcretePanel == null)
+            {
+                try
+                {
+                    currentConcretePanel = childPanel;
+					LayoutRebuilder.ForceRebuildLayoutImmediate(childPanel);
+                }
+                finally
+                {
+                    currentConcretePanel = null;
+
+				}
+            }
+		}
+	}
+
     public class ConfigDivision : ConfigPanel
     {
 		public override string displayName { get; set; }
@@ -14,6 +39,9 @@ namespace PluginConfig.API
 		public override bool hidden { get => base.hidden; set
             {
                 base.hidden = value;
+                if (panelObject != null)
+                    panelObject.SetActive(!hidden && !parentHidden);
+
                 foreach (ConfigField field in fields)
                 {
                     field.parentHidden = value || (hidden || parentHidden);
@@ -52,7 +80,7 @@ namespace PluginConfig.API
 				for (; currentIndex < panelContent.childCount; currentIndex++)
 					objects.Add(panelContent.GetChild(currentIndex));
 				fieldObjects.Add(objects);
-			}
+            }
 		}
 
         internal override void ActivatePanel()
@@ -87,7 +115,8 @@ namespace PluginConfig.API
             ContentSizeFitter fitter = ui.gameObject.AddComponent<ContentSizeFitter>();
             fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.MinSize;
-            VerticalLayoutGroup layout = ui.gameObject.AddComponent<VerticalLayoutGroup>();
+			VerticalLayoutGroupWithCallback layout = ui.gameObject.AddComponent<VerticalLayoutGroupWithCallback>();
+            layout.childPanel = GetConcretePanelObj().GetComponentInChildren<VerticalLayoutGroup>().GetComponent<RectTransform>();
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
             layout.childControlWidth = false;
