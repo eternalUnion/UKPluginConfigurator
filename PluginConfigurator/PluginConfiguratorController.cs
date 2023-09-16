@@ -158,7 +158,7 @@ namespace PluginConfig
 
         private void CreateConfigUI(Transform optionsMenu)
         {
-            foreach(PluginConfig.API.PluginConfigurator config in configs)
+            foreach(PluginConfigurator config in configs)
             {
                 try
                 {
