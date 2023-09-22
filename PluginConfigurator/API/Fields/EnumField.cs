@@ -1,6 +1,8 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static PluginConfig.API.Fields.ColorField;
@@ -14,10 +16,10 @@ namespace PluginConfig.API.Fields
     /// <typeparam name="T">Type of the enum</typeparam>
     public class EnumField<T> : ConfigField where T : struct
     {
-        private GameObject currentUi;
-        private Dropdown currentDropdown;
-        private Text currentDisplayName;
-		private GameObject currentResetButton;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/DropdownField.prefab";
+
+        internal ConfigDropdownField currentUi;
+
         private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -27,8 +29,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+					currentUi.name.text = _displayName;
 			}
 		}
 
@@ -39,7 +41,7 @@ namespace PluginConfig.API.Fields
             enumNames[enumNameToChange] = newName;
             if(currentUi != null)
             {
-                currentDropdown.options[Array.IndexOf(values, enumNameToChange)].text = newName;
+                currentUi.dropdown.options[Array.IndexOf(values, enumNameToChange)].text = newName;
             }
         }
 
@@ -61,7 +63,7 @@ namespace PluginConfig.API.Fields
                     rootConfig.config[guid] = _value.ToString();
 
                 if (currentUi != null)
-                    currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
+                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
             }
         }
 
@@ -88,7 +90,7 @@ namespace PluginConfig.API.Fields
                 _hidden = value;
 
                 if (currentUi != null)
-                    currentUi.SetActive(!_hidden && !parentHidden);
+                    currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -97,7 +99,7 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            currentUi.name.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -108,13 +110,13 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentDropdown.interactable = _interactable && parentInteractable;
+                    currentUi.dropdown.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
         }
 
-        public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
+        public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
             _saveToConfig = saveToConfig;
@@ -145,28 +147,26 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
+        public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig, true) { }
+
         public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = GameObject.Instantiate(PluginConfiguratorController.sampleDropdown, content);
-            currentUi = field;
-            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
-            currentDisplayName.text = displayName;
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigDropdownField>();
 
-			Dropdown dropdown = field.transform.Find("Dropdown").GetComponent<Dropdown>();
-            dropdown.interactable = interactable && parentInteractable;
-            dropdown.onValueChanged = new Dropdown.DropdownEvent();
-            dropdown.options.Clear();
-            dropdown.onValueChanged.AddListener(OnCompValueChange);
-            ColorBlock colors = dropdown.colors;
-            colors.disabledColor = new Color(dropdown.colors.normalColor.r / 2, dropdown.colors.normalColor.g / 2, dropdown.colors.normalColor.b / 2);
-            dropdown.colors = colors;
+            currentUi.name.text = displayName;
+
+            currentUi.dropdown.interactable = interactable && parentInteractable;
+            currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
+            currentUi.dropdown.options.Clear();
+            currentUi.dropdown.onValueChanged.AddListener(OnCompValueChange);
 
             T[] enumVals = Enum.GetValues(typeof(T)) as T[];
             foreach (T val in enumVals)
             {
-                dropdown.options.Add(new Dropdown.OptionData(enumNames[val]));
+                currentUi.dropdown.options.Add(new Dropdown.OptionData(enumNames[val]));
             }
 
             int index = -1;
@@ -177,32 +177,15 @@ namespace PluginConfig.API.Fields
             }
 
             if (index != -1)
-                dropdown.SetValueWithoutNotify(index);
+                currentUi.dropdown.SetValueWithoutNotify(index);
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
-
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
-
-            currentDropdown = currentUi.transform.Find("Dropdown").GetComponent<Dropdown>();
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
+            
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);
@@ -213,7 +196,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
+            currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
             OnCompValueChange(Array.IndexOf(values, defaultValue));
         }
 
@@ -223,7 +206,7 @@ namespace PluginConfig.API.Fields
             if(val >= values.Length)
             {
                 PluginConfiguratorController.LogWarning("Enum index requested does not exist");
-                currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
+                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 
@@ -244,12 +227,12 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
+                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 
             value = eventData.value;
-            currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
+            currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
         }
 
         public void TriggerValueChangeEvent()

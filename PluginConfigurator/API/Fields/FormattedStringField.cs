@@ -1,9 +1,11 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -135,7 +137,7 @@ namespace PluginConfig.API.Fields
             this.italic = italic;
         }
 
-        public static bool operator==(CharacterInfo l, CharacterInfo r)
+        public static bool operator ==(CharacterInfo l, CharacterInfo r)
         {
             return l.color == r.color && l.bold == r.bold && l.italic == r.italic;
         }
@@ -615,12 +617,10 @@ namespace PluginConfig.API.Fields
     /// </summary>
     public class FormattedStringField : ConfigField
     {
-        private GameObject currentUi;
-        private GameObject currentResetButton;
-        private GameObject currentEditButton;
-        private Button currentEditButtonComp;
-		private Text currentDisplayName;
-        private Text currentInputText;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/FormattedInputField.prefab";
+
+        internal ConfigFormattedInputField currentUi;
+
         private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -630,8 +630,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+                    currentUi.name.text = _displayName;
 			}
 		}
 
@@ -815,7 +815,7 @@ namespace PluginConfig.API.Fields
                 SetFormattedString();
                 if (currentUi == null)
                     return;
-                currentInputText.text = formattedString;
+                currentUi.input.text = formattedString;
             }
         }
 
@@ -838,7 +838,7 @@ namespace PluginConfig.API.Fields
                 SetFormattedString();
 
                 if (currentUi != null)
-                    currentInputText.text = formattedString;
+                    currentUi.input.text = formattedString;
             }
         }
 
@@ -860,7 +860,7 @@ namespace PluginConfig.API.Fields
                 _hidden = value;
 
                 if (currentUi != null)
-                    currentUi.SetActive(!_hidden && !parentHidden);
+                    currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -872,13 +872,13 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentEditButtonComp.interactable = _interactable && parentInteractable;
+                    currentUi.edit.interactable = _interactable && parentInteractable;
                 }
             }
         }
 
         public bool allowEmptyValues;
-        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues, bool saveToConfig) : base(displayName, guid, parentPanel)
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             if (defaultValue == null)
                 defaultValue = new FormattedString("", new List<FormattedStringBuilder.FormatRange>());
@@ -917,87 +917,44 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
-        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues) : this(parentPanel, displayName, guid, defaultValue, allowEmptyValues, true) { }
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, allowEmptyValues, saveToConfig, true) { }
 
-        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue) : this(parentPanel, displayName, guid, defaultValue, false, true) { }
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue, bool allowEmptyValues) : this(parentPanel, displayName, guid, defaultValue, allowEmptyValues, true, true) { }
+
+        public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue) : this(parentPanel, displayName, guid, defaultValue, false, true, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = PluginConfiguratorController.MakeInputField(content);
-            currentUi = field;
-            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigFormattedInputField>();
+
+            currentUi.name.text = displayName;
 
             InputField input = field.GetComponentInChildren<InputField>();
-            //input.interactable = interactable && parentInteractable;
             input.characterValidation = InputField.CharacterValidation.None;
-            input.textComponent.supportRichText = true;
-            //input.onEndEdit.AddListener(OnCompValueChange);
             input.readOnly = true;
-            input.GetComponent<RectTransform>().sizeDelta = new Vector2(220, 30);
-            currentInputText = input.textComponent;
-            input.textComponent = null;
-            SetFormattedString();
-            currentInputText.text = formattedString;
             input.interactable = false;
-            input.gameObject.AddComponent<Mask>();
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.transform.localScale = Vector3.one;
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
+            SetFormattedString();
+            currentUi.text.text = formattedString;
 
-            currentEditButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            currentEditButton.transform.localScale = Vector3.one;
-            GameObject.Destroy(currentEditButton.GetComponent<HudOpenEffect>());
+            currentUi.reset.onClick = new Button.ButtonClickedEvent();
+            currentUi.reset.onClick.AddListener(OnReset);
+            currentUi.reset.gameObject.SetActive(false);
 
-            GameObject.Destroy(currentEditButton.transform.Find("Text").gameObject);
-            GameObject img = new GameObject();
-            RectTransform imgRect = img.AddComponent<RectTransform>();
-            imgRect.transform.SetParent(currentEditButton.transform);
-            imgRect.localScale = Vector3.one;
-            imgRect.anchorMin = Vector2.zero;
-            imgRect.anchorMax = Vector2.one;
-            imgRect.anchoredPosition = Vector2.zero;
-            imgRect.sizeDelta = new Vector2(-10, -10);
-            Image imgComp = img.AddComponent<Image>();
-            imgComp.sprite = PluginConfiguratorController.penIcon;
-            
-            RectTransform editRect = currentEditButton.GetComponent<RectTransform>();
-            editRect.anchorMax = new Vector2(1, 0.5f);
-            editRect.anchorMin = new Vector2(1, 0.5f);
-            editRect.sizeDelta = new Vector2(40, 40);
-            editRect.anchoredPosition = new Vector2(-140, 0);
-            Button editComp = currentEditButtonComp = currentEditButton.GetComponent<Button>();
-            editComp.interactable = interactable && parentInteractable;
-            editComp.onClick = new Button.ButtonClickedEvent();
-            editComp.onClick.AddListener(() =>
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.reset.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.reset.gameObject.SetActive(false));
+
+            currentUi.edit.interactable = interactable && parentInteractable;
+            currentUi.edit.onClick = new Button.ButtonClickedEvent();
+            currentUi.edit.onClick.AddListener(() =>
             {
                 // PUT OPEN PANEL HERE
                 FormattedStringPanel.panelComp.gameObject.SetActive(true);
                 FormattedStringPanel.panelComp.Open(parentPanel.currentPanel.gameObject, this);
             });
-            currentEditButton.SetActive(true);
-
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
-
+            
             field.SetActive(!_hidden && !parentHidden);
             return field;
         }
@@ -1018,13 +975,13 @@ namespace PluginConfig.API.Fields
         {
             if (rawString == _rawString && _format.SequenceEqual(format))
             {
-                currentInputText.text = formattedString;
+                currentUi.text.text = formattedString;
                 return;
             }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(rawString))
             {
-                currentInputText.text = formattedString;
+                currentUi.text.text = formattedString;
                 return;
             }
 
@@ -1041,7 +998,7 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentInputText.text = formattedString;
+                currentUi.text.text = formattedString;
                 return;
             }
 
@@ -1056,7 +1013,7 @@ namespace PluginConfig.API.Fields
             }
 
             SetFormattedString();
-            currentInputText.text = formattedString;
+            currentUi.text.text = formattedString;
         }
 
         public void TriggerValueChangeEvent()

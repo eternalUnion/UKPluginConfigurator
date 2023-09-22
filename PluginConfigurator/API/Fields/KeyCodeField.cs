@@ -4,6 +4,8 @@ using System.Text;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine;
+using PluginConfiguratorComponents;
+using UnityEngine.AddressableAssets;
 
 namespace PluginConfig.API.Fields
 {
@@ -19,11 +21,11 @@ namespace PluginConfig.API.Fields
 		{
 			if (listeningInstance != null)
 			{
-				listeningInstance.field.currentButton.GetComponent<Image>().color = normalColor;
+				listeningInstance.field.currentUi.keycode.GetComponent<Image>().color = normalColor;
 			}
 
 			listeningInstance = this;
-			field.currentButton.GetComponent<Image>().color = enabledColor;
+			field.currentUi.keycode.GetComponent<Image>().color = enabledColor;
 			OptionsManager.Instance.dontUnpause = true;
 		}
 
@@ -32,7 +34,7 @@ namespace PluginConfig.API.Fields
 			if (listeningInstance == this)
 			{
 				OptionsManager.Instance.dontUnpause = false;
-				field.currentButton.GetComponent<Image>().color = normalColor;
+				field.currentUi.keycode.GetComponent<Image>().color = normalColor;
 				listeningInstance = null;
 			}
 		}
@@ -47,7 +49,7 @@ namespace PluginConfig.API.Fields
 			bool changed = false;
 			if (current.keyCode == KeyCode.Escape)
 			{
-				field.currentButton.GetComponent<Image>().color = normalColor;
+				field.currentUi.keycode.GetComponent<Image>().color = normalColor;
 				OptionsManager.Instance.dontUnpause = false;
 				return;
 			}
@@ -106,7 +108,7 @@ namespace PluginConfig.API.Fields
 			if (!changed)
 				return;
 
-			field.currentButton.GetComponent<Image>().color = normalColor;
+			field.currentUi.keycode.GetComponent<Image>().color = normalColor;
 			listeningInstance = null;
 			if (changed)
 				field.OnCompValueChange(keyCode);
@@ -116,11 +118,10 @@ namespace PluginConfig.API.Fields
 
 	public class KeyCodeField : ConfigField
 	{
-		private GameObject currentUi;
-		private GameObject currentResetButton;
-		private Text currentText;
-		private Text currentDisplayName;
-		internal Button currentButton;
+		private const string ASSET_PATH = "PluginConfigurator/Fields/KeycodeField.prefab";
+
+		internal ConfigKeycodeField currentUi;
+
 		private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -130,8 +131,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+                    currentUi.name.text = _displayName;
 			}
 		}
 
@@ -151,7 +152,7 @@ namespace PluginConfig.API.Fields
 
 				if (currentUi == null)
 					return;
-				currentText.text = ControlsOptions.GetKeyName(value);
+                currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
 			}
 		}
 
@@ -177,7 +178,7 @@ namespace PluginConfig.API.Fields
 				_hidden = value;
 
 				if (currentUi != null)
-					currentUi.SetActive(!_hidden && !parentHidden);
+					currentUi.gameObject.SetActive(!_hidden && !parentHidden);
 			}
 		}
 
@@ -189,12 +190,12 @@ namespace PluginConfig.API.Fields
 				_interactable = value;
 				if (currentUi != null)
 				{
-					currentButton.interactable = _interactable && parentInteractable;
+                    currentUi.keycode.interactable = _interactable && parentInteractable;
 				}
 			}
 		}
 
-		public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
+		public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
 		{
 			this.defaultValue = defaultValue;
 			_saveToConfig = saveToConfig;
@@ -220,57 +221,34 @@ namespace PluginConfig.API.Fields
 			parentPanel.Register(this);
 		}
 
-		public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
+        public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig, true) { }
 
-		private string lastInputText = "";
+        public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue) : this(parentPanel, displayName, guid, defaultValue, true, true) { }
 
 		internal override GameObject CreateUI(Transform content)
 		{
-			GameObject field = currentUi = GameObject.Instantiate(PluginConfiguratorController.sampleKeyCodeField, content);
-			RectTransform rect = field.GetComponent<RectTransform>();
-			rect.sizeDelta = new Vector2(600, 60);
-			currentButton = rect.Find("ChangeFist").GetComponent<Button>();
-			currentButton.onClick = new Button.ButtonClickedEvent();
-			RectTransform buttonRect = currentButton.GetComponent<RectTransform>();
-			buttonRect.anchorMin = buttonRect.anchorMax = new Vector2(0, 0.5f);
-			buttonRect.anchoredPosition = new Vector2(220, 0);
-			buttonRect.pivot = new Vector2(0, 0.5f);
-			GameObject.DestroyImmediate(rect.Find("Text").GetComponent<GearCheckText>());
-			currentDisplayName = rect.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
-			currentDisplayName.GetComponent<RectTransform>().anchoredPosition = new Vector2(40, 0);
-			currentText = rect.Find("ChangeFist/Text").GetComponent<Text>();
-			currentText.text = ControlsOptions.GetKeyName(_value);
-			KeyCodeListener listener = field.AddComponent<KeyCodeListener>();
-			listener.field = this;
+			GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+			currentUi = field.GetComponent<ConfigKeycodeField>();
+            KeyCodeListener listener = field.AddComponent<KeyCodeListener>();
+            listener.field = this;
 
-			currentButton.onClick.AddListener(listener.Activate);
+            currentUi.name.text = displayName;
 
-			currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-			GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-			currentResetButton.AddComponent<DisableWhenHidden>();
-			currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-			RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-			resetRect.anchorMax = new Vector2(1, 0.5f);
-			resetRect.anchorMin = new Vector2(1, 0.5f);
-			resetRect.sizeDelta = new Vector2(70, 40);
-			resetRect.anchoredPosition = new Vector2(-85, 0);
-			Button resetComp = currentResetButton.GetComponent<Button>();
-			resetComp.onClick = new Button.ButtonClickedEvent();
-			resetComp.onClick.AddListener(OnReset);
-			currentResetButton.SetActive(false);
+			currentUi.keycode.onClick = new Button.ButtonClickedEvent();
+			currentUi.keycode.onClick.AddListener(listener.Activate);
 
-			EventTrigger trigger = field.AddComponent<EventTrigger>();
-			EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-			mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-			EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-			mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-			trigger.triggers.Add(mouseOn);
-			trigger.triggers.Add(mouseOff);
-			Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
+			currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
 
+			currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+			currentUi.resetButton.onClick.AddListener(OnReset);
+			currentUi.resetButton.gameObject.SetActive(false);
+
+			Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+				(BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+				(BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
+			
 			field.SetActive(!_hidden && !parentHidden);
-			currentButton.interactable = interactable && parentInteractable;
+			currentUi.keycode.interactable = interactable && parentInteractable;
 			return field;
 		}
 
@@ -278,7 +256,7 @@ namespace PluginConfig.API.Fields
 		{
 			if (!interactable || !parentInteractable)
 				return;
-			currentText.text = ControlsOptions.GetKeyName(defaultValue);
+			currentUi.keycodeText.text = ControlsOptions.GetKeyName(defaultValue);
 			OnCompValueChange(defaultValue);
 		}
 
@@ -286,7 +264,7 @@ namespace PluginConfig.API.Fields
 		{
 			if (val == _value)
 			{
-				currentText.text = ControlsOptions.GetKeyName(_value);
+                currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
 				return;
 			}
 
@@ -303,12 +281,12 @@ namespace PluginConfig.API.Fields
 
 			if (eventData.canceled)
 			{
-				currentText.text = ControlsOptions.GetKeyName(_value);
+                currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
 				return;
 			}
 
 			value = eventData.value;
-			currentText.text = ControlsOptions.GetKeyName(value);
+            currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
 		}
 
 		public void TriggerValueChangeEvent()

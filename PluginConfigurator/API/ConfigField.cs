@@ -12,6 +12,11 @@ namespace PluginConfig.API
     public abstract class ConfigField
     {
         /// <summary>
+        /// If set to false, field will not be created on the panel. Useful for internal fields which user should not be able to modify
+        /// </summary>
+        public readonly bool createUI = true;
+
+        /// <summary>
         /// On screen text used for the field
         /// </summary>
         public abstract string displayName { set; get; }
@@ -102,7 +107,12 @@ namespace PluginConfig.API
                     int currentChildIndex = 0;
                     foreach (var objects in parentPanel.fieldObjects)
                         foreach (var child in objects)
+                        {
+                            if (child == null)
+                                continue;
+
                             child.SetSiblingIndex(currentChildIndex++);
+                        }
 				}
             }
         }
@@ -116,9 +126,11 @@ namespace PluginConfig.API
             this.rootConfig = rootConfig;
         }
 
-        public ConfigField(string displayName, string guid, ConfigPanel parentPanel)
+        public ConfigField(string displayName, string guid, ConfigPanel parentPanel, bool createUI)
         {
             strictGuid = true;
+            this.createUI = createUI;
+
             this.displayName = displayName;
             this.guid = guid;
             this.parentPanel = parentPanel;
@@ -130,6 +142,8 @@ namespace PluginConfig.API
                 this._parentInteractable = div.interactable && div.parentInteractable;
             }
         }
+
+        public ConfigField(string displayName, string guid, ConfigPanel parentPanel) : this(displayName, guid, parentPanel, true) { }
 
         internal abstract GameObject CreateUI(Transform content);
 

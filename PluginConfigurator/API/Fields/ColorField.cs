@@ -134,7 +134,7 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
+        public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
             _saveToConfig = saveToConfig;
@@ -160,6 +160,8 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
+        public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig, true) { }
+
         public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
         internal override GameObject CreateUI(Transform content)
@@ -181,6 +183,7 @@ namespace PluginConfig.API.Fields
             currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
             currentUi.resetButton.onClick.AddListener(OnReset);
             currentUi.resetButton.gameObject.SetActive(false);
+
             Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));

@@ -1,7 +1,9 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.ComponentModel;
 using System.IO;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 
 namespace PluginConfig.API.Decorators
@@ -11,9 +13,9 @@ namespace PluginConfig.API.Decorators
     /// </summary>
     public class ConfigHeader : ConfigField
     {
-        private GameObject currentUi;
-        private Text currentText;
-        private RectTransform currentRect;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/ConfigHeader.prefab";
+
+        internal ConfigHeaderField currentUi;
 
 		public override string displayName
 		{
@@ -28,8 +30,8 @@ namespace PluginConfig.API.Decorators
                 _text = value;
                 if (currentUi == null)
                     return;
-                currentText.text = _text;
-                currentRect.sizeDelta = new Vector2(currentRect.sizeDelta.x, currentText.preferredHeight);
+                currentUi.text.text = _text;
+                currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
             }
         }
 
@@ -44,9 +46,9 @@ namespace PluginConfig.API.Decorators
                     return;
                 }
 
-                currentText.fontSize = value;
+                currentUi.text.fontSize = value;
                 _textSize = value;
-                currentRect.sizeDelta = new Vector2(currentRect.sizeDelta.x, currentText.preferredHeight);
+                currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
             }
         }
 
@@ -58,7 +60,7 @@ namespace PluginConfig.API.Decorators
                 _textColor = value;
                 if (currentUi == null)
                     return;
-                currentText.color = value;
+                currentUi.text.color = value;
             }
         }
 
@@ -71,8 +73,8 @@ namespace PluginConfig.API.Decorators
                 _anchor = value;
                 if (currentUi == null)
                     return;
-                currentText.alignment = _anchor;
-                currentRect.sizeDelta = new Vector2(currentRect.sizeDelta.x, currentText.preferredHeight);
+                currentUi.text.alignment = _anchor;
+                currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
             }
         }
 
@@ -95,8 +97,8 @@ namespace PluginConfig.API.Decorators
                 _hidden = value;
                 if (currentUi == null)
                     return;
-                currentUi.SetActive(!_hidden && !parentHidden);
-                currentRect.sizeDelta = new Vector2(currentRect.sizeDelta.x, currentText.preferredHeight);
+                currentUi.gameObject.SetActive(!_hidden && !parentHidden);
+                currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
             } 
         }
 
@@ -105,27 +107,24 @@ namespace PluginConfig.API.Decorators
             {
                 _interactable = value;
                 if (currentUi != null)
-                    currentText.color = (_interactable && parentInteractable) ? textColor : textColor * 0.5f;
+                    currentUi.text.color = (_interactable && parentInteractable) ? textColor : textColor * 0.5f;
             } 
         }
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject header = GameObject.Instantiate(PluginConfiguratorController.sampleHeader, /*containerRect*/content);
-            currentUi = header;
+            GameObject header = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = header.GetComponent<ConfigHeaderField>();
 
-            Text text = currentText = header.GetComponent<Text>();
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.text = _text;
-            text.fontSize = _textSize;
-            text.alignment = _anchor;
-            RectTransform rect = currentRect = text.GetComponent<RectTransform>();
-            ContentSizeFitter fitter = text.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            rect.sizeDelta = new Vector2(rect.sizeDelta.x, text.preferredHeight);
+            currentUi.text.verticalOverflow = VerticalWrapMode.Overflow;
+            currentUi.text.text = _text;
+            currentUi.text.fontSize = _textSize;
+            currentUi.text.alignment = _anchor;
+
+            currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
 
             header.SetActive(!_hidden && !parentHidden);
-            text.color = (_interactable && parentInteractable)? textColor : textColor * 0.5f;
+            currentUi.text.color = (_interactable && parentInteractable)? textColor : textColor * 0.5f;
             return header;
         }
 

@@ -1,5 +1,7 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -7,10 +9,10 @@ namespace PluginConfig.API.Fields
 {
     public class IntField : ConfigField
     {
-        private GameObject currentUi;
-        private GameObject currentResetButton;
-        private InputField currentInputComp;
-        private Text currentDisplayName;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/InputField.prefab";
+
+        internal ConfigInputField currentUi;
+
 		private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -20,8 +22,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+                    currentUi.name.text = _displayName;
 			}
 		}
 
@@ -31,7 +33,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 if (currentUi != null)
-                    currentInputComp.SetTextWithoutNotify(value.ToString());
+                    currentUi.input.SetTextWithoutNotify(value.ToString());
 
                 if (_value != value && _saveToConfig)
                 {
@@ -64,7 +66,7 @@ namespace PluginConfig.API.Fields
             {
                 _hidden = value;
                 if (currentUi != null)
-                    currentUi.SetActive(!_hidden && !parentHidden);
+                    currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -84,7 +86,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentInputComp.interactable = _interactable && parentInteractable;
+                    currentUi.input.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -94,7 +96,7 @@ namespace PluginConfig.API.Fields
         public int maximumValue = int.MaxValue;
         public bool setToNearestValidValueOnUnvalidInput = true;
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
             _saveToConfig = saveToConfig;
@@ -120,9 +122,13 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig, true) { }
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig)
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue) : this(parentPanel, displayName, guid, defaultValue, true, true) { }
+        
+        // Range ctors
+
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput, bool saveToConfig, bool createUi) : this(parentPanel, displayName, guid, defaultValue, saveToConfig, createUi)
         {
             this.setToNearestValidValueOnUnvalidInput = setToNearestValidValueOnUnvalidInput;
             this.minimumValue = minimumValue;
@@ -134,48 +140,35 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException($"Int field {guid} has a range of [{minimumValue}, {maximumValue}], but its default value is {defaultValue}");
         }
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, setToNearestValidValueOnUnvalidInput, true) { }
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, setToNearestValidValueOnUnvalidInput, saveToConfig, true) { }
 
-        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, true, true) { }
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue, bool setToNearestValidValueOnUnvalidInput) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, setToNearestValidValueOnUnvalidInput, true, true) { }
+
+        public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, int minimumValue, int maximumValue) : this(parentPanel, displayName, guid, defaultValue, minimumValue, maximumValue, true, true, true) { }
+
 
         private string lastInputText = "";
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = PluginConfiguratorController.MakeInputField(content);
-            currentUi = field;
-            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigInputField>();
 
-            InputField input = currentInputComp = field.GetComponentInChildren<InputField>();
-            input.interactable = interactable && parentInteractable;
-            input.characterValidation = InputField.CharacterValidation.Integer;
-            input.SetTextWithoutNotify(_value.ToString());
-            input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
-            input.onEndEdit.AddListener(OnCompValueChange);
+            currentUi.name.text = displayName;
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
+            currentUi.input.interactable = interactable && parentInteractable;
+            currentUi.input.characterValidation = InputField.CharacterValidation.Integer;
+            currentUi.input.SetTextWithoutNotify(_value.ToString());
+            currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
+            currentUi.input.onEndEdit.AddListener(OnCompValueChange);
 
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
+
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);
@@ -186,17 +179,17 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentInputComp.SetTextWithoutNotify(defaultValue.ToString());
+            currentUi.input.SetTextWithoutNotify(defaultValue.ToString());
             OnCompValueChange(defaultValue.ToString());
         }
 
         internal void OnCompValueChange(string val)
         {
-            if (currentInputComp != null && currentInputComp.wasCanceled)
+            if (currentUi != null && currentUi.input.wasCanceled)
             {
                 if (!PluginConfiguratorController.cancelOnEsc.value)
                 {
-                    currentInputComp.SetTextWithoutNotify(lastInputText);
+                    currentUi.input.SetTextWithoutNotify(lastInputText);
                     val = lastInputText;
                 }
                 else
@@ -206,7 +199,7 @@ namespace PluginConfig.API.Fields
             int newValue;
             if(!int.TryParse(val, out newValue))
             {
-                currentInputComp.SetTextWithoutNotify(_value.ToString());
+                currentUi.input.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -216,7 +209,7 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    currentInputComp.SetTextWithoutNotify(_value.ToString());
+                    currentUi.input.SetTextWithoutNotify(_value.ToString());
                     return;
                 }
             }
@@ -226,14 +219,14 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    currentInputComp.SetTextWithoutNotify(_value.ToString());
+                    currentUi.input.SetTextWithoutNotify(_value.ToString());
                     return;
                 }
             }
 
             if (newValue == _value)
             {
-                currentInputComp.SetTextWithoutNotify(_value.ToString());
+                currentUi.input.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -250,12 +243,12 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentInputComp.SetTextWithoutNotify(_value.ToString());
+                currentUi.input.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
             value = eventData.value;
-            currentInputComp.SetTextWithoutNotify(value.ToString());
+            currentUi.input.SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()

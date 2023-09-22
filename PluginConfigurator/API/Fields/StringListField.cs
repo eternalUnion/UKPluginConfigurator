@@ -1,7 +1,9 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -9,10 +11,10 @@ namespace PluginConfig.API.Fields
 {
     public class StringListField : ConfigField
     {
-        private GameObject currentUi;
-        private Dropdown currentDropdown;
-        private Text currentDisplayName;
-		private GameObject currentResetButton;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/DropdownField.prefab";
+
+        internal ConfigDropdownField currentUi;
+
         private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -22,8 +24,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+                    currentUi.name.text = _displayName;
 			}
 		}
 
@@ -43,8 +45,8 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException($"Invalid value for {rootConfig.guid}:{guid}. Value must not contain newline and carriage return characters");
 
             values.Add(newValue);
-            if (currentDropdown != null)
-                currentDropdown.options.Add(new Dropdown.OptionData(newValue));
+            if (currentUi != null)
+                currentUi.dropdown.options.Add(new Dropdown.OptionData(newValue));
         }
 
         public void InsertValue(int index, string newValue)
@@ -59,8 +61,8 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException($"Invalid insertion index for {rootConfig.guid}:{guid}. Index must be in range [0, values count]");
 
             values.Insert(index, newValue);
-            if (currentDropdown != null)
-                currentDropdown.options.Insert(index, new Dropdown.OptionData(newValue));
+            if (currentUi != null)
+                currentUi.dropdown.options.Insert(index, new Dropdown.OptionData(newValue));
         }
 
         public void RemoveAt(int index)
@@ -78,10 +80,10 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException($"Attempting to make an empty values list at {rootConfig.guid}:{guid}");
 
             values.RemoveAt(index);
-            if (currentDropdown != null)
+            if (currentUi != null)
             {
-                currentDropdown.options.RemoveAt(index);
-                currentDropdown.SetValueWithoutNotify(valueIndex);
+                currentUi.dropdown.options.RemoveAt(index);
+                currentUi.dropdown.SetValueWithoutNotify(valueIndex);
             }
         }
 
@@ -107,7 +109,7 @@ namespace PluginConfig.API.Fields
                     rootConfig.config[guid] = _value;
 
                 if (currentUi != null)
-                    currentDropdown.SetValueWithoutNotify(valueIndex);
+                    currentUi.dropdown.SetValueWithoutNotify(valueIndex);
             }
         }
 
@@ -131,7 +133,7 @@ namespace PluginConfig.API.Fields
                     rootConfig.config[guid] = _value;
 
                 if (currentUi != null)
-                    currentDropdown.SetValueWithoutNotify(value);
+                    currentUi.dropdown.SetValueWithoutNotify(value);
             }
         }
 
@@ -192,7 +194,7 @@ namespace PluginConfig.API.Fields
             {
                 _hidden = value;
 				if (currentUi != null)
-					currentUi.SetActive(!_hidden && !parentHidden);
+					currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -212,26 +214,28 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentDropdown.interactable = _interactable && parentInteractable;
+                    currentUi.dropdown.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
         }
 
-        public StringListField(ConfigPanel parentPanel, string displayName, string guid, List<string> values, string defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
+        // Enum based ctors
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, string defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
-            this.values = values;
+            this.values = values.ToList();
             _saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
-            if (values.Count == 0)
+            if (values.Count() == 0)
                 throw new ArgumentException($"Attempting to make an empty values list at {rootConfig.guid}:{guid}");
 
             if (!values.Contains(defaultValue))
                 throw new ArgumentException($"Invalid default value for {rootConfig.guid}:{guid}. Default value must be in the values list");
-            
-            if (values.Distinct().Count() != values.Count)
+
+            if (values.Distinct().Count() != values.Count())
                 throw new ArgumentException($"Invalid values list for {rootConfig.guid}:{guid}. List must be consist of unique elements");
 
             foreach (string value in values)
@@ -258,61 +262,55 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
-        public StringListField(ConfigPanel parentPanel, string displayName, string guid, string[] values, string defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, values.ToList(), defaultValue, saveToConfig) { }
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, string defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, values, defaultValue, saveToConfig, true) { }
 
-        public StringListField(ConfigPanel parentPanel, string displayName, string guid, List<string> values, string defaultValue) : this(parentPanel, displayName, guid, values, defaultValue, true) { }
-        
-        public StringListField(ConfigPanel parentPanel, string displayName, string guid, string[] values, string defaultValue) : this(parentPanel, displayName, guid, values.ToList(), defaultValue, true) { }
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, string defaultValue) : this(parentPanel, displayName, guid, values, defaultValue, true, true) { }
+
+
+        // List based ctors (legacy)
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, List<string> values, string defaultValue, bool saveToConfig, bool createUi) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, saveToConfig, createUi) { }
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, List<string> values, string defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, saveToConfig, true) { }
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, List<string> values, string defaultValue) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, true, true) { }
+
+        // Array based ctors (legacy)
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, string[] values, string defaultValue, bool saveToConfig, bool createUi) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, saveToConfig, createUi) { }
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, string[] values, string defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, saveToConfig, true) { }
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, string[] values, string defaultValue) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, true, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = GameObject.Instantiate(PluginConfiguratorController.sampleDropdown, content);
-            currentUi = field;
-            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigDropdownField>();
 
-            Dropdown dropdown = field.transform.Find("Dropdown").GetComponent<Dropdown>();
-            dropdown.interactable = interactable && parentInteractable;
-            dropdown.onValueChanged = new Dropdown.DropdownEvent();
-            dropdown.options.Clear();
-            dropdown.onValueChanged.AddListener(OnCompValueChange);
-            ColorBlock colors = dropdown.colors;
-            colors.disabledColor = new Color(dropdown.colors.normalColor.r / 2, dropdown.colors.normalColor.g / 2, dropdown.colors.normalColor.b / 2);
-            dropdown.colors = colors;
+            currentUi.name.text = displayName;
 
+            currentUi.dropdown.interactable = interactable && parentInteractable;
+            currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
+            currentUi.dropdown.options.Clear();
+            currentUi.dropdown.onValueChanged.AddListener(OnCompValueChange);
+            
             foreach (string val in values)
             {
-                dropdown.options.Add(new Dropdown.OptionData(val));
+                currentUi.dropdown.options.Add(new Dropdown.OptionData(val));
             }
 
             int index = values.IndexOf(_value);
             if (index != -1)
-                dropdown.SetValueWithoutNotify(index);
+                currentUi.dropdown.SetValueWithoutNotify(index);
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
 
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
-
-            currentDropdown = currentUi.transform.Find("Dropdown").GetComponent<Dropdown>();
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);
@@ -323,7 +321,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentDropdown.SetValueWithoutNotify(values.IndexOf(_value));
+            currentUi.dropdown.SetValueWithoutNotify(values.IndexOf(_value));
             OnCompValueChange(values.IndexOf(defaultValue));
         }
 
@@ -332,7 +330,7 @@ namespace PluginConfig.API.Fields
             if (val < 0 || val >= values.Count)
             {
                 PluginConfiguratorController.LogWarning("String list index requested does not exist");
-                currentDropdown.SetValueWithoutNotify(values.IndexOf(_value));
+                currentUi.dropdown.SetValueWithoutNotify(values.IndexOf(_value));
                 return;
             }
 
@@ -352,12 +350,12 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentDropdown.SetValueWithoutNotify(valueIndex);
+                currentUi.dropdown.SetValueWithoutNotify(valueIndex);
                 return;
             }
 
             value = eventData.value;
-            currentDropdown.SetValueWithoutNotify(valueIndex);
+            currentUi.dropdown.SetValueWithoutNotify(valueIndex);
         }
 
         public void TriggerValueChangeEvent()

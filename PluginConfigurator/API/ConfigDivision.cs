@@ -10,6 +10,7 @@ using UnityEngine.UIElements;
 
 namespace PluginConfig.API
 {
+    // Handles size changes to expand the scroll rect
     internal class ConfigDivisionComp : UIBehaviour
     {
         public ConfigDivision div;
@@ -21,23 +22,15 @@ namespace PluginConfig.API
             div.RecalculateLayout();
         }
 
-        /*void OnEnable()
+        protected override void OnEnable()
         {
-            div.currentComp.dirtyFrame = Time.frameCount + 1;
+            div.RecalculateLayout();
         }
 
-        void OnDisable()
+        protected override void OnDisable()
         {
-            div.currentComp.dirtyFrame = Time.frameCount + 1;
-        }*/
-
-        /*int dirtyFrame = -1;
-        void Update()
-        {
-            // Needed because scroll rect size is not set correctly for some reason
-            if (dirtyFrame == Time.frameCount)
-                
-        }*/
+            div.RecalculateLayout();
+        }
     }
 
     public class ConfigDivision : ConfigPanel
@@ -52,14 +45,20 @@ namespace PluginConfig.API
             foreach (var panel in childPanels)
                 panel.RecalculateLayoutAll();
 
+            if (currentVirtualPanel == null)
+                return;
+
             currentVirtualPanel.contentSizeFitter.SendMessage("SetDirty");
             LayoutRebuilder.ForceRebuildLayoutImmediate(currentVirtualPanel.trans);
         }
 
         internal override void RecalculateLayout()
         {
-            currentVirtualPanel.contentSizeFitter.SendMessage("SetDirty");
-            LayoutRebuilder.ForceRebuildLayoutImmediate(currentVirtualPanel.trans);
+            if (currentVirtualPanel != null)
+            {
+                currentVirtualPanel.contentSizeFitter.SendMessage("SetDirty");
+                LayoutRebuilder.ForceRebuildLayoutImmediate(currentVirtualPanel.trans);
+            }
 
             parentPanel.RecalculateLayout();
         }
@@ -135,12 +134,10 @@ namespace PluginConfig.API
             // Pass the concrete panel
             currentPanel = parentPanel.currentPanel;
             currentComp = parentPanel.currentComp;
-            currentComp.dirtyFrame = Time.frameCount + 1;
 
             GameObject panel = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentVirtualPanel = panel.GetComponent<ConfigPanelVirtual>();
             panel.SetActive(false);
-            currentComp.allPanels.Add(new Tuple<int, PanelInfo>(panel.transform.hierarchyCount, new PanelInfo() { rect = panel.GetComponent<RectTransform>(), content = currentVirtualPanel.contentSizeFitter  }));
             
 			fieldObjects.Clear();
 			int currentChildIndex = currentVirtualPanel.content.childCount;

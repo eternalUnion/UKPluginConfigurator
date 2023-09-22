@@ -1,20 +1,22 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 
 namespace PluginConfig.API.Functionals
 {
     public class ButtonArrayField : ConfigField
     {
-        private GameObject currentUI;
-        private GameObject[] currentButtons;
-        private Button[] currentButtonComps;
-        private Text[] currentButtonTexts;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/ButtonField.prefab";
 
-		private string _displayName;
+        internal RectTransform currentContainer;
+        internal ConfigButtonField[] currentUi;
+
+        private string _displayName;
 		public override string displayName
 		{
 			get => _displayName;
@@ -30,15 +32,14 @@ namespace PluginConfig.API.Functionals
             get => _hidden; set
             {
                 _hidden = value;
-                if (currentUI == null)
+                if (currentContainer == null)
                     return;
-                currentUI.SetActive(!_hidden && !parentHidden);
-                for (int i = 0; i < currentButtons.Length; i++)
+                currentContainer.gameObject.SetActive(!_hidden && !parentHidden);
+                for (int i = 0; i < currentUi.Length; i++)
                 {
-                    GameObject b = currentButtons[i];
-                    if (b == null)
+                    if (currentUi[i] == null)
                         continue;
-                    b.SetActive(!hidden && !parentHidden && !_hiddens[i]);
+                    currentUi[i].gameObject.SetActive(!hidden && !parentHidden && !_hiddens[i]);
                 }
             }
         }
@@ -65,16 +66,16 @@ namespace PluginConfig.API.Functionals
             get => _interactable; set
             {
                 _interactable = value;
-                foreach (GameObject button in currentButtons)
 
-                    if (currentUI == null)
-                        return;
-                for (int i = 0; i < currentButtonComps.Length; i++)
+                if (currentContainer == null)
+                    return;
+
+                for (int i = 0; i < currentUi.Length; i++)
                 {
-                    Button b = currentButtonComps[i];
-                    if (b == null)
+                    if (currentUi[i] == null)
                         continue;
-                    b.interactable = _interactable && parentInteractable && _interactables[i];
+
+                    currentUi[i].button.interactable = _interactable && parentInteractable && _interactables[i];
                 }
             }
         }
@@ -107,9 +108,10 @@ namespace PluginConfig.API.Functionals
             if (index < 0 || index >= buttonCount)
                 throw new ArgumentException("Index out of range");
             _texts[index] = text;
-            Text currentText = currentButtonTexts[index];
-            if (currentText != null)
-                currentText.text = text;
+
+            if (currentContainer == null)
+                return;
+            currentUi[index].text.text = text;
         }
 
         public delegate void OnClick();
@@ -149,9 +151,7 @@ namespace PluginConfig.API.Functionals
             if (!lengthEquality || relativeWidths.Length != buttonCount)
                 throw new ArgumentException("Argument sizes don't match");
 
-            currentButtons = new GameObject[buttonCount];
-            currentButtonComps = new Button[buttonCount];
-            currentButtonTexts = new Text[buttonCount];
+            currentUi = new ConfigButtonField[buttonCount];
 
             _hiddens = new bool[buttonCount];
             _interactables = new bool[buttonCount];
@@ -173,14 +173,14 @@ namespace PluginConfig.API.Functionals
 
         internal override GameObject CreateUI(Transform content)
         {
-            currentUI = new GameObject();
-            RectTransform rect = currentUI.AddComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0, 1);
-            rect.anchorMax = new Vector2(0, 1);
-            rect.SetParent(content);
-            rect.sizeDelta = new Vector2(600, 60);
-            rect.localScale = Vector3.one;
-            rect.anchoredPosition = Vector3.zero;
+            GameObject field = new GameObject();
+            currentContainer = field.AddComponent<RectTransform>();
+            currentContainer.anchorMin = new Vector2(0, 1);
+            currentContainer.anchorMax = new Vector2(0, 1);
+            currentContainer.SetParent(content);
+            currentContainer.sizeDelta = new Vector2(600, 60);
+            currentContainer.localScale = Vector3.one;
+            currentContainer.anchoredPosition = Vector3.zero;
 
             float currentOffset = 0;
             for (int i = 0; i < buttonCount; i++)
@@ -188,28 +188,29 @@ namespace PluginConfig.API.Functionals
                 float width = 600 * _width[i];
                 if (i != buttonCount - 1)
                     width -= _space / 2;
-                RectTransform buttonRect = PluginConfigurator.CreateBigContentButton(currentUI.transform, _texts[i], TextAnchor.MiddleCenter, width);
-                buttonRect.anchoredPosition = new Vector2(currentOffset, 0);
 
-                currentButtons[i] = buttonRect.gameObject;
-                Button buttonComp = buttonRect.gameObject.GetComponent<Button>();
+                GameObject button = Addressables.InstantiateAsync(ASSET_PATH, currentContainer).WaitForCompletion();
+                ConfigButtonField ui = button.GetComponent<ConfigButtonField>();
+
+                RectTransform rect = ui.GetComponent<RectTransform>();
+                rect.anchoredPosition = new Vector2(currentOffset, 0);
+                rect.sizeDelta = new Vector2(width, rect.sizeDelta.y);
+
                 int buttonIndex = i;
-                buttonComp.onClick.AddListener(() =>
+                ui.button.onClick.AddListener(() =>
                 {
                     _onClickEvents[buttonIndex].Invoke();
                 });
-                currentButtonComps[i] = buttonComp;
-                Text buttonText = buttonRect.GetComponentInChildren<Text>();
-                buttonText.text = _texts[i];
-                currentButtonTexts[i] = buttonText;
 
-                buttonComp.gameObject.SetActive(!hidden && !parentHidden && !_hiddens[i]);
-                buttonComp.interactable = interactable && parentInteractable && _interactables[i];
+                ui.text.text = _texts[i];
+
+                ui.gameObject.SetActive(!hidden && !parentHidden && !_hiddens[i]);
+                ui.button.interactable = interactable && parentInteractable && _interactables[i];
 
                 currentOffset += width + _space / 2;
             }
 
-            return currentUI;
+            return field;
         }
 
         internal void LoadFromString(string data)

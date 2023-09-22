@@ -1,23 +1,22 @@
-﻿using Logic;
+﻿using PluginConfiguratorComponents;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static PluginConfig.API.Fields.FloatField;
 
 namespace PluginConfig.API.Fields
 {
     public  class FloatSliderField : ConfigField
     {
-        private GameObject currentUi;
-        private GameObject currentResetButton;
-        private Slider currentSlider;
-        private Text currentDisplayName;
-		private InputField currentInputField;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/ValueSliderField.prefab";
+
+        internal ConfigValueSliderField currentUi;
+
         private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -27,8 +26,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+					currentUi.name.text = _displayName;
 			}
 		}
 
@@ -76,8 +75,8 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentInputField.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
-                currentSlider.SetNormalizedValueWithoutNotify(_normalizedValue);
+                currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
             }
         }
 
@@ -108,8 +107,8 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentInputField.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
-                currentSlider.SetNormalizedValueWithoutNotify(_normalizedValue);
+                currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
             }
         }
 
@@ -117,7 +116,7 @@ namespace PluginConfig.API.Fields
         {
             if (currentUi == null)
                 return;
-            currentUi.SetActive(val);
+            currentUi.gameObject.SetActive(val);
         }
         private bool _hidden = false;
         public override bool hidden { get => _hidden; set {
@@ -130,8 +129,8 @@ namespace PluginConfig.API.Fields
         {
             if (currentUi == null)
                 return;
-            currentSlider.interactable = val;
-            currentInputField.interactable = val;
+            currentUi.slider.interactable = val;
+            currentUi.input.interactable = val;
             currentUi.transform.Find("Text").GetComponent<Text>().color = val ? Color.white : Color.gray;
         }
         private bool _interactable = true;
@@ -149,7 +148,8 @@ namespace PluginConfig.API.Fields
                 _roundDecimalPoint = Math.Abs(value);
             }
         }
-        public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue, int roundDecimalPoints, bool saveToConfig) : base(displayName, guid, parentPanel)
+
+        public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue, int roundDecimalPoints, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.roundDecimalPoints = roundDecimalPoints;
             this.defaultValue = defaultValue;
@@ -184,7 +184,13 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
+        public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue, int roundDecimalPoints, bool saveToConfig) : this(parentPanel, displayName, guid, bounds, defaultValue, roundDecimalPoints, saveToConfig, true) { }
+
         public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue, int roundDecimalPoints) : this(parentPanel, displayName, guid, bounds, defaultValue, roundDecimalPoints, true) { }
+
+        // Ctors without round input
+
+        public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue, bool saveToConfig, bool createUi) : this(parentPanel, displayName, guid, bounds, defaultValue, 1, saveToConfig, createUi) { }
 
         public FloatSliderField(ConfigPanel parentPanel, string displayName, string guid, Tuple<float, float> bounds, float defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, bounds, defaultValue, 1, saveToConfig) { }
 
@@ -413,24 +419,22 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject sliderField = GameObject.Instantiate(PluginConfiguratorController.sampleSlider, content);
-            currentDisplayName = sliderField.transform.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
-            sliderField.transform.Find("Button").GetComponent<Button>().onClick = new Button.ButtonClickedEvent();
-            GameObject.Destroy(sliderField.transform.Find("Button/Slider (1)/Text (2)").gameObject);
-            RectTransform sliderRect = sliderField.transform.Find("Button/Slider (1)").gameObject.GetComponent<RectTransform>();
-            sliderRect.anchoredPosition = new Vector2(0, -15);
-            Slider sliderComp = sliderRect.gameObject.GetComponent<Slider>();
-            sliderComp.onValueChanged = new Slider.SliderEvent();
-            sliderComp.wholeNumbers = false;
-            SliderEndEditListener sliderListener = sliderRect.gameObject.AddComponent<SliderEndEditListener>();
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigValueSliderField>();
+
+            currentUi.name.text = displayName;
+
+            currentUi.slider.onValueChanged = new Slider.SliderEvent();
+            currentUi.slider.wholeNumbers = false;
+
+            SliderEndEditListener sliderListener = currentUi.slider.gameObject.AddComponent<SliderEndEditListener>();
             sliderListener.onEditEnd.AddListener(finalValue =>
             {
                 if (!interactable || !parentInteractable)
                     return;
 
                 FloatSliderValueChangeEvent args = new FloatSliderValueChangeEvent(bounds);
-                args.newNormalizedValue = sliderComp.normalizedValue;
+                args.newNormalizedValue = currentUi.slider.normalizedValue;
                 if (onValueChange != null)
                 {
                     try
@@ -449,25 +453,20 @@ namespace PluginConfig.API.Fields
                 normalizedValue = args.newNormalizedValue;
             });
 
-            GameObject textField = PluginConfiguratorController.MakeInputFieldNoBG(content, sliderField.transform);
-            RectTransform textRect = textField.GetComponent<RectTransform>();
-            textRect.sizeDelta = new Vector2(239, 20);
-            textRect.anchoredPosition = new Vector2(220, -17);
-            InputField inputComp = textField.GetComponent<InputField>();
-            inputComp.characterValidation = InputField.CharacterValidation.Decimal;
-            sliderComp.onValueChanged.AddListener(newValue =>
+            currentUi.input.characterValidation = InputField.CharacterValidation.Decimal;
+            currentUi.slider.onValueChanged.AddListener(newValue =>
             {
-                float finalValue = (float)Math.Round(Denormalize(sliderComp.normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
-                inputComp.SetTextWithoutNotify(finalValue.ToString(CultureInfo.InvariantCulture));
+                float finalValue = (float)Math.Round(Denormalize(currentUi.slider.normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
+                currentUi.input.SetTextWithoutNotify(finalValue.ToString(CultureInfo.InvariantCulture));
             });
-            inputComp.onValueChanged.AddListener(val => { if (!inputComp.wasCanceled) lastInputText = val; });
-            inputComp.onEndEdit.AddListener(newValue =>
+            currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
+            currentUi.input.onEndEdit.AddListener(newValue =>
             {
-                if (inputComp != null && inputComp.wasCanceled)
+                if (currentUi != null && currentUi.input.wasCanceled)
                 {
                     if (!PluginConfiguratorController.cancelOnEsc.value)
                     {
-                        inputComp.SetTextWithoutNotify(lastInputText);
+                        currentUi.input.SetTextWithoutNotify(lastInputText);
                         newValue = lastInputText;
                     }
                     else
@@ -479,7 +478,7 @@ namespace PluginConfig.API.Fields
                 float num = 0;
                 if(!float.TryParse(newValue, NumberStyles.Float, CultureInfo.InvariantCulture, out num))
                 {
-                    inputComp.SetTextWithoutNotify(Math.Round(_value, roundDecimalPoints).ToString(CultureInfo.InvariantCulture));
+                    currentUi.input.SetTextWithoutNotify(Math.Round(_value, roundDecimalPoints).ToString(CultureInfo.InvariantCulture));
                     return;
                 }
 
@@ -509,40 +508,21 @@ namespace PluginConfig.API.Fields
                 value = args.newValue;
             });
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, sliderField.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
 
-            EventTrigger trigger = sliderField.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(sliderField.transform));
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
-            inputComp.text = _value.ToString(CultureInfo.InvariantCulture);
-            sliderComp.SetNormalizedValueWithoutNotify(_normalizedValue);
-
-            currentUi = sliderField;
-            currentSlider = sliderComp;
-            currentInputField = inputComp;
+            currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+            currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
 
             SetUiHidden(!_hidden && !parentHidden);
             SetUiInteractable(interactable && parentInteractable);
 
-            return sliderField;
+            return field;
         }
 
         internal override void ReloadDefault()

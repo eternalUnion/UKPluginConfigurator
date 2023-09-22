@@ -6,12 +6,12 @@ using UnityEngine.UI;
 
 namespace PluginConfiguratorComponents
 {
-    public class ConfigKeycodeField : MonoBehaviour
+    public class ConfigFormattedInputField : MonoBehaviour
     {
         public Text name;
-        public Button keycode;
-        public Text keycodeText;
-
-        public Button resetButton;
+        public InputField input;
+        public Text text;
+        public Button edit;
+        public Button reset;
     }
 }

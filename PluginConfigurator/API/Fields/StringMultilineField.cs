@@ -1,5 +1,7 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -10,10 +12,10 @@ namespace PluginConfig.API.Fields
     /// </summary>
     public class StringMultilineField : ConfigField
     {
-        private GameObject currentUi;
-        private GameObject currentResetButton;
-        private InputField currentInput;
-        private Text currentDisplayName;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/InputMultilineField.prefab";
+
+        internal ConfigInputField currentUi;
+
 		private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -23,8 +25,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+					currentUi.name.text = _displayName;
 			}
 		}
 
@@ -48,7 +50,7 @@ namespace PluginConfig.API.Fields
 
                 if (currentUi == null)
                     return;
-                currentInput.SetTextWithoutNotify(value.Replace(separatorChar, '\n'));
+                currentUi.input.SetTextWithoutNotify(value.Replace(separatorChar, '\n'));
             }
         }
 
@@ -73,7 +75,7 @@ namespace PluginConfig.API.Fields
             {
                 _hidden = value;
 				if (currentUi != null)
-					currentUi.SetActive(!_hidden && !parentHidden);
+					currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -93,7 +95,7 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentInput.interactable = _interactable && parentInteractable;
+                    currentUi.input.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -138,64 +140,30 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = PluginConfiguratorController.MakeInputField(content);
-            currentUi = field;
-            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigInputField>();
 
-            RectTransform fieldRect = field.GetComponent<RectTransform>();
-            fieldRect.sizeDelta = new Vector2(600, 120);
+            currentUi.name.text = displayName;
 
-            InputField input = currentInput = field.GetComponentInChildren<InputField>();
-            input.interactable = interactable && parentInteractable;
-            input.characterValidation = InputField.CharacterValidation.None;
-            input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
-            input.onEndEdit.AddListener(OnCompValueChange);
-            input.lineType = InputField.LineType.MultiLineNewline;
-            input.text = _value.Replace(separatorChar, '\n');
-            input.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1);
-            input.gameObject.AddComponent<Mask>();
-            Text inputText = input.GetComponentInChildren<Text>();
-            inputText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            inputText.verticalOverflow = VerticalWrapMode.Overflow;
-            inputText.resizeTextForBestFit = false;
-            inputText.alignment = TextAnchor.UpperLeft;
-            RectTransform inputTextRect = inputText.GetComponent<RectTransform>();
-            inputTextRect.anchorMin = new Vector2(0, 0);
-            inputTextRect.anchorMax = new Vector2(0, 1);
-            inputTextRect.anchoredPosition = new Vector2(5, 5);
-            inputTextRect.sizeDelta = new Vector2(265, -10);
-            RectTransform inputRect = input.GetComponent<RectTransform>();
-            inputRect.sizeDelta = new Vector2(270, 110);
-            inputRect.anchoredPosition = new Vector2(365, -5);
+            currentUi.input.interactable = interactable && parentInteractable;
+            currentUi.input.characterValidation = InputField.CharacterValidation.None;
+            currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
+            currentUi.input.onEndEdit.AddListener(OnCompValueChange);
+            currentUi.input.lineType = InputField.LineType.MultiLineNewline;
+            currentUi.input.text = _value.Replace(separatorChar, '\n');
+            
+            currentUi.input.textComponent.horizontalOverflow = HorizontalWrapMode.Wrap;
+            currentUi.input.textComponent.verticalOverflow = VerticalWrapMode.Overflow;
+            currentUi.input.textComponent.resizeTextForBestFit = false;
+            currentUi.input.textComponent.alignment = TextAnchor.UpperLeft;
 
-            /*ContentSizeFitter fieldFitter = field.AddComponent<ContentSizeFitter>();
-            fieldFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            ContentSizeFitter inputFitter = input.gameObject.AddComponent<ContentSizeFitter>();
-            inputFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;*/
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 110);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
-
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);
@@ -206,17 +174,17 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentInput.SetTextWithoutNotify(defaultValue);
+            currentUi.input.SetTextWithoutNotify(defaultValue);
             OnCompValueChange(defaultValue);
         }
 
         internal void OnCompValueChange(string val)
         {
-            if (currentInput != null && currentInput.wasCanceled)
+            if (currentUi != null && currentUi.input.wasCanceled)
             {
                 if (!PluginConfiguratorController.cancelOnEsc.value)
                 {
-                    currentInput.SetTextWithoutNotify(lastInputText);
+                    currentUi.input.SetTextWithoutNotify(lastInputText);
                     val = lastInputText;
                 }
                 else
@@ -226,13 +194,13 @@ namespace PluginConfig.API.Fields
             string formattedVal = val.Replace('\n', separatorChar).Replace("\r", "");
             if (formattedVal == _value)
             {
-                currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(val))
             {
-                currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
@@ -249,12 +217,12 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             value = eventData.value;
-            currentInput.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+            currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
         }
 
         public void TriggerValueChangeEvent()

@@ -23,19 +23,18 @@ namespace PluginConfig.API
         public static ConfigPanelComponent lastActivePanel;
 
         public ConfigPanel panel;
-        public List<Tuple<int, PanelInfo>> allPanels = new List<Tuple<int, PanelInfo>>();
 
+        // Lazy ui creation
         void Awake()
         {
-
+            panel.CreateFieldUI();
+            panel.RecalculateLayoutAll();
         }
 
         protected void OnEnable()
         {
             lastActivePanel = this;
 
-            panel.CreateFieldUI();
-            panel.currentPanel.contentSizeFitter.SendMessage("OnRectTransformDimensionsChange");
             PluginConfiguratorController.activePanel = gameObject;
 
             PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
@@ -58,27 +57,8 @@ namespace PluginConfig.API
 
 			panel.rootConfig.presetButtonCanBeShown = true;
 			panel.rootConfig.presetMenuButton.SetActive(!panel.rootConfig.presetButtonHidden);
-
-            // dirtyFrame = Time.frameCount + 1;
         }
         
-        public void RebuildPanel()
-        {
-            foreach (var currentPanel in allPanels.OrderByDescending(item => item.Item1))
-            {
-                currentPanel.Item2.content.SendMessage("SetDirty");
-                LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.Item2.rect);
-            }
-        }
-
-        public int dirtyFrame = -1;
-        void Update()
-        {
-            // Needed because scroll rect size is not set correctly for some reason
-            if (dirtyFrame == Time.frameCount)
-                RebuildPanel();
-        }
-
         void OnDisable()
         {
 			panel.rootConfig.presetButtonCanBeShown = false;
@@ -102,6 +82,8 @@ namespace PluginConfig.API
         internal ConfigPanelComponent currentComp;
 
         internal List<ConfigPanel> childPanels = new List<ConfigPanel>();
+
+        // Reverse domino effect to update the deepest nodes first
         internal virtual void RecalculateLayoutAll()
         {
             foreach (var panel in childPanels)
@@ -110,7 +92,7 @@ namespace PluginConfig.API
             currentPanel.contentSizeFitter.SendMessage("SetDirty");
             LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.trans);
         }
-
+        
         internal virtual void RecalculateLayout()
         {
             currentPanel.contentSizeFitter.SendMessage("SetDirty");
@@ -316,7 +298,8 @@ namespace PluginConfig.API
             if (currentPanel != null && currentPanel.gameObject.activeInHierarchy)
             {
                 int currentIndex = currentPanel.content.childCount;
-                field.CreateUI(currentPanel.content);
+                if (field.createUI)
+                    field.CreateUI(currentPanel.content);
                 List<Transform> objects = new List<Transform>();
                 for (; currentIndex < currentPanel.content.childCount; currentIndex++)
                     objects.Add(currentPanel.content.GetChild(currentIndex));
@@ -348,8 +331,7 @@ namespace PluginConfig.API
             panel.SetActive(false);
             currentComp = panel.AddComponent<ConfigPanelComponent>();
             currentComp.panel = this;
-            currentComp.allPanels.Add(new Tuple<int, PanelInfo>(0, new PanelInfo() { rect = panel.GetComponent<RectTransform>() , content = currentPanel.contentSizeFitter }));
-
+            
             currentPanel.header.text = _headerText;
 
 			MenuEsc esc = panel.AddComponent<MenuEsc>();

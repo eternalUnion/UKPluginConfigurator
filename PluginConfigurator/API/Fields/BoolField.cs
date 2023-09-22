@@ -97,11 +97,11 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig, bool createUI) : base(displayName, guid, parentPanel)
+        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
             _saveToConfig = saveToConfig;
-            _createUI = createUI;
+            _createUI = createUi;
             strictGuid = saveToConfig;
 
             if (saveToConfig)

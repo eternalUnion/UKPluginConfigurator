@@ -1,16 +1,18 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.UI;
 
 namespace PluginConfig.API.Functionals
 {
     public class ButtonField : ConfigField
     {
-        internal GameObject currentUI;
-        internal Button currentButton;
-        internal Text currentText;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/ButtonField.prefab";
+
+        internal ConfigButtonField currentUi;
 
 		public override string displayName
 		{
@@ -23,9 +25,9 @@ namespace PluginConfig.API.Functionals
             get => _hidden; set
             {
                 _hidden = value;
-                if (currentUI == null)
+                if (currentUi == null)
                     return;
-                currentUI.SetActive(!_hidden && !parentHidden);
+                currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -35,9 +37,9 @@ namespace PluginConfig.API.Functionals
             get => _interactable; set
             {
                 _interactable = value;
-                if (currentButton == null)
+                if (currentUi == null)
                     return;
-                currentButton.interactable = _interactable && parentInteractable;
+                currentUi.button.interactable = _interactable && parentInteractable;
             }
         }
 
@@ -47,8 +49,8 @@ namespace PluginConfig.API.Functionals
             get => _text; set
             {
                 _text = value;
-                if (currentText != null)
-                    currentText.text = _text;
+                if (currentUi != null)
+                    currentUi.text.text = _text;
             }
         }
 
@@ -65,18 +67,18 @@ namespace PluginConfig.API.Functionals
 
         internal override GameObject CreateUI(Transform content)
         {
-            currentUI = PluginConfigurator.CreateBigContentButton(content, text, TextAnchor.MiddleCenter, 600).gameObject;
-            currentButton = currentUI.GetComponent<Button>();
-            currentText = currentUI.GetComponentInChildren<Text>();
-            currentButton.onClick.AddListener(() =>
+            GameObject button = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = button.GetComponent<ConfigButtonField>();
+
+            currentUi.button.onClick.AddListener(() =>
             {
                 if (onClick != null)
                     onClick.Invoke();
             });
 
-            currentUI.SetActive(!hidden && !parentHidden);
-            currentButton.interactable = interactable && parentInteractable;
-            return currentUI;
+            currentUi.gameObject.SetActive(!hidden && !parentHidden);
+            currentUi.button.interactable = interactable && parentInteractable;
+            return button;
         }
 
         internal override void ReloadDefault()
