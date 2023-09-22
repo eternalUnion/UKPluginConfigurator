@@ -226,7 +226,7 @@ namespace PluginConfig.API.Fields
 
 		internal override GameObject CreateUI(Transform content)
 		{
-			GameObject field = currentUi = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleKeyCodeField, content);
+			GameObject field = currentUi = GameObject.Instantiate(PluginConfiguratorController.sampleKeyCodeField, content);
 			RectTransform rect = field.GetComponent<RectTransform>();
 			rect.sizeDelta = new Vector2(600, 60);
 			currentButton = rect.Find("ChangeFist").GetComponent<Button>();
@@ -246,7 +246,7 @@ namespace PluginConfig.API.Fields
 
 			currentButton.onClick.AddListener(listener.Activate);
 
-			currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+			currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
 			GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
 			currentResetButton.AddComponent<DisableWhenHidden>();
 			currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
@@ -298,7 +298,7 @@ namespace PluginConfig.API.Fields
 			}
 			catch (Exception e)
 			{
-				PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+				PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
 			}
 
 			if (eventData.canceled)

@@ -93,7 +93,7 @@ namespace PluginConfig.API
 				fields.RemoveAt(previousIndex);
                 fields.Insert(value, this);
 
-                if (parentPanel.panelObject != null)
+                if (parentPanel.currentPanel != null)
                 {
                     var ui = parentPanel.fieldObjects[previousIndex];
                     parentPanel.fieldObjects.RemoveAt(previousIndex);

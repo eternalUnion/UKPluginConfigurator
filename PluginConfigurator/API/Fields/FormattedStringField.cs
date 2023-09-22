@@ -230,7 +230,7 @@ namespace PluginConfig.API.Fields
             {
                 if(inputField.wasCanceled)
                 {
-                    if(PluginConfiguratorController.Instance.cancelOnEsc.value)
+                    if(PluginConfiguratorController.cancelOnEsc.value)
                     {
                         lastText = newText;
                         textFormat = formatBeforeFocus;
@@ -294,16 +294,16 @@ namespace PluginConfig.API.Fields
             italicToggle.interactable = caller.supportItalicText;
 
             esc.previousPage = lastPage;
-            PluginConfiguratorController.Instance.activePanel = gameObject;
-            PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
-            PluginConfiguratorController.Instance.backButton.onClick.AddListener(() =>
+            PluginConfiguratorController.activePanel = gameObject;
+            PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
+            PluginConfiguratorController.backButton.onClick.AddListener(() =>
             {
                 caller.OnCompValueChange(lastText, textFormat);
                 caller = null;
 
                 gameObject.SetActive(false);
                 lastPage.SetActive(true);
-                PluginConfiguratorController.Instance.activePanel = lastPage;
+                PluginConfiguratorController.activePanel = lastPage;
             });
 
             displayText.supportRichText = false;
@@ -331,7 +331,7 @@ namespace PluginConfig.API.Fields
                     RectTransform panelRect = _panel.AddComponent<RectTransform>();
                     panelRect.anchorMin = new Vector2(0, 0);
                     panelRect.anchorMax = new Vector2(1, 1);
-                    panelRect.SetParent(PluginConfiguratorController.Instance.optionsMenu);
+                    panelRect.SetParent(PluginConfiguratorController.optionsMenu);
                     panelRect.sizeDelta = new Vector2(0, 0);
                     panelRect.localScale = Vector3.one;
                     panelRect.anchoredPosition = Vector3.zero;
@@ -339,7 +339,7 @@ namespace PluginConfig.API.Fields
                     MenuEsc esc = _panel.AddComponent<MenuEsc>();
                     FormattedStringPanelComp comp = _panel.AddComponent<FormattedStringPanelComp>();
 
-                    GameObject inputField = PluginConfiguratorController.Instance.MakeInputFieldNoBG(panelRect, panelRect);
+                    GameObject inputField = PluginConfiguratorController.MakeInputFieldNoBG(panelRect, panelRect);
                     RectTransform inputRect = inputField.GetComponent<RectTransform>();
                     inputRect.anchorMin = inputRect.anchorMax = new Vector2(0.5f, 0.5f);
                     inputRect.pivot = new Vector2(0.5f, 0.5f);
@@ -347,7 +347,7 @@ namespace PluginConfig.API.Fields
                     inputRect.anchoredPosition = new Vector2(0, 0);
                     InputField inputComp = inputField.GetComponent<InputField>();
 
-                    GameObject colorText = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleHeader);
+                    GameObject colorText = GameObject.Instantiate(PluginConfiguratorController.sampleHeader);
                     RectTransform colorTextRect = colorText.GetComponent<RectTransform>();
                     colorTextRect.SetParent(panelRect);
                     colorTextRect.pivot = new Vector2(0, 0.5f);
@@ -358,7 +358,7 @@ namespace PluginConfig.API.Fields
                     colorTextComp.fontSize = 48;
                     colorTextComp.text = "Current format";
 
-                    GameObject colorPreview = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleColor.transform.Find("Image").gameObject, panelRect);
+                    GameObject colorPreview = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Image").gameObject, panelRect);
                     RectTransform colorPreviewRect = colorPreview.GetComponent<RectTransform>();
                     colorPreviewRect.anchoredPosition = new Vector2(-270, -100);
                     Image previewImage = colorPreview.GetComponent<Image>();
@@ -375,7 +375,7 @@ namespace PluginConfig.API.Fields
 
                     // image: -260 -12
                     // red: -120 8
-                    GameObject redSlider = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleColor.transform.Find("Red").gameObject, panelRect);
+                    GameObject redSlider = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Red").gameObject, panelRect);
                     RectTransform redRect = redSlider.GetComponent<RectTransform>();
                     redRect.anchoredPosition = colorPreviewRect.anchoredPosition + new Vector2(125, 20);
                     Slider redSliderComp = UnityUtils.GetComponentInChildrenRecursively<Slider>(redRect);
@@ -384,7 +384,7 @@ namespace PluginConfig.API.Fields
                     SetupSlider(redSliderComp, redText);
                     redText.text = ((int)redSliderComp.value).ToString();
 
-                    GameObject greenSlider = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleColor.transform.Find("Green").gameObject, panelRect);
+                    GameObject greenSlider = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Green").gameObject, panelRect);
                     RectTransform greenRect = greenSlider.GetComponent<RectTransform>();
                     greenRect.anchoredPosition = colorPreviewRect.anchoredPosition + new Vector2(125, 0);
                     Slider greenSliderComp = UnityUtils.GetComponentInChildrenRecursively<Slider>(greenRect);
@@ -393,7 +393,7 @@ namespace PluginConfig.API.Fields
                     SetupSlider(greenSliderComp, greenText);
                     greenText.text = ((int)greenSliderComp.value).ToString();
 
-                    GameObject blueSlider = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleColor.transform.Find("Blue").gameObject, panelRect);
+                    GameObject blueSlider = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Blue").gameObject, panelRect);
                     RectTransform blueRect = blueSlider.GetComponent<RectTransform>();
                     blueRect.anchoredPosition = colorPreviewRect.anchoredPosition + new Vector2(125, -20);
                     Slider blueSliderComp = UnityUtils.GetComponentInChildrenRecursively<Slider>(blueRect);
@@ -407,23 +407,23 @@ namespace PluginConfig.API.Fields
                     blueSliderComp.onValueChanged.AddListener(newValue => previewImage.color = new Color(redSliderComp.normalizedValue, greenSliderComp.normalizedValue, blueSliderComp.normalizedValue));
                     previewImage.color = new Color(redSliderComp.normalizedValue, greenSliderComp.normalizedValue, blueSliderComp.normalizedValue);
 
-                    GameObject boldToggle = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBoolField.transform.Find("Toggle").gameObject, panelRect);
+                    GameObject boldToggle = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Toggle").gameObject, panelRect);
                     Toggle boldComp = boldToggle.GetComponent<Toggle>();
                     boldComp.onValueChanged = new Toggle.ToggleEvent();
                     RectTransform boldRect = boldToggle.GetComponent<RectTransform>();
                     boldRect.anchoredPosition = new Vector2(-183, -150);
-                    GameObject boldText = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBoolField.transform.Find("Text").gameObject, panelRect);
+                    GameObject boldText = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Text").gameObject, panelRect);
                     RectTransform boldTextRect = boldText.GetComponent<RectTransform>();
                     boldTextRect.anchorMin = boldTextRect.anchorMax = new Vector2(0.5f, 0.5f);
                     boldTextRect.anchoredPosition = new Vector2(-280, -150);
                     boldText.GetComponent<Text>().text = "Bold";
 
-                    GameObject italicToggle = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBoolField.transform.Find("Toggle").gameObject, panelRect);
+                    GameObject italicToggle = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Toggle").gameObject, panelRect);
                     Toggle italicComp = italicToggle.GetComponent<Toggle>();
                     italicComp.onValueChanged = new Toggle.ToggleEvent();
                     RectTransform italicRect = italicToggle.GetComponent<RectTransform>();
                     italicRect.anchoredPosition = new Vector2(-183, -170);
-                    GameObject italicText = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBoolField.transform.Find("Text").gameObject, panelRect);
+                    GameObject italicText = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Text").gameObject, panelRect);
                     RectTransform italicTextRect = italicText.GetComponent<RectTransform>();
                     italicTextRect.anchorMin = italicTextRect.anchorMax = new Vector2(0.5f, 0.5f);
                     italicTextRect.anchoredPosition = new Vector2(-280, -170);
@@ -923,7 +923,7 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
+            GameObject field = PluginConfiguratorController.MakeInputField(content);
             currentUi = field;
             currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
 			currentDisplayName.text = displayName;
@@ -942,7 +942,7 @@ namespace PluginConfig.API.Fields
             input.interactable = false;
             input.gameObject.AddComponent<Mask>();
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
             currentResetButton.AddComponent<DisableWhenHidden>();
             currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
@@ -957,7 +957,7 @@ namespace PluginConfig.API.Fields
             resetComp.onClick.AddListener(OnReset);
             currentResetButton.SetActive(false);
 
-            currentEditButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            currentEditButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             currentEditButton.transform.localScale = Vector3.one;
             GameObject.Destroy(currentEditButton.GetComponent<HudOpenEffect>());
 
@@ -971,7 +971,7 @@ namespace PluginConfig.API.Fields
             imgRect.anchoredPosition = Vector2.zero;
             imgRect.sizeDelta = new Vector2(-10, -10);
             Image imgComp = img.AddComponent<Image>();
-            imgComp.sprite = PluginConfiguratorController.Instance.penIcon;
+            imgComp.sprite = PluginConfiguratorController.penIcon;
             
             RectTransform editRect = currentEditButton.GetComponent<RectTransform>();
             editRect.anchorMax = new Vector2(1, 0.5f);
@@ -985,7 +985,7 @@ namespace PluginConfig.API.Fields
             {
                 // PUT OPEN PANEL HERE
                 FormattedStringPanel.panelComp.gameObject.SetActive(true);
-                FormattedStringPanel.panelComp.Open(parentPanel.panelObject, this);
+                FormattedStringPanel.panelComp.Open(parentPanel.currentPanel.gameObject, this);
             });
             currentEditButton.SetActive(true);
 
@@ -1036,7 +1036,7 @@ namespace PluginConfig.API.Fields
             }
             catch (Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
             }
 
             if (eventData.canceled)

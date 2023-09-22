@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace PluginConfiguratorComponents
 {
-    public class ConfigButtonField : MonoBehaviour
+    public class DisableWhenHidden : MonoBehaviour
     {
-        public Text text;
-        public Button button;
+        void OnDisable()
+        {
+            gameObject.SetActive(false);
+        }
     }
 }

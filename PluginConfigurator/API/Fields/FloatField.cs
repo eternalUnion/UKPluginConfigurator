@@ -145,7 +145,7 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = PluginConfiguratorController.Instance.MakeInputField(content);
+            GameObject field = PluginConfiguratorController.MakeInputField(content);
             currentUi = field;
             currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
 			currentDisplayName.text = displayName;
@@ -157,7 +157,7 @@ namespace PluginConfig.API.Fields
             input.onEndEdit.AddListener(OnCompValueChange);
             input.onValueChanged.AddListener(val => { if (!input.wasCanceled) lastInputText = val; });
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
             currentResetButton.AddComponent<DisableWhenHidden>();
             currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
@@ -197,7 +197,7 @@ namespace PluginConfig.API.Fields
         {
             if(currentInput != null && currentInput.wasCanceled)
             {
-                if (!PluginConfiguratorController.Instance.cancelOnEsc.value)
+                if (!PluginConfiguratorController.cancelOnEsc.value)
                 {
                     currentInput.SetTextWithoutNotify(lastInputText);
                     val = lastInputText;
@@ -251,7 +251,7 @@ namespace PluginConfig.API.Fields
             }
             catch (Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
             }
 
             if (eventData.canceled)

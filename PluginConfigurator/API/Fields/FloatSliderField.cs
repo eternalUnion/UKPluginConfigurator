@@ -262,7 +262,7 @@ namespace PluginConfig.API.Fields
                     }
                     catch (Exception e)
                     {
-                        PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
                     }
 
                     if (eventData.canceled)
@@ -291,7 +291,7 @@ namespace PluginConfig.API.Fields
                     }
                     catch (Exception e)
                     {
-                        PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
                     }
                 }
 
@@ -361,7 +361,7 @@ namespace PluginConfig.API.Fields
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
                 }
 
                 if (args.canceled)
@@ -413,7 +413,7 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject sliderField = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleSlider, content);
+            GameObject sliderField = GameObject.Instantiate(PluginConfiguratorController.sampleSlider, content);
             currentDisplayName = sliderField.transform.Find("Text").GetComponent<Text>();
 			currentDisplayName.text = displayName;
             sliderField.transform.Find("Button").GetComponent<Button>().onClick = new Button.ButtonClickedEvent();
@@ -439,7 +439,7 @@ namespace PluginConfig.API.Fields
                     }
                     catch (Exception e)
                     {
-                        PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
                     }
 
                     if (args.canceled)
@@ -449,7 +449,7 @@ namespace PluginConfig.API.Fields
                 normalizedValue = args.newNormalizedValue;
             });
 
-            GameObject textField = PluginConfiguratorController.Instance.MakeInputFieldNoBG(content, sliderField.transform);
+            GameObject textField = PluginConfiguratorController.MakeInputFieldNoBG(content, sliderField.transform);
             RectTransform textRect = textField.GetComponent<RectTransform>();
             textRect.sizeDelta = new Vector2(239, 20);
             textRect.anchoredPosition = new Vector2(220, -17);
@@ -465,7 +465,7 @@ namespace PluginConfig.API.Fields
             {
                 if (inputComp != null && inputComp.wasCanceled)
                 {
-                    if (!PluginConfiguratorController.Instance.cancelOnEsc.value)
+                    if (!PluginConfiguratorController.cancelOnEsc.value)
                     {
                         inputComp.SetTextWithoutNotify(lastInputText);
                         newValue = lastInputText;
@@ -499,7 +499,7 @@ namespace PluginConfig.API.Fields
                     }
                     catch (Exception e)
                     {
-                        PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
                     }
 
                     if (args.canceled)
@@ -509,7 +509,7 @@ namespace PluginConfig.API.Fields
                 value = args.newValue;
             });
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, sliderField.transform);
+            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, sliderField.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
             currentResetButton.AddComponent<DisableWhenHidden>();
             currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";

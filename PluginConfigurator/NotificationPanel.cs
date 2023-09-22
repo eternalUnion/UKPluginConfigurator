@@ -56,12 +56,12 @@ namespace PluginConfig
 		private static RectTransform root;
 		public static void InitUI()
 		{
-			if (root == null && PluginConfiguratorController.Instance.optionsMenu != null)
+			if (root == null && PluginConfiguratorController.optionsMenu != null)
 			{
-				PluginConfiguratorController.Instance.optionsMenu.gameObject.AddComponent<OptionsMenuListener>();
+				PluginConfiguratorController.optionsMenu.gameObject.AddComponent<OptionsMenuListener>();
 
 				root = new GameObject().AddComponent<RectTransform>();
-				root.SetParent(PluginConfiguratorController.Instance.optionsMenu);
+				root.SetParent(PluginConfiguratorController.optionsMenu);
 				root.anchorMin = new Vector2(0, 0);
 				root.anchorMax = new Vector2(1, 1);
 				root.pivot = new Vector2(0, 0);

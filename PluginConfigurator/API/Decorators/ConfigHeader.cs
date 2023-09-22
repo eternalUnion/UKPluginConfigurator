@@ -111,7 +111,7 @@ namespace PluginConfig.API.Decorators
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject header = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleHeader, /*containerRect*/content);
+            GameObject header = GameObject.Instantiate(PluginConfiguratorController.sampleHeader, /*containerRect*/content);
             currentUi = header;
 
             Text text = currentText = header.GetComponent<Text>();

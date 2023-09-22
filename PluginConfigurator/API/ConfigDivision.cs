@@ -1,55 +1,85 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static System.Net.Mime.MediaTypeNames;
+using UnityEngine.UIElements;
 
 namespace PluginConfig.API
 {
-    public class VerticalLayoutGroupWithCallback : VerticalLayoutGroup
+    internal class ConfigDivisionComp : UIBehaviour
     {
-        public RectTransform childPanel;
-        public static RectTransform currentConcretePanel;
+        public ConfigDivision div;
 
-		public override void SetLayoutVertical()
-		{
-			base.SetLayoutVertical();
+        protected override void OnRectTransformDimensionsChange()
+        {
+            base.OnRectTransformDimensionsChange();
 
-			if (childPanel.gameObject.activeInHierarchy && currentConcretePanel == null)
-            {
-                try
-                {
-                    currentConcretePanel = childPanel;
-					LayoutRebuilder.ForceRebuildLayoutImmediate(childPanel);
-                }
-                finally
-                {
-                    currentConcretePanel = null;
+            div.RecalculateLayout();
+        }
 
-				}
-            }
-		}
-	}
+        /*void OnEnable()
+        {
+            div.currentComp.dirtyFrame = Time.frameCount + 1;
+        }
+
+        void OnDisable()
+        {
+            div.currentComp.dirtyFrame = Time.frameCount + 1;
+        }*/
+
+        /*int dirtyFrame = -1;
+        void Update()
+        {
+            // Needed because scroll rect size is not set correctly for some reason
+            if (dirtyFrame == Time.frameCount)
+                
+        }*/
+    }
 
     public class ConfigDivision : ConfigPanel
     {
-		public override string displayName { get; set; }
+        public const string ASSET_PATH = "PluginConfigurator/Fields/VirtualPanel.prefab";
 
-		public override bool hidden { get => base.hidden; set
+        internal ConfigPanelVirtual currentVirtualPanel;
+        internal ConfigDivisionComp currentDivComp;
+
+        internal override void RecalculateLayoutAll()
+        {
+            foreach (var panel in childPanels)
+                panel.RecalculateLayoutAll();
+
+            currentVirtualPanel.contentSizeFitter.SendMessage("SetDirty");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(currentVirtualPanel.trans);
+        }
+
+        internal override void RecalculateLayout()
+        {
+            currentVirtualPanel.contentSizeFitter.SendMessage("SetDirty");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(currentVirtualPanel.trans);
+
+            parentPanel.RecalculateLayout();
+        }
+
+        public override string displayName { get; set; }
+
+		public override bool hidden { get => base.hidden;
+            set
             {
                 base.hidden = value;
-                if (panelObject != null)
-                    panelObject.SetActive(!hidden && !parentHidden);
+                if (currentVirtualPanel != null)
+                    currentVirtualPanel.gameObject.SetActive(!hidden && !parentHidden);
 
                 foreach (ConfigField field in fields)
-                {
                     field.parentHidden = value || (hidden || parentHidden);
-                }
             }
         }
 
-        public override bool interactable { get => base.interactable; set 
+        public override bool interactable { get => base.interactable;
+            set 
             {
                 base.interactable = value;
                 foreach (ConfigField field in fields)
@@ -64,6 +94,7 @@ namespace PluginConfig.API
             // panel.Register(this);
             // GetPanel().divisions.Add(this);
             panel.Register(this);
+            panel.childPanels.Add(this);
 
 			currentDirectory = parentPanel.currentDirectory + '/' + guid;
         }
@@ -72,13 +103,13 @@ namespace PluginConfig.API
         {
             fields.Add(field);
 
-			if (panelContent != null)
+			if (currentVirtualPanel != null)
 			{
-				int currentIndex = panelContent.childCount;
-				field.CreateUI(panelContent);
+				int currentIndex = currentVirtualPanel.content.childCount;
+				field.CreateUI(currentVirtualPanel.content);
 				List<Transform> objects = new List<Transform>();
-				for (; currentIndex < panelContent.childCount; currentIndex++)
-					objects.Add(panelContent.GetChild(currentIndex));
+				for (; currentIndex < currentVirtualPanel.content.childCount; currentIndex++)
+					objects.Add(currentVirtualPanel.content.GetChild(currentIndex));
 				fieldObjects.Add(objects);
             }
 		}
@@ -101,40 +132,34 @@ namespace PluginConfig.API
 
         internal override GameObject CreateUI(Transform content)
         {
-            RectTransform ui = new GameObject().AddComponent<RectTransform>();
-            panelContent = ui;
-            panelObject = ui.gameObject;
-			ui.SetParent(content);
-            ui.pivot = new Vector2(0.5f, 1);
-            ui.anchorMin = new Vector2(0, 0);
-            ui.anchorMax = new Vector2(1, 0);
-            ui.sizeDelta = new Vector2(0, 500);
-            ui.anchoredPosition = new Vector2(0, 0);
-            ui.localScale = Vector3.one;
+            // Pass the concrete panel
+            currentPanel = parentPanel.currentPanel;
+            currentComp = parentPanel.currentComp;
+            currentComp.dirtyFrame = Time.frameCount + 1;
 
-            ContentSizeFitter fitter = ui.gameObject.AddComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fitter.verticalFit = ContentSizeFitter.FitMode.MinSize;
-			VerticalLayoutGroupWithCallback layout = ui.gameObject.AddComponent<VerticalLayoutGroupWithCallback>();
-            layout.childPanel = GetConcretePanelObj().GetComponentInChildren<VerticalLayoutGroup>().GetComponent<RectTransform>();
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.spacing = 16;
-
+            GameObject panel = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentVirtualPanel = panel.GetComponent<ConfigPanelVirtual>();
+            panel.SetActive(false);
+            currentComp.allPanels.Add(new Tuple<int, PanelInfo>(panel.transform.hierarchyCount, new PanelInfo() { rect = panel.GetComponent<RectTransform>(), content = currentVirtualPanel.contentSizeFitter  }));
+            
 			fieldObjects.Clear();
-			int currentChildIndex = ui.childCount;
+			int currentChildIndex = currentVirtualPanel.content.childCount;
 			foreach (ConfigField config in fields)
 			{
 				List<Transform> fieldUI = new List<Transform>();
-				config.CreateUI(ui);
-				for (; currentChildIndex < ui.childCount; currentChildIndex++)
-					fieldUI.Add(ui.GetChild(currentChildIndex));
+				config.CreateUI(currentVirtualPanel.content);
+				for (; currentChildIndex < currentVirtualPanel.content.childCount; currentChildIndex++)
+					fieldUI.Add(currentVirtualPanel.content.GetChild(currentChildIndex));
 				fieldObjects.Add(fieldUI);
 			}
 
-            return ui.gameObject;
+            currentDivComp = panel.AddComponent<ConfigDivisionComp>();
+            currentDivComp.div = this;
+            currentVirtualPanel.contentSizeFitter.SendMessage("OnRectTransformDimensionsChange");
+
+            panel.SetActive(!hidden && !parentHidden);
+
+            return panel;
 		}
     }
 }

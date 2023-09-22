@@ -15,6 +15,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
@@ -26,7 +27,7 @@ namespace PluginConfig
     {
         void OnDisable()
         {
-            PluginConfiguratorController.Instance.FlushAllConfigs();
+            PluginConfiguratorController.FlushAllConfigs();
         }
     }
 
@@ -36,7 +37,6 @@ namespace PluginConfig
     [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
     public class PluginConfiguratorController : BaseUnityPlugin
     {
-        public static PluginConfiguratorController Instance;
         public static ManualLogSource logger;
         public static bool ultraTweaker = false;
 
@@ -44,26 +44,37 @@ namespace PluginConfig
         public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
         public const string PLUGIN_VERSION = "1.6.0";
 
-        internal List<PluginConfigurator> configs = new List<PluginConfigurator>();
-        internal void RegisterConfigurator(PluginConfigurator config)
+        // Used by addressables catalog
+        public static string workingPath;
+        public static string workingDir;
+        public static string catalogPath;
+
+        internal static List<PluginConfigurator> configs = new List<PluginConfigurator>();
+        
+        internal static void RegisterConfigurator(PluginConfigurator config)
         {
             configs.Add(config);
         }
-        public void FlushAllConfigs()
+
+        public static bool ConfigExists(string guid) => configs.Where(c => c.guid == guid).FirstOrDefault() != null;
+
+        public static PluginConfigurator GetConfig(string guid) => configs.Where(c => c.guid == guid).FirstOrDefault();
+
+        public static void FlushAllConfigs()
         {
             foreach (PluginConfigurator config in configs)
                 config.FlushAll();
         }
 
-        internal GameObject sampleBoolField;
-        internal GameObject sampleMenuButton;
-        internal GameObject sampleMenu;
-        internal GameObject sampleHeader;
-        internal GameObject sampleDropdown;
-        internal GameObject sampleColor;
-        internal GameObject sampleSlider;
-        internal GameObject sampleBigButton;
-		internal GameObject sampleKeyCodeField;
+        internal static GameObject sampleBoolField;
+        internal static GameObject sampleMenuButton;
+        internal static GameObject sampleMenu;
+        internal static GameObject sampleHeader;
+        internal static GameObject sampleDropdown;
+        internal static GameObject sampleColor;
+        internal static GameObject sampleSlider;
+        internal static GameObject sampleBigButton;
+		internal static GameObject sampleKeyCodeField;
 		private void LoadSamples(Transform optionsMenu)
         {
             //Canvas/OptionsMenu/Gameplay Options/Scroll Rect (1)/Contents/Variation Memory
@@ -84,7 +95,7 @@ namespace PluginConfig
 			sampleKeyCodeField = optionsMenu.Find("Controls Options/Scroll Rect/Contents/Change Arm").gameObject;
 		}
 
-		internal GameObject MakeInputField(Transform content)
+		internal static GameObject MakeInputField(Transform content)
         {
             GameObject field = Instantiate(sampleBoolField, content);
 
@@ -119,7 +130,7 @@ namespace PluginConfig
             return field;
         }
 
-        internal GameObject MakeInputFieldNoBG(Transform tempContent, Transform parent)
+        internal static GameObject MakeInputFieldNoBG(Transform tempContent, Transform parent)
         {
             GameObject field = Instantiate(sampleBoolField, tempContent);
 
@@ -201,20 +212,20 @@ namespace PluginConfig
             Button btn = ___newBtn.GetComponent<Button>();
             btn.onClick.AddListener(() =>
             {
-                if(Instance.activePanel != null)
-                    Instance.activePanel.SetActive(false);
-                Instance.activePanel = null;
-                Instance.mainPanel.SetActive(false);
+                if(activePanel != null)
+                    activePanel.SetActive(false);
+                activePanel = null;
+                mainPanel.SetActive(false);
             });
             btn.GetComponent<RectTransform>().anchoredPosition = new Vector2(30, 330);
         }
 
-        internal Transform configPanelContents;
-        internal Transform optionsMenu;
-        internal GameObject mainPanel;
-        internal GameObject activePanel;
-        internal Button backButton;
-        internal Harmony ultraTweakerHarmony = new Harmony(PLUGIN_GUID + "_ultraTweakerPatches");
+        internal static Transform configPanelContents;
+        internal static Transform optionsMenu;
+        internal static GameObject mainPanel;
+        internal static GameObject activePanel;
+        internal static Button backButton;
+        internal static Harmony ultraTweakerHarmony = new Harmony(PLUGIN_GUID + "_ultraTweakerPatches");
         private void OnSceneChange(Scene before, Scene after)
         {
             GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
@@ -297,11 +308,11 @@ namespace PluginConfig
                         if (comp.panel != null)
                             comp.panel.rootConfig.FlushAll();
                         else
-                            PluginConfiguratorController.Instance.LogWarning("Panel component does not have a config panel attached, could not flush");
+                            PluginConfiguratorController.LogWarning("Panel component does not have a config panel attached, could not flush");
                     }
                     else
                     {
-                        PluginConfiguratorController.Instance.LogWarning("Could not find panel's component");
+                        PluginConfiguratorController.LogWarning("Could not find panel's component");
                     }
 
                     activePanel.SetActive(false);
@@ -327,332 +338,351 @@ namespace PluginConfig
             NotificationPanel.InitUI();
         }
 
-        public Harmony configuratorPatches;
+        internal static Harmony configuratorPatches;
 
-        private PluginConfigurator config;
-        private BoolField patchCheatKeys;
-        private BoolField patchPause;
-        internal BoolField cancelOnEsc;
-        private BoolField devConfigs;
-        private enum LogLevel
+        internal static PluginConfigurator config;
+        internal static BoolField patchCheatKeys;
+        internal static BoolField patchPause;
+        internal static BoolField cancelOnEsc;
+        internal static BoolField devConfigs;
+
+        public enum LogLevel
         {
             Disabled,
             Debug,
             Warning,
             Error
         }
-        private EnumField<LogLevel> consoleLogLevel;
+        
+        internal static EnumField<LogLevel> consoleLogLevel;
 
-        internal enum TestEnum
+        private static class TestConfigs
         {
-            SampleText,
-            SecondElement,
-            Third
-        }
+            private static List<PluginConfigurator> testConfigs = new List<PluginConfigurator>();
 
-        private class CustomImageField : CustomConfigField
-        {
-            private class ControllerComp : MonoBehaviour
+            public static void SetVisibility(bool visible)
             {
-                public IEnumerator LoadSprite(CustomImageField field, string url)
-                {
-                    UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
-                    yield return request.SendWebRequest();
+                foreach (var config in testConfigs)
+                    config.hidden = !visible;
+            }
 
-                    if (request.isNetworkError || request.isHttpError)
+            internal enum TestEnum
+            {
+                SampleText,
+                SecondElement,
+                Third
+            }
+
+            private class CustomImageField : CustomConfigField
+            {
+                private class ControllerComp : MonoBehaviour
+                {
+                    public IEnumerator LoadSprite(CustomImageField field, string url)
                     {
-                        Debug.LogError("Error: " + request.error);
+                        UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+                        yield return request.SendWebRequest();
+
+                        if (request.isNetworkError || request.isHttpError)
+                        {
+                            Debug.LogError("Error: " + request.error);
+                        }
+                        else
+                        {
+                            Texture2D loadedTexture = DownloadHandlerTexture.GetContent(request);
+                            field.sprite = Sprite.Create(loadedTexture, new Rect(0f, 0f, loadedTexture.width, loadedTexture.height), Vector2.zero);
+                            field.SetImageSprite();
+                            PluginConfiguratorController.LogDebug($"Loaded sprite from {url} successfully");
+                        }
+                    }
+                }
+
+                private Sprite sprite;
+                private Image currentUI;
+                private static ControllerComp controller;
+
+                public CustomImageField(ConfigPanel parentPanel, string url) : base(parentPanel)
+                {
+                    if (controller == null)
+                    {
+                        GameObject controllerObj = new GameObject();
+                        DontDestroyOnLoad(controllerObj);
+                        controller = controllerObj.AddComponent<ControllerComp>();
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(url))
+                        controller.StartCoroutine(controller.LoadSprite(this, url));
+                }
+
+                public void ReloadImage(string newUrl)
+                {
+                    controller.StartCoroutine(controller.LoadSprite(this, newUrl));
+                }
+
+                protected override void OnCreateUI(RectTransform fieldUI)
+                {
+                    Image img = currentUI = fieldUI.gameObject.AddComponent<Image>();
+                    if (sprite != null)
+                        SetImageSprite();
+
+                    fieldUI.gameObject.SetActive(!hierarchyHidden);
+                }
+
+                public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
+                {
+                    if (currentUI != null)
+                        currentUI.gameObject.SetActive(!hierarchyHidden);
+                }
+
+                private void SetImageSprite()
+                {
+                    if (currentUI == null || sprite == null)
+                        return;
+
+                    RectTransform rect = currentUI.GetComponent<RectTransform>();
+                    rect.sizeDelta = new Vector2(600f, 600f * (sprite.rect.height / sprite.rect.width));
+
+                    currentUI.sprite = sprite;
+                }
+            }
+
+            private class CustomRandomColorPickerField : CustomConfigValueField
+            {
+                private class RandomColorPickerComp : MonoBehaviour
+                {
+                    public CustomRandomColorPickerField callback;
+
+                    private void Awake()
+                    {
+                        EventTrigger trigger = gameObject.AddComponent<EventTrigger>();
+                        EventTrigger.Entry mouseClick = new EventTrigger.Entry() { eventID = EventTriggerType.PointerClick };
+                        mouseClick.callback.AddListener((BaseEventData e) => { OnPointerClick(); });
+                        trigger.triggers.Add(mouseClick);
+                    }
+
+                    private void OnPointerClick()
+                    {
+                        if (!callback.hierarchyInteractable)
+                            return;
+
+                        Color randomColor = new Color();
+                        randomColor.r = UnityEngine.Random.Range(0f, 1f);
+                        randomColor.g = UnityEngine.Random.Range(0f, 1f);
+                        randomColor.b = UnityEngine.Random.Range(0f, 1f);
+                        randomColor.a = 1f;
+
+                        callback.value = randomColor;
+                    }
+                }
+
+                private Image currentImg;
+
+                public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
+                {
+                    if (currentImg != null)
+                        currentImg.gameObject.SetActive(!hierarchyHidden);
+                }
+
+                private void SetFieldValue(Color c)
+                {
+                    fieldValue = $"{c.r.ToString(CultureInfo.InvariantCulture)},{c.g.ToString(CultureInfo.InvariantCulture)},{c.b.ToString(CultureInfo.InvariantCulture)}";
+                }
+
+                private Color _value = new Color();
+                public Color value
+                {
+                    get => _value; set
+                    {
+                        _value = value;
+                        SetFieldValue(value);
+
+                        if (currentImg != null)
+                            currentImg.color = value;
+                    }
+                }
+
+                private Color defaultValue;
+                public CustomRandomColorPickerField(ConfigPanel parentPanel, string guid, Color defaultValue) : base(parentPanel, guid)
+                {
+                    this.defaultValue = defaultValue;
+
+                    if (fieldValue != null)
+                    {
+                        LoadFromString(fieldValue);
                     }
                     else
                     {
-                        Texture2D loadedTexture = DownloadHandlerTexture.GetContent(request);
-                        field.sprite = Sprite.Create(loadedTexture, new Rect(0f, 0f, loadedTexture.width, loadedTexture.height), Vector2.zero);
-                        field.SetImageSprite();
-                        PluginConfiguratorController.Instance.LogDebug($"Loaded sprite from {url} successfully");
+                        value = defaultValue;
                     }
                 }
-            }
 
-            private Sprite sprite;
-            private Image currentUI;
-            private static ControllerComp controller;
-
-            public CustomImageField(ConfigPanel parentPanel, string url) : base(parentPanel)
-            {
-                if (controller == null)
+                protected override void OnCreateUI(RectTransform fieldUI)
                 {
-                    GameObject controllerObj = new GameObject();
-                    DontDestroyOnLoad(controllerObj);
-                    controller = controllerObj.AddComponent<ControllerComp>();
-                }
+                    fieldUI.gameObject.AddComponent<RandomColorPickerComp>().callback = this;
+                    currentImg = fieldUI.gameObject.AddComponent<Image>();
+                    currentImg.color = value;
 
-                if (!string.IsNullOrWhiteSpace(url))
-                    controller.StartCoroutine(controller.LoadSprite(this, url));
-            }
-
-            public void ReloadImage(string newUrl)
-            {
-                controller.StartCoroutine(controller.LoadSprite(this, newUrl));
-            }
-
-            protected override void OnCreateUI(RectTransform fieldUI)
-            {
-                Image img = currentUI = fieldUI.gameObject.AddComponent<Image>();
-                if (sprite != null)
-                    SetImageSprite();
-
-                fieldUI.gameObject.SetActive(!hierarchyHidden);
-            }
-
-            public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
-            {
-                if (currentUI != null)
-                    currentUI.gameObject.SetActive(!hierarchyHidden);
-            }
-
-            private void SetImageSprite()
-            {
-                if (currentUI == null || sprite == null)
-                    return;
-
-                RectTransform rect = currentUI.GetComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(600f, 600f * (sprite.rect.height / sprite.rect.width));
-
-                currentUI.sprite = sprite;
-            }
-        }
-
-        private class CustomRandomColorPickerField : CustomConfigValueField
-        {
-            private class RandomColorPickerComp : MonoBehaviour
-            {
-                public CustomRandomColorPickerField callback;
-
-                private void Awake()
-                {
-                    EventTrigger trigger = gameObject.AddComponent<EventTrigger>();
-                    EventTrigger.Entry mouseClick = new EventTrigger.Entry() { eventID = EventTriggerType.PointerClick };
-                    mouseClick.callback.AddListener((BaseEventData e) => { OnPointerClick(); });
-                    trigger.triggers.Add(mouseClick);
-                }
-
-                private void OnPointerClick()
-                {
-                    if (!callback.hierarchyInteractable)
-                        return;
-
-                    Color randomColor = new Color();
-                    randomColor.r = UnityEngine.Random.Range(0f, 1f);
-                    randomColor.g = UnityEngine.Random.Range(0f, 1f);
-                    randomColor.b = UnityEngine.Random.Range(0f, 1f);
-                    randomColor.a = 1f;
-
-                    callback.value = randomColor;
-                }
-            }
-
-            private Image currentImg;
-
-            public override void OnHiddenChange(bool selfHidden, bool hierarchyHidden)
-            {
-                if (currentImg != null)
                     currentImg.gameObject.SetActive(!hierarchyHidden);
-            }
-
-            private void SetFieldValue(Color c)
-            {
-                fieldValue = $"{c.r.ToString(CultureInfo.InvariantCulture)},{c.g.ToString(CultureInfo.InvariantCulture)},{c.b.ToString(CultureInfo.InvariantCulture)}";
-            }
-
-            private Color _value = new Color();
-            public Color value
-            {
-                get => _value; set
-                {
-                    _value = value;
-                    SetFieldValue(value);
-
-                    if (currentImg != null)
-                        currentImg.color = value;
                 }
-            }
 
-            private Color defaultValue;
-            public CustomRandomColorPickerField(ConfigPanel parentPanel, string guid, Color defaultValue) : base(parentPanel, guid)
-            {
-                this.defaultValue = defaultValue;
-
-                if (fieldValue != null)
-                {
-                    LoadFromString(fieldValue);
-                }
-                else
+                protected override void LoadDefaultValue()
                 {
                     value = defaultValue;
                 }
-            }
 
-            protected override void OnCreateUI(RectTransform fieldUI)
-            {
-                fieldUI.gameObject.AddComponent<RandomColorPickerComp>().callback = this;
-                currentImg = fieldUI.gameObject.AddComponent<Image>();
-                currentImg.color = value;
-
-                currentImg.gameObject.SetActive(!hierarchyHidden);
-            }
-
-            protected override void LoadDefaultValue()
-            {
-                value = defaultValue;
-            }
-
-            protected override void LoadFromString(string data)
-            {
-                string[] colors = data.Split(',');
-                if (colors.Length != 3)
+                protected override void LoadFromString(string data)
                 {
-                    value = defaultValue;
-                    return;
+                    string[] colors = data.Split(',');
+                    if (colors.Length != 3)
+                    {
+                        value = defaultValue;
+                        return;
+                    }
+
+                    Color newColor = new Color();
+                    newColor.a = 1f;
+                    if (float.TryParse(colors[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float r))
+                        newColor.r = r;
+                    if (float.TryParse(colors[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float g))
+                        newColor.g = g;
+                    if (float.TryParse(colors[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float b))
+                        newColor.b = b;
+
+                    value = newColor;
                 }
-
-                Color newColor = new Color();
-                newColor.a = 1f;
-                if (float.TryParse(colors[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float r))
-                    newColor.r = r;
-                if (float.TryParse(colors[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float g))
-                    newColor.g = g;
-                if (float.TryParse(colors[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float b))
-                    newColor.b = b;
-
-                value = newColor;
             }
-        }
 
-        private void ConfigTest()
-        {
-            PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
-            divConfig.saveToFile = true;
-
-            BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
-            enabler1.presetLoadPriority = 1;
-            BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
-            enabler2.presetLoadPriority = 1;
-            BoolField interactable1 = new BoolField(divConfig.rootPanel, "Enable interacable 1", "interactable1", true);
-            interactable1.presetLoadPriority = 1;
-            BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
-            interactable2.presetLoadPriority = 1;
-            
-            ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
-            ButtonField button = new ButtonField(div1, "A Button...", "button");
-            button.onClick += () =>
+            public static void Init()
             {
-                Application.OpenURL("http://www.google.com");
-            };
-            KeyCodeField keyCodeField = new KeyCodeField(div1, "A key", "aKey", KeyCode.None);
+                PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
+                testConfigs.Add(divConfig);
+                divConfig.saveToFile = true;
 
-            ConfigPanel bigButtonPanel = new ConfigPanel(div1, "Big Button Panel", "bigButtonPanel", ConfigPanel.PanelFieldType.BigButton);
-			ConfigPanel iconPanel = new ConfigPanel(div1, "Icon panel", "iconPanel", ConfigPanel.PanelFieldType.StandardWithBigIcon);
+                BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
+                enabler1.presetLoadPriority = 1;
+                BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
+                enabler2.presetLoadPriority = 1;
+                BoolField interactable1 = new BoolField(divConfig.rootPanel, "Enable interacable 1", "interactable1", true);
+                interactable1.presetLoadPriority = 1;
+                BoolField interactable2 = new BoolField(divConfig.rootPanel, "Enable interacable 2", "interactable2", true);
+                interactable2.presetLoadPriority = 1;
 
-			FormattedStringBuilder builder = new FormattedStringBuilder();
-            builder.currentFormat = new API.Fields.CharacterInfo() { bold = true, color = Color.red };
-            builder += "FORMATTED TEXT";
+                ConfigDivision div1 = new ConfigDivision(divConfig.rootPanel, "div1");
+                ButtonField button = new ButtonField(div1, "A Button...", "button");
+                button.onClick += () =>
+                {
+                    Application.OpenURL("http://www.google.com");
+                };
+                KeyCodeField keyCodeField = new KeyCodeField(div1, "A key", "aKey", KeyCode.None);
 
-            FormattedStringField format = new FormattedStringField(div1, "Formatted string", "formattedString", builder.Build());
+                ConfigPanel bigButtonPanel = new ConfigPanel(div1, "Big Button Panel", "bigButtonPanel", ConfigPanel.PanelFieldType.BigButton);
+                ConfigPanel iconPanel = new ConfigPanel(div1, "Icon panel", "iconPanel", ConfigPanel.PanelFieldType.StandardWithBigIcon);
 
-            StringListField strList = new StringListField(div1, "Sample list", "strList", new string[] { "Item 1", "2", "Item 3" }, "2");
+                FormattedStringBuilder builder = new FormattedStringBuilder();
+                builder.currentFormat = new API.Fields.CharacterInfo() { bold = true, color = Color.red };
+                builder += "FORMATTED TEXT";
 
-            new ConfigHeader(div1, "Division 1");
-            new IntField(div1, "Sample Field", "sampleField1", 0);
-            new StringMultilineField(div1, "Multiline edit", "strMulti", "Hello!\nThis is a sample multiline field\n\nEnter as many lines as you want!");
+                FormattedStringField format = new FormattedStringField(div1, "Formatted string", "formattedString", builder.Build());
 
-            ConfigDivision div2 = new ConfigDivision(div1, "div2");
-            new ConfigHeader(div2, "Division 2");
+                StringListField strList = new StringListField(div1, "Sample list", "strList", new string[] { "Item 1", "2", "Item 3" }, "2");
 
-            ButtonArrayField buttons = new ButtonArrayField(div2, "buttons", 4, new float[] { 0.25f, 0.5f, 0.125f, 0.125f }, new string[] { "First", "Second", "Third", "Fourth" });
-            buttons.OnClickEventHandler(0).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 1 pressed"); };
-            buttons.OnClickEventHandler(1).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 2 pressed"); };
-            buttons.OnClickEventHandler(2).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 3 pressed"); };
-            buttons.OnClickEventHandler(3).onClick += () => { PluginConfiguratorController.Instance.LogDebug("Button 4 pressed"); };
+                new ConfigHeader(div1, "Division 1");
+                new IntField(div1, "Sample Field", "sampleField1", 0);
+                new StringMultilineField(div1, "Multiline edit", "strMulti", "Hello!\nThis is a sample multiline field\n\nEnter as many lines as you want!");
 
-            new BoolField(div2, "Sample Field", "sampleField2", true);
-            new ConfigPanel(div2, "SamplePanel", "samplePanel");
-            FloatSliderField slider = new FloatSliderField(div2, "Slider field", "slider", new Tuple<float, float>(0, 100), 50, 2);
-            slider.onValueChange += (FloatSliderField.FloatSliderValueChangeEvent e) =>
-            {
-                if (e.newValue == 20)
-                    e.newValue = 5.5f;
-                else if (e.newValue == 30)
-                    e.canceled = true;
-            };
-            ColorField colorField = new ColorField(div2, "Sample Color", "sampleColor", new Color(0.3f, 0.2f, 0.1f));
-            colorField.onValueChange += (ColorField.ColorValueChangeEvent data) =>
-            {
-                Logger.LogDebug($"New color: {data.value}");
-            };
-            EnumField<TestEnum> enumField = new EnumField<TestEnum>(div2, "Sample Enum", "sampleEnum1", TestEnum.SampleText);
-            enumField.SetEnumDisplayName(TestEnum.SampleText, "Sample Text");
-            enumField.SetEnumDisplayName(TestEnum.SecondElement, "Second Element");
-            enumField.SetEnumDisplayName(TestEnum.Third, "Third");
+                ConfigDivision div2 = new ConfigDivision(div1, "div2");
+                new ConfigHeader(div2, "Division 2");
 
-            enabler1.onValueChange += (BoolField.BoolValueChangeEvent data) =>
-            {
-                div1.hidden = !data.value;
-            };
-            enabler2.onValueChange += (BoolField.BoolValueChangeEvent data) =>
-            {
-                div2.hidden = !data.value;
-            };
-            interactable1.onValueChange += (BoolField.BoolValueChangeEvent data) =>
-            {
-                div1.interactable = data.value;
-            };
-            interactable2.onValueChange += (BoolField.BoolValueChangeEvent data) =>
-            {
-                div2.interactable = data.value;
-            };
+                ButtonArrayField buttons = new ButtonArrayField(div2, "buttons", 4, new float[] { 0.25f, 0.5f, 0.125f, 0.125f }, new string[] { "First", "Second", "Third", "Fourth" });
+                buttons.OnClickEventHandler(0).onClick += () => { PluginConfiguratorController.LogDebug("Button 1 pressed"); };
+                buttons.OnClickEventHandler(1).onClick += () => { PluginConfiguratorController.LogDebug("Button 2 pressed"); };
+                buttons.OnClickEventHandler(2).onClick += () => { PluginConfiguratorController.LogDebug("Button 3 pressed"); };
+                buttons.OnClickEventHandler(3).onClick += () => { PluginConfiguratorController.LogDebug("Button 4 pressed"); };
 
-            PluginConfigurator rangeConfig = PluginConfigurator.Create("Range", "rangeTest");
-            rangeConfig.saveToFile = false;
+                new BoolField(div2, "Sample Field", "sampleField2", true);
+                new ConfigPanel(div2, "SamplePanel", "samplePanel");
+                FloatSliderField slider = new FloatSliderField(div2, "Slider field", "slider", new Tuple<float, float>(0, 100), 50, 2);
+                slider.onValueChange += (FloatSliderField.FloatSliderValueChangeEvent e) =>
+                {
+                    if (e.newValue == 20)
+                        e.newValue = 5.5f;
+                    else if (e.newValue == 30)
+                        e.canceled = true;
+                };
+                ColorField colorField = new ColorField(div2, "Sample Color", "sampleColor", new Color(0.3f, 0.2f, 0.1f));
+                colorField.onValueChange += (ColorField.ColorValueChangeEvent data) =>
+                {
+                    logger.LogDebug($"New color: {data.value}");
+                };
+                EnumField<TestEnum> enumField = new EnumField<TestEnum>(div2, "Sample Enum", "sampleEnum1", TestEnum.SampleText);
+                enumField.SetEnumDisplayName(TestEnum.SampleText, "Sample Text");
+                enumField.SetEnumDisplayName(TestEnum.SecondElement, "Second Element");
+                enumField.SetEnumDisplayName(TestEnum.Third, "Third");
 
-            new IntField(rangeConfig.rootPanel, "-5 to 5 near", "intrange1", 0, -5, 5, true);
-            new IntField(rangeConfig.rootPanel, "-5 to 5 invalid", "intrange2", 0, -5, 5, false);
-            new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 near", "floatrange1", 0, -2.5f, 2.5f, true);
-            new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
-            new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
-            new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
+                enabler1.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+                {
+                    div1.hidden = !data.value;
+                };
+                enabler2.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+                {
+                    div2.hidden = !data.value;
+                };
+                interactable1.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+                {
+                    div1.interactable = data.value;
+                };
+                interactable2.onValueChange += (BoolField.BoolValueChangeEvent data) =>
+                {
+                    div2.interactable = data.value;
+                };
 
-            PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
-            customFieldTest.saveToFile = true;
+                PluginConfigurator rangeConfig = PluginConfigurator.Create("Range", "rangeTest");
+                testConfigs.Add(rangeConfig);
+                rangeConfig.saveToFile = false;
 
-            new ConfigHeader(customFieldTest.rootPanel, "Test Image Field:");
-            string bannerUrl = "https://c4.wallpaperflare.com/wallpaper/981/954/357/ultrakill-red-background-v1-ultrakill-weapon-hd-wallpaper-thumb.jpg";
-            CustomImageField imgField = new CustomImageField(customFieldTest.rootPanel, null);
+                new IntField(rangeConfig.rootPanel, "-5 to 5 near", "intrange1", 0, -5, 5, true);
+                new IntField(rangeConfig.rootPanel, "-5 to 5 invalid", "intrange2", 0, -5, 5, false);
+                new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 near", "floatrange1", 0, -2.5f, 2.5f, true);
+                new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
+                new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
+                new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
 
-            StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false, false);
-            ButtonField setImgButton = new ButtonField(customFieldTest.rootPanel, "Load Image From URL", "imgUrlLoad");
-            setImgButton.onClick += () =>
-            {
+                PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
+                testConfigs.Add(customFieldTest);
+                customFieldTest.saveToFile = true;
+
+                new ConfigHeader(customFieldTest.rootPanel, "Test Image Field:");
+                string bannerUrl = "https://c4.wallpaperflare.com/wallpaper/981/954/357/ultrakill-red-background-v1-ultrakill-weapon-hd-wallpaper-thumb.jpg";
+                CustomImageField imgField = new CustomImageField(customFieldTest.rootPanel, null);
+
+                StringField urlField = new StringField(customFieldTest.rootPanel, "URL", "imgUrl", bannerUrl, false, false);
+                ButtonField setImgButton = new ButtonField(customFieldTest.rootPanel, "Load Image From URL", "imgUrlLoad");
+                setImgButton.onClick += () =>
+                {
+                    imgField.ReloadImage(urlField.value);
+                };
                 imgField.ReloadImage(urlField.value);
-            };
-            imgField.ReloadImage(urlField.value);
 
-            new ConfigHeader(customFieldTest.rootPanel, "Random Color Picker (peak laziness)", 16);
-            new CustomRandomColorPickerField(customFieldTest.rootPanel, "randomColor", new Color(1, 0, 0));
+                new ConfigHeader(customFieldTest.rootPanel, "Random Color Picker (peak laziness)", 16);
+                new CustomRandomColorPickerField(customFieldTest.rootPanel, "randomColor", new Color(1, 0, 0));
+            }
         }
 
-        public AssetBundle bundle;
-        public Sprite trashIcon;
-        public Sprite penIcon;
-        public Sprite defaultPluginImage;
+        public static AssetBundle bundle;
+        public static Sprite trashIcon;
+        public static Sprite penIcon;
+        public static Sprite defaultPluginImage;
 
         private void Awake()
         {
-            Instance = this;
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             logger = Logger;
 
-			string workingPath = Assembly.GetExecutingAssembly().Location;
-			string workingDir = Path.GetDirectoryName(workingPath);
+			workingPath = Assembly.GetExecutingAssembly().Location;
+			workingDir = Path.GetDirectoryName(workingPath);
+            catalogPath = Path.Combine(workingDir, "Assets");
+
+            Addressables.InitializeAsync().WaitForCompletion();
+            Addressables.LoadContentCatalogAsync(Path.Combine(catalogPath, "catalog.json"), true).WaitForCompletion();
 
 			configuratorPatches = new Harmony(PLUGIN_GUID);
             config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
@@ -665,9 +695,16 @@ namespace PluginConfig
             cancelOnEsc = new BoolField(config.rootPanel, "Cancel on ESC", "cancelOnEsc", true);
             new ConfigHeader(config.rootPanel, "Developer Stuffs");
             devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
+            devConfigs.onValueChange += (BoolField.BoolValueChangeEvent e) =>
+            {
+                TestConfigs.SetVisibility(e.value);
+            };
+            TestConfigs.Init();
+            devConfigs.TriggerValueChangeEvent();
             consoleLogLevel = new EnumField<LogLevel>(config.rootPanel, "Console log level", "consoleLogLevel", LogLevel.Disabled);
 
             Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
+
             try
             {
                 bundle = AssetBundle.LoadFromFile(Path.Combine(workingDir, "pluginconfigurator"));
@@ -679,10 +716,6 @@ namespace PluginConfig
             {
                 LogError($"Could not load the asset bundle:\n{e}");
             }
-
-            // TEST CONFIGS
-            if(devConfigs.value)
-                ConfigTest();
 
             MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
 
@@ -734,21 +767,21 @@ namespace PluginConfig
             SceneManager.activeSceneChanged -= OnSceneChange;
         }
 
-        public void LogDebug(string message)
+        public static void LogDebug(string message)
         {
-            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Debug && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
+            if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Debug)
                 return;
             logger.LogMessage(message);
         }
 
-        public void LogWarning(string message)
+        public static void LogWarning(string message)
         {
             if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
                 return;
             logger.LogWarning(message);
         }
 
-        public void LogError(string message)
+        public static void LogError(string message)
         {
             if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Error)
                 return;
@@ -766,7 +799,7 @@ namespace PluginConfig
         private static void OnApplicationPause(bool pause)
         {
             if (pause)
-                foreach (PluginConfigurator config in PluginConfiguratorController.Instance.configs)
+                foreach (PluginConfigurator config in PluginConfiguratorController.configs)
                 {
                     config.FlushAll();
                 }

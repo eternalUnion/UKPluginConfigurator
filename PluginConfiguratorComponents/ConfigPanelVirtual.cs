@@ -9,6 +9,8 @@ namespace PluginConfiguratorComponents
     public class ConfigPanelVirtual : MonoBehaviour
     {
         public VerticalLayoutGroup layout;
+        public RectTransform trans;
+        public ContentSizeFitter contentSizeFitter;
         public Transform content;
     }
 }

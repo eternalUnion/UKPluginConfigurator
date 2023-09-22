@@ -9,7 +9,9 @@ namespace PluginConfiguratorComponents
     public class ConfigValueSliderField : MonoBehaviour
     {
         public Text name;
-        public Text value;
         public Slider slider;
+        public InputField input;
+
+        public Button resetButton;
     }
 }

@@ -1,72 +1,53 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 using static HarmonyLib.AccessTools;
 
 namespace PluginConfig.API
 {
-    class ConfigPanelComponent : MonoBehaviour
+    internal struct PanelInfo
     {
+        public RectTransform rect;
+        public ContentSizeFitter content;
+    }
+
+    internal class ConfigPanelComponent : MonoBehaviour
+    {
+        public static ConfigPanelComponent lastActivePanel;
+
         public ConfigPanel panel;
-        private VerticalLayoutGroup layoutGroup;
-        private ScrollRect scrollRect;
+        public List<Tuple<int, PanelInfo>> allPanels = new List<Tuple<int, PanelInfo>>();
 
         void Awake()
         {
-            layoutGroup = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(transform);
-            scrollRect = UnityUtils.GetComponentInChildrenRecursively<ScrollRect>(transform);
+
         }
 
-        // Why do I even have to do this?
-        void ResetContentBounds()
-        {
-            if (layoutGroup == null)
-            {
-                layoutGroup = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(transform);
-                scrollRect = UnityUtils.GetComponentInChildrenRecursively<ScrollRect>(transform);
-            }
-
-            layoutGroup.CalculateLayoutInputVertical();
-            layoutGroup.SetLayoutVertical();
-            scrollRect.SendMessage("OnRectTransformDimensionsChange");
-        }
-
-        bool dirty = false;
-        void Update()
-        {
-            if(dirty)
-            {
-                ResetContentBounds();
-                dirty = false;
-            }
-        }
-
-        public static ConfigPanelComponent lastActivePanel;
-
-        void OnEnable()
+        protected void OnEnable()
         {
             lastActivePanel = this;
 
-            //Invoke("SetContent", 0.001f);
-            //SetContent();
-            dirty = true;
+            panel.CreateFieldUI();
+            panel.currentPanel.contentSizeFitter.SendMessage("OnRectTransformDimensionsChange");
+            PluginConfiguratorController.activePanel = gameObject;
 
-            PluginConfiguratorController.Instance.activePanel = gameObject;
-
-            PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
-            PluginConfiguratorController.Instance.backButton.onClick.AddListener(() =>
+            PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
+            PluginConfiguratorController.backButton.onClick.AddListener(() =>
             {
                 gameObject.SetActive(false);
                 if(panel.parentPanel == null)
                 {
                     panel.rootConfig.FlushAll();
-                    PluginConfiguratorController.Instance.mainPanel.SetActive(true);
-                    PluginConfiguratorController.Instance.backButton.onClick = new Button.ButtonClickedEvent();
-                    PluginConfiguratorController.Instance.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
+                    PluginConfiguratorController.mainPanel.SetActive(true);
+                    PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
+                    PluginConfiguratorController.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
                 }
                 else
                 {
@@ -77,6 +58,25 @@ namespace PluginConfig.API
 
 			panel.rootConfig.presetButtonCanBeShown = true;
 			panel.rootConfig.presetMenuButton.SetActive(!panel.rootConfig.presetButtonHidden);
+
+            // dirtyFrame = Time.frameCount + 1;
+        }
+        
+        public void RebuildPanel()
+        {
+            foreach (var currentPanel in allPanels.OrderByDescending(item => item.Item1))
+            {
+                currentPanel.Item2.content.SendMessage("SetDirty");
+                LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.Item2.rect);
+            }
+        }
+
+        public int dirtyFrame = -1;
+        void Update()
+        {
+            // Needed because scroll rect size is not set correctly for some reason
+            if (dirtyFrame == Time.frameCount)
+                RebuildPanel();
         }
 
         void OnDisable()
@@ -91,29 +91,47 @@ namespace PluginConfig.API
     /// </summary>
     public class ConfigPanel : ConfigField
     {
-        internal GameObject panelObject;
-        internal Transform panelContent;
-        internal GameObject panelButton;
-        internal Button panelButtonComp;
-        internal Text panelButtonText;
-        private Text currentDisplayName;
-        internal Text currentHeaderText;
+        private const string ASSET_PATH_PANEL = "PluginConfigurator/Fields/ConcretePanel.prefab";
+        private const string ASSET_PATH_MENU_STANDARD = "PluginConfigurator/Fields/ConfigMenu.prefab";
+        private const string ASSET_PATH_MENU_ICON = "PluginConfigurator/Fields/ConfigMenuIcon.prefab";
+        private const string ASSET_PATH_MENU_ICON_BIG = "PluginConfigurator/Fields/ConfigMenuBigIcon.prefab";
+        private const string ASSET_PATH_MENU_BIG_BUTTON = "PluginConfigurator/Fields/ConfigMenuBigButton.prefab";
 
-		private string _displayName;
+        internal ConfigPanelConcrete currentPanel;
+        internal ConfigMenuField currentMenu;
+        internal ConfigPanelComponent currentComp;
+
+        internal List<ConfigPanel> childPanels = new List<ConfigPanel>();
+        internal virtual void RecalculateLayoutAll()
+        {
+            foreach (var panel in childPanels)
+                panel.RecalculateLayoutAll();
+
+            currentPanel.contentSizeFitter.SendMessage("SetDirty");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.trans);
+        }
+
+        internal virtual void RecalculateLayout()
+        {
+            currentPanel.contentSizeFitter.SendMessage("SetDirty");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.trans);
+        }
+
+        private string _displayName;
 		public override string displayName
 		{
 			get => _displayName;
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+                if (currentMenu != null)
+                    currentMenu.name.text = _displayName;
 			}
 		}
 
         private string _headerText;
         /// <summary>
-        /// Text on top of the pannel, set to --{display name}-- by default
+        /// Text on top of the pannel, set to --{<see cref="ConfigField.displayName"/>}-- by default
         /// </summary>
         public string headerText
         {
@@ -121,8 +139,20 @@ namespace PluginConfig.API
             set
             {
                 _headerText = value;
-                if (currentHeaderText != null)
-                    currentHeaderText.text = _headerText;
+                if (currentPanel != null)
+                   currentPanel.header.text = _headerText;
+            }
+        }
+
+        private string _buttonText = "Open";
+        public string buttonText
+        {
+            get => _buttonText;
+            set
+            {
+                _buttonText = value;
+                if (currentMenu != null)
+                    currentMenu.buttonText.text = _buttonText;
             }
         }
 
@@ -138,7 +168,7 @@ namespace PluginConfig.API
         private Sprite _icon;
         private Image currentImage;
         /// <summary>
-        /// If panel's field type is <see cref="PanelFieldType.StandardWithBigIcon"/>, the sprite will be used as an icon. Can be set trough <see cref="SetIconWithURL(string)"/>
+        /// If panel's field type contains an icon, the sprite will be used. Can be set trough <see cref="SetIconWithURL(string)"/>
         /// </summary>
         public Sprite icon
         {
@@ -231,17 +261,17 @@ namespace PluginConfig.API
             get => _hidden; set
             {
                 _hidden = value;
-                if(panelButton != null)
-                    panelButton.SetActive(!_hidden && !parentHidden);
+                if(currentMenu != null)
+                    currentMenu.gameObject.SetActive(!_hidden && !parentHidden);
             } 
         }
 
         private void SetInteractableColor(bool interactable)
         {
-            if (panelButton == null)
+            if (currentMenu == null)
                 return;
 
-            panelButtonText.color = interactable ? Color.white : Color.gray;
+            currentMenu.name.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -250,9 +280,9 @@ namespace PluginConfig.API
             get => _interactable; set
             {
                 _interactable = value;
-                if (panelButtonComp != null)
+                if (currentMenu != null)
                 {
-					panelButtonComp.interactable = _interactable && parentInteractable;
+                    currentMenu.button.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -268,14 +298,6 @@ namespace PluginConfig.API
 
         }
 
-        public ConfigPanel(ConfigPanel parentPanel, string name, string guid) : base(name, guid, parentPanel)
-        {
-            headerText = $"--{displayName}--";
-
-			parentPanel.Register(this);
-            currentDirectory = parentPanel.currentDirectory + '/' + guid;
-        }
-
 		public ConfigPanel(ConfigPanel parentPanel, string name, string guid, PanelFieldType fieldType) : base(name, guid, parentPanel)
 		{
             headerText = $"--{displayName}--";
@@ -285,29 +307,32 @@ namespace PluginConfig.API
 			currentDirectory = parentPanel.currentDirectory + '/' + guid;
 		}
 
-		internal virtual void Register(ConfigField field)
+        public ConfigPanel(ConfigPanel parentPanel, string name, string guid) : this(parentPanel, name, guid, PanelFieldType.Standard) { }
+
+
+        internal virtual void Register(ConfigField field)
         {
             fields.Add(field);
-            if (panelContent != null)
+            if (currentPanel != null && currentPanel.gameObject.activeInHierarchy)
             {
-                int currentIndex = panelContent.childCount;
-                field.CreateUI(panelContent);
+                int currentIndex = currentPanel.content.childCount;
+                field.CreateUI(currentPanel.content);
                 List<Transform> objects = new List<Transform>();
-                for (; currentIndex < panelContent.childCount; currentIndex++)
-                    objects.Add(panelContent.GetChild(currentIndex));
+                for (; currentIndex < currentPanel.content.childCount; currentIndex++)
+                    objects.Add(currentPanel.content.GetChild(currentIndex));
                 fieldObjects.Add(objects);
             }
         }
 
         internal virtual void ActivatePanel()
         {
-            if (panelObject != null)
-                panelObject.SetActive(true);
+            if (currentPanel != null)
+                currentPanel.gameObject.SetActive(true);
         }
 
         internal virtual GameObject GetConcretePanelObj()
         {
-            return panelObject;
+            return currentPanel == null ? null : currentPanel.gameObject;
         }
 
         internal virtual ConfigPanel GetConcretePanel()
@@ -318,104 +343,66 @@ namespace PluginConfig.API
         internal List<List<Transform>> fieldObjects = new List<List<Transform>>();
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject panel = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, PluginConfiguratorController.Instance.optionsMenu);
-            panelObject = panel;
-            Text panelText = currentHeaderText = panel.transform.Find("Text").GetComponent<Text>();
-            panelText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            panelText.text = _headerText;
-            panelText.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, -115);
+            GameObject panel = Addressables.InstantiateAsync(ASSET_PATH_PANEL, PluginConfiguratorController.optionsMenu).WaitForCompletion();
+            currentPanel = panel.GetComponent<ConfigPanelConcrete>();
             panel.SetActive(false);
-            ConfigPanelComponent panelComp = panel.AddComponent<ConfigPanelComponent>();
-            panelComp.panel = this;
+            currentComp = panel.AddComponent<ConfigPanelComponent>();
+            currentComp.panel = this;
+            currentComp.allPanels.Add(new Tuple<int, PanelInfo>(0, new PanelInfo() { rect = panel.GetComponent<RectTransform>() , content = currentPanel.contentSizeFitter }));
 
-            Transform contents = panelContent = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(panel.transform).transform;
-            foreach (Transform t in contents)
-                GameObject.Destroy(t.gameObject);
-			panel.GetComponentInChildren<ScrollRect>().normalizedPosition = new Vector2(0, 1);
+            currentPanel.header.text = _headerText;
 
 			MenuEsc esc = panel.AddComponent<MenuEsc>();
             if (parentPanel == null)
-                esc.previousPage = PluginConfiguratorController.Instance.mainPanel;
+                esc.previousPage = PluginConfiguratorController.mainPanel;
             else
                 esc.previousPage = parentPanel.GetConcretePanelObj();
 
-            fieldObjects.Clear();
-            int currentChildIndex = contents.childCount;
-			foreach (ConfigField config in fields)
-            {
-                List<Transform> fieldUI = new List<Transform>();
-				config.CreateUI(contents);
-                for (; currentChildIndex < contents.childCount; currentChildIndex++)
-                    fieldUI.Add(contents.GetChild(currentChildIndex));
-                fieldObjects.Add(fieldUI);
-			}
-
 			if (content != null)
             {
-                if (fieldType == PanelFieldType.Standard || fieldType == PanelFieldType.StandardWithBigIcon || fieldType == PanelFieldType.StandardWithIcon)
-                {
-                    panelButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton, content);
-                    panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
-					panelButtonText.text = displayName;
-                    currentDisplayName = panelButtonText;
-					Transform buttonSelect = panelButton.transform.Find("Select");
-                    buttonSelect.transform.Find("Text").GetComponent<Text>().text = "Open";
-                    Button buttonComp = panelButtonComp = buttonSelect.gameObject.GetComponent<Button>();
-                    buttonComp.onClick = new Button.ButtonClickedEvent();
-                    buttonComp.onClick.AddListener(() => OpenPanelInternally(false));
+                GameObject menu = null;
 
-					buttonSelect.GetComponent<RectTransform>().anchoredPosition += new Vector2(80, 0);
-					if (fieldType == PanelFieldType.StandardWithBigIcon || fieldType == PanelFieldType.StandardWithIcon)
-                    {
-                        if (fieldType == PanelFieldType.StandardWithBigIcon)
-                            panelButton.GetComponent<RectTransform>().sizeDelta = new Vector2(600, 100);
-						panelButtonText.GetComponent<RectTransform>().anchoredPosition += new Vector2(fieldType == PanelFieldType.StandardWithBigIcon ? 70 : 30, 0);
+                if (fieldType == PanelFieldType.StandardWithIcon)
+                    menu = Addressables.InstantiateAsync(ASSET_PATH_MENU_ICON, content).WaitForCompletion();
+                else if (fieldType == PanelFieldType.StandardWithBigIcon)
+                    menu = Addressables.InstantiateAsync(ASSET_PATH_MENU_ICON_BIG, content).WaitForCompletion();
+                else if (fieldType == PanelFieldType.BigButton)
+                    menu = Addressables.InstantiateAsync(ASSET_PATH_MENU_BIG_BUTTON, content).WaitForCompletion();
+                else
+                    menu = Addressables.InstantiateAsync(ASSET_PATH_MENU_STANDARD, content).WaitForCompletion();
 
-						GameObject pluginImage = new GameObject();
-						RectTransform imageRect = pluginImage.AddComponent<RectTransform>();
-						imageRect.SetParent(panelButton.transform);
-						imageRect.localScale = Vector3.one;
-						imageRect.pivot = new Vector2(0, 0.5f);
-						imageRect.anchorMin = new Vector2(0, 0.5f);
-						imageRect.anchorMax = new Vector2(0, 0.5f);
-                        if (fieldType == PanelFieldType.StandardWithBigIcon)
-                        {
-							imageRect.sizeDelta = new Vector2(80, 80);
-							imageRect.anchoredPosition = new Vector2(10, 0);
-                            panelButtonText.GetComponent<RectTransform>().sizeDelta = new Vector2(180, 70);
-						}
-                        else
-                        {
-							imageRect.sizeDelta = new Vector2(40, 40);
-							imageRect.anchoredPosition = new Vector2(20, 0);
-						}
+                currentMenu = menu.GetComponent<ConfigMenuField>();
+                currentMenu.name.text = displayName;
+                if (currentMenu.icon != null)
+                    currentMenu.icon.sprite = icon;
+                if (currentMenu.buttonText != null)
+                    currentMenu.buttonText.text = _buttonText;
+                currentMenu.button.onClick = new Button.ButtonClickedEvent();
+                currentMenu.button.onClick.AddListener(() => OpenPanelInternally(false));
 
-						Image img = pluginImage.AddComponent<Image>();
-						currentImage = img;
-						img.sprite = icon;
-					}
-                    else
-                    {
-                        panelButton.transform.Find("Text").GetComponent<RectTransform>().sizeDelta *= new Vector2(2, 1);
-					}
-
-                    panelButton.SetActive(!_hidden && !parentHidden);
-                    buttonComp.interactable = _interactable && parentInteractable;
-                }
-				else
-                {
-					panelButton = PluginConfigurator.CreateBigContentButton(content, displayName, TextAnchor.MiddleCenter, 600).gameObject;
-                    panelButtonText = panelButton.transform.Find("Text").GetComponent<Text>();
-                    currentDisplayName = panelButtonText;
-					Button currentButton = panelButtonComp = panelButton.GetComponent<Button>();
-					currentButton.onClick.AddListener(() => OpenPanelInternally(false));
-
-					panelButton.SetActive(!hidden && !parentHidden);
-					currentButton.interactable = interactable && parentInteractable;
-				}
+                currentMenu.gameObject.SetActive(!hidden && !parentHidden);
+                currentMenu.button.interactable = interactable && parentInteractable;
             }
 
             return panel;
+        }
+
+        // Lazy UI creation
+        internal void CreateFieldUI()
+        {
+            if (currentPanel == null || currentPanel.content.childCount != 0)
+                return;
+
+            fieldObjects.Clear();
+            int currentChildIndex = currentPanel.content.childCount;
+            foreach (ConfigField config in fields)
+            {
+                List<Transform> fieldUI = new List<Transform>();
+                config.CreateUI(currentPanel.content);
+                for (; currentChildIndex < currentPanel.content.childCount; currentChildIndex++)
+                    fieldUI.Add(currentPanel.content.GetChild(currentChildIndex));
+                fieldObjects.Add(fieldUI);
+            }
         }
 
         /// <summary>
@@ -430,14 +417,17 @@ namespace PluginConfig.API
 
         internal void OpenPanelInternally(bool openedExternally)
         {
-            if (openedExternally && PluginConfiguratorController.Instance.activePanel == null)
+            if (openedExternally && PluginConfiguratorController.activePanel == null)
                 return;
 
-            if (PluginConfiguratorController.Instance.activePanel != null)
-			    PluginConfiguratorController.Instance.activePanel.SetActive(false);
-			if (panelObject != null)
-                panelObject.SetActive(true);
-			PluginConfiguratorController.Instance.activePanel = panelObject;
+            if (currentPanel == null)
+                return;
+
+            if (PluginConfiguratorController.activePanel != null)
+			    PluginConfiguratorController.activePanel.SetActive(false);
+
+            currentPanel.gameObject.SetActive(true);
+			PluginConfiguratorController.activePanel = currentPanel.gameObject;
 
             if (onPannelOpenEvent != null)
                 onPannelOpenEvent.Invoke(openedExternally);

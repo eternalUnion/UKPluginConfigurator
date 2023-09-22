@@ -6,70 +6,28 @@ using UnityEngine.UI;
 using UnityEngine;
 using static PluginConfig.API.Fields.BoolField;
 using System.Globalization;
+using PluginConfiguratorComponents;
+using UnityEngine.AddressableAssets;
 
 namespace PluginConfig.API.Fields
 {
-    class ColorFieldComponent : MonoBehaviour
-    {
-        public Image image;
-
-        void Awake()
-        {
-            image = transform.Find("Image").GetComponent<Image>();
-        }
-
-        public float r;
-        public float g;
-        public float b;
-
-        public void SetR(float newR)
-        {
-            r = newR;
-            image.color = new Color(r, g, b);
-        }
-
-        public void SetG(float newG)
-        {
-            g = newG;
-            image.color = new Color(r, g, b);
-        }
-
-        public void SetB(float newB)
-        {
-            b = newB;
-            image.color = new Color(r, g, b);
-        }
-
-        public void SetColor(float newR, float newG, float newB)
-        {
-            r = newR;
-            g = newG;
-            b = newB;
-            image.color = new Color(r, g, b);
-        }
-    }
-
     class ColorFieldSliderComponent : MonoBehaviour, IPointerUpHandler
     {
-        public Action callback;
+        public ColorField callback;
 
         public void OnPointerUp(PointerEventData data)
         {
             if (callback != null)
-                callback.Invoke();
+                callback.OnCompValueChange();
         }
     }
 
     public class ColorField : ConfigField
     {
-        private GameObject currentUi;
-        private GameObject currentResetButton;
-        private ColorFieldComponent currentImage;
-        private Text currentDisplayName;
-        private Text currentText;
-        private Slider r;
-        private Slider g;
-        private Slider b;
+        private const string ASSET_PATH = "PluginConfigurator/Fields/ColorField.prefab";
+
+        private ConfigColorField currentUi;
+
         private readonly bool _saveToConfig = true;
 
 		private string _displayName;
@@ -79,8 +37,8 @@ namespace PluginConfig.API.Fields
 			set
 			{
 				_displayName = value;
-				if (currentDisplayName != null)
-					currentDisplayName.text = _displayName;
+				if (currentUi != null)
+                    currentUi.name.text = _displayName;
 			}
 		}
 
@@ -89,10 +47,10 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            r.SetValueWithoutNotify(c.r);
-            g.SetValueWithoutNotify(c.g);
-            b.SetValueWithoutNotify(c.b);
-            currentImage.SetColor(c.r, c.g, c.b);
+            currentUi.red.SetValueWithoutNotify(c.r);
+            currentUi.green.SetValueWithoutNotify(c.g);
+            currentUi.blue.SetValueWithoutNotify(c.b);
+            currentUi.SetColor(c.r, c.g, c.b);
         }
 
         private string StringifyColor(Color c)
@@ -148,7 +106,7 @@ namespace PluginConfig.API.Fields
                 _hidden = value;
 
                 if (currentUi != null)
-                    currentUi.SetActive(!_hidden && !parentHidden);
+                    currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -157,7 +115,7 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentText.color = interactable ? Color.white : Color.gray;
+            currentUi.name.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -168,9 +126,9 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    r.interactable = _interactable && parentInteractable;
-                    g.interactable = _interactable && parentInteractable;
-                    b.interactable = _interactable && parentInteractable;
+                    currentUi.red.interactable = _interactable && parentInteractable;
+                    currentUi.green.interactable = _interactable && parentInteractable;
+                    currentUi.blue.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
@@ -206,83 +164,26 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleColor, content);
-            GameObject.DestroyImmediate(field.GetComponent<ColorBlindSetter>());
-            currentUi = field;
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigColorField>();
 
-            float delta = 300;
-            float halfDelta = delta / 2;
-            RectTransform fieldRect = field.GetComponent<RectTransform>();
-            fieldRect.sizeDelta = new Vector2(fieldRect.sizeDelta.x + delta, /*fieldRect.sizeDelta.y*/100);
-            fieldRect.anchoredPosition += new Vector2(halfDelta, 0);
-            RectTransform imageRect = field.transform.Find("Image").GetComponent<RectTransform>();
-            imageRect.anchoredPosition -= new Vector2(halfDelta, -8);
-            RectTransform rRect = field.transform.Find("Red").GetComponent<RectTransform>();
-            rRect.anchoredPosition -= new Vector2(halfDelta, -8);
-            rRect.transform.Find("Text (1)").GetComponent<RectTransform>().anchoredPosition += new Vector2(halfDelta, 0);
-            RectTransform gRect = field.transform.Find("Green").GetComponent<RectTransform>();
-            gRect.anchoredPosition -= new Vector2(halfDelta, -8);
-            gRect.transform.Find("Text (1)").GetComponent<RectTransform>().anchoredPosition += new Vector2(halfDelta, 0);
-            RectTransform bRect = field.transform.Find("Blue").GetComponent<RectTransform>();
-            bRect.anchoredPosition -= new Vector2(halfDelta, -8);
-            bRect.transform.Find("Text (1)").GetComponent<RectTransform>().anchoredPosition += new Vector2(halfDelta, 0);
-            RectTransform textRect = field.transform.Find("Text").GetComponent<RectTransform>();
-            textRect.anchoredPosition += new Vector2(9, -7);
-            textRect.sizeDelta = new Vector2(0, 20);
-            Text textComp = textRect.GetComponent<Text>();
-            textComp.resizeTextForBestFit = true;
-            textComp.alignment = TextAnchor.MiddleLeft;
-            textComp.text = displayName;
-            currentDisplayName = textComp;
-
-            ColorFieldComponent comp = field.AddComponent<ColorFieldComponent>();
-            currentImage = comp;
-            comp.image = imageRect.GetComponent<Image>();
-            comp.SetColor(_value.r, _value.g, _value.b);
+            currentUi.name.text = displayName;
 
             bool slidersInteractable = interactable && parentInteractable;
-            r = currentUi.transform.Find("Red/Button/Slider").GetComponent<Slider>();
-            r.interactable = slidersInteractable;
-            r.onValueChanged = new Slider.SliderEvent();
-            r.onValueChanged.AddListener(comp.SetR);
-            r.gameObject.AddComponent<ColorFieldSliderComponent>().callback = OnCompValueChange;
-            g = currentUi.transform.Find("Green/Button/Slider").GetComponent<Slider>();
-            g.interactable = slidersInteractable;
-            g.onValueChanged = new Slider.SliderEvent();
-            g.onValueChanged.AddListener(comp.SetG);
-            g.gameObject.AddComponent<ColorFieldSliderComponent>().callback = OnCompValueChange;
-            b = currentUi.transform.Find("Blue/Button/Slider").GetComponent<Slider>();
-            b.interactable = slidersInteractable;
-            b.onValueChanged = new Slider.SliderEvent();
-            b.onValueChanged.AddListener(comp.SetB);
-            b.gameObject.AddComponent<ColorFieldSliderComponent>().callback = OnCompValueChange;
+            currentUi.red.interactable = slidersInteractable;
+            currentUi.red.gameObject.AddComponent<ColorFieldSliderComponent>().callback = this;
+            currentUi.green.interactable = slidersInteractable;
+            currentUi.green.gameObject.AddComponent<ColorFieldSliderComponent>().callback = this;
+            currentUi.blue.interactable = slidersInteractable;
+            currentUi.blue.gameObject.AddComponent<ColorFieldSliderComponent>().callback = this;
             SetSliders(_value);
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(80, 80);
-            resetRect.anchoredPosition = new Vector2(-90, 0);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
-
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
-
-            currentText = currentUi.transform.Find("Text").GetComponent<Text>();
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(_interactable && parentInteractable);
@@ -291,7 +192,7 @@ namespace PluginConfig.API.Fields
 
         internal void OnCompValueChange()
         {
-            Color newColor = new Color(r.value, g.value, b.value);
+            Color newColor = new Color(currentUi.red.value, currentUi.green.value, currentUi.blue.value);
             if (newColor == _value)
                 return;
 
@@ -303,7 +204,7 @@ namespace PluginConfig.API.Fields
             }
             catch (Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
             }
 
             if (eventData.canceled)

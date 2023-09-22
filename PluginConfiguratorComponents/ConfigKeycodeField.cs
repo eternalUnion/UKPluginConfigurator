@@ -10,5 +10,7 @@ namespace PluginConfiguratorComponents
     {
         public Text name;
         public Button keycode;
+
+        public Button resetButton;
     }
 }

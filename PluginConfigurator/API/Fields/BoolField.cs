@@ -1,5 +1,7 @@
-﻿using System;
+﻿using PluginConfiguratorComponents;
+using System;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -7,11 +9,11 @@ namespace PluginConfig.API.Fields
 {
     public class BoolField : ConfigField
     {
-        private GameObject currentUi;
-        private Toggle currentComp;
-        private GameObject currentResetButton;
-        private Text currentDisplayName;
+        internal const string ASSET_PATH = "PluginConfigurator/Fields/ToggleField.prefab";
+
+        private ConfigToggleField currentUi;
         private readonly bool _saveToConfig = true;
+        private readonly bool _createUI = true;
 
         private string _displayName;
 		public override string displayName
@@ -20,8 +22,8 @@ namespace PluginConfig.API.Fields
             set
             {
                 _displayName = value;
-                if (currentDisplayName != null)
-                    currentDisplayName.text = _displayName;
+                if (currentUi != null)
+                    currentUi.name.text = _displayName;
             }
         }
 
@@ -33,8 +35,9 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                if (currentComp != null)
-                    currentComp.SetIsOnWithoutNotify(value);
+                if (currentUi != null)
+                    currentUi.toggle.SetIsOnWithoutNotify(value);
+
                 if (_value != value && _saveToConfig)
                 {
                     rootConfig.isDirty = true;
@@ -67,7 +70,7 @@ namespace PluginConfig.API.Fields
             {
                 _hidden = value;
                 if (currentUi != null)
-                    currentUi.SetActive(!_hidden && !parentHidden);
+                    currentUi.gameObject.SetActive(!_hidden && !parentHidden);
             }
         }
 
@@ -76,8 +79,8 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
-            currentUi.transform.Find("Toggle/Background/Checkmark").GetComponent<Image>().color = interactable ? Color.white : Color.gray;
+            currentUi.name.color = interactable ? Color.white : Color.gray;
+            currentUi.checkmark.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -86,18 +89,19 @@ namespace PluginConfig.API.Fields
             get => _interactable; set
             {
                 _interactable = value;
-                if (currentComp != null)
+                if (currentUi != null)
                 {
-                    currentComp.interactable = _interactable && parentInteractable;
+                    currentUi.toggle.interactable = _interactable && parentInteractable;
                     SetInteractableColor(_interactable && parentInteractable);
                 }
             }
         }
 
-        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig) : base(displayName, guid, parentPanel)
+        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig, bool createUI) : base(displayName, guid, parentPanel)
         {
             this.defaultValue = defaultValue;
             _saveToConfig = saveToConfig;
+            _createUI = createUI;
             strictGuid = saveToConfig;
 
             if (saveToConfig)
@@ -121,49 +125,35 @@ namespace PluginConfig.API.Fields
             parentPanel.Register(this);
         }
 
-        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
+        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig) : this(parentPanel, displayName, guid, defaultValue, saveToConfig, true) { }
+        
+        public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue) : this(parentPanel, displayName, guid, defaultValue, true, true) { }
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBoolField, content);
-            currentUi = field;
-            currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
-			currentDisplayName.text = displayName;
+            if (!_createUI)
+                return null;
 
-            Transform toggle = field.transform.Find("Toggle");
-            toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
-            toggle.GetComponent<Toggle>().isOn = value;
-            toggle.GetComponent<Toggle>().interactable = _interactable && parentInteractable;
-            toggle.GetComponent<Toggle>().onValueChanged = new Toggle.ToggleEvent();
-            toggle.GetComponent<Toggle>().onValueChanged.AddListener(OnCompValueChange);
+            GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
+            currentUi = field.GetComponent<ConfigToggleField>();
+            currentUi.name.text = displayName;
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
-            GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
-            currentResetButton.AddComponent<DisableWhenHidden>();
-            currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
-            RectTransform resetRect = currentResetButton.GetComponent<RectTransform>();
-            resetRect.anchorMax = new Vector2(1, 0.5f);
-            resetRect.anchorMin = new Vector2(1, 0.5f);
-            resetRect.sizeDelta = new Vector2(70, 40);
-            resetRect.anchoredPosition = new Vector2(-85, 0);
-            Button resetComp = currentResetButton.GetComponent<Button>();
-            resetComp.onClick = new Button.ButtonClickedEvent();
-            resetComp.onClick.AddListener(OnReset);
-            currentResetButton.SetActive(false);
+            currentUi.toggle.isOn = value;
+            currentUi.toggle.interactable = _interactable && parentInteractable;
+            currentUi.toggle.onValueChanged = new Toggle.ToggleEvent();
+            currentUi.toggle.onValueChanged.AddListener(OnCompValueChange);
 
-            EventTrigger trigger = field.AddComponent<EventTrigger>();
-            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
-            mouseOn.callback.AddListener((BaseEventData e) => { if (_interactable && parentInteractable) currentResetButton.SetActive(true); });
-            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
-            mouseOff.callback.AddListener((BaseEventData e) => currentResetButton.SetActive(false));
-            trigger.triggers.Add(mouseOn);
-            trigger.triggers.Add(mouseOff);
-            Utils.AddScrollEvents(trigger, Utils.GetComponentInParent<ScrollRect>(field.transform));
+            currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
+            currentUi.resetButton.onClick.AddListener(OnReset);
+            currentUi.resetButton.gameObject.SetActive(false);
+
+            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+                (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
+                (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
             field.SetActive(!_hidden && !parentHidden);
-            currentComp = currentUi.transform.Find("Toggle").GetComponent<Toggle>();
+            currentUi.toggle.interactable = _interactable && parentInteractable;
             SetInteractableColor(_interactable && parentInteractable);
-            currentComp.interactable = _interactable && parentInteractable;
             return field;
         }
 
@@ -177,12 +167,12 @@ namespace PluginConfig.API.Fields
             }
             catch(Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
             }
 
             if (eventData.canceled)
             {
-                currentComp.SetIsOnWithoutNotify(_value);
+                currentUi.toggle.SetIsOnWithoutNotify(_value);
                 return;
             }
 
@@ -193,7 +183,7 @@ namespace PluginConfig.API.Fields
         {
             if (!interactable || !parentInteractable)
                 return;
-            currentComp.SetIsOnWithoutNotify(defaultValue);
+            currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
             OnCompValueChange(defaultValue);
         }
 
@@ -226,20 +216,20 @@ namespace PluginConfig.API.Fields
         {
             if (data == "true")
             {
-                if (currentComp != null)
-                    currentComp.SetIsOnWithoutNotify(true);
+                if (currentUi != null)
+                    currentUi.toggle.SetIsOnWithoutNotify(true);
                 OnCompValueChange(true);
             }
             else if (data == "false")
             {
-                if (currentComp != null)
-                    currentComp.SetIsOnWithoutNotify(false);
+                if (currentUi != null)
+                    currentUi.toggle.SetIsOnWithoutNotify(false);
                 OnCompValueChange(false);
             }
             else
             {
-                if (currentComp != null)
-                    currentComp.SetIsOnWithoutNotify(defaultValue);
+                if (currentUi != null)
+                    currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
                 OnCompValueChange(defaultValue);
 
                 if (_saveToConfig)

@@ -149,7 +149,7 @@ namespace PluginConfig.API.Fields
 
         internal override GameObject CreateUI(Transform content)
         {
-            GameObject field = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleDropdown, content);
+            GameObject field = GameObject.Instantiate(PluginConfiguratorController.sampleDropdown, content);
             currentUi = field;
             currentDisplayName = field.transform.Find("Text").GetComponent<Text>();
             currentDisplayName.text = displayName;
@@ -179,7 +179,7 @@ namespace PluginConfig.API.Fields
             if (index != -1)
                 dropdown.SetValueWithoutNotify(index);
 
-            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
+            currentResetButton = GameObject.Instantiate(PluginConfiguratorController.sampleMenuButton.transform.Find("Select").gameObject, field.transform);
             GameObject.Destroy(currentResetButton.GetComponent<HudOpenEffect>());
             currentResetButton.AddComponent<DisableWhenHidden>();
             currentResetButton.transform.Find("Text").GetComponent<Text>().text = "RESET";
@@ -222,7 +222,7 @@ namespace PluginConfig.API.Fields
             T[] values = Enum.GetValues(typeof(T)) as T[];
             if(val >= values.Length)
             {
-                PluginConfiguratorController.Instance.LogWarning("Enum index requested does not exist");
+                PluginConfiguratorController.LogWarning("Enum index requested does not exist");
                 currentDropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
@@ -239,7 +239,7 @@ namespace PluginConfig.API.Fields
             }
             catch (Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Value change event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
             }
 
             if (eventData.canceled)

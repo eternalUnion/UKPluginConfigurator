@@ -10,5 +10,7 @@ namespace PluginConfiguratorComponents
     {
         public Text name;
         public Dropdown dropdown;
+
+        public Button resetButton;
     }
 }

@@ -6,11 +6,12 @@ using UnityEngine.UI;
 
 namespace PluginConfiguratorComponents
 {
-    public class ConfigSliderField : MonoBehaviour
+    public class ConfigMenuField : MonoBehaviour
     {
         public Text name;
-        public Slider slider;
+        public Button button;
 
-        public Button resetButton;
+        public Text buttonText;
+        public Image icon;
     }
 }

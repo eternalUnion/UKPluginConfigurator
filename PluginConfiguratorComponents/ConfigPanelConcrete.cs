@@ -10,6 +10,9 @@ namespace PluginConfiguratorComponents
     {
         public Text header;
         public VerticalLayoutGroup layout;
+        public RectTransform trans;
+        public ScrollRect rect;
         public Transform content;
+        public ContentSizeFitter contentSizeFitter;
     }
 }

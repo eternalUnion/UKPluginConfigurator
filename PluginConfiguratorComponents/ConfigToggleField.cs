@@ -10,5 +10,8 @@ namespace PluginConfiguratorComponents
     {
         public Text name;
         public Toggle toggle;
+        public Image checkmark;
+
+        public Button resetButton;
     }
 }

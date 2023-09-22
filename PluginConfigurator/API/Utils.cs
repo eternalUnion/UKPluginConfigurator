@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -33,6 +34,18 @@ namespace PluginConfig.API
             entryScroll.eventID = EventTriggerType.Scroll;
             entryScroll.callback.AddListener((data) => { scrollView.OnScroll((PointerEventData)data); });
             trigger.triggers.Add(entryScroll);
+        }
+
+        public static void SetupResetButton(GameObject field, ScrollRect rect, UnityAction<BaseEventData> _mouseOn, UnityAction<BaseEventData> _mouseOff)
+        {
+            EventTrigger trigger = field.AddComponent<EventTrigger>();
+            EventTrigger.Entry mouseOn = new EventTrigger.Entry() { eventID = EventTriggerType.PointerEnter };
+            mouseOn.callback.AddListener(_mouseOn);
+            EventTrigger.Entry mouseOff = new EventTrigger.Entry() { eventID = EventTriggerType.PointerExit };
+            mouseOff.callback.AddListener(_mouseOff);
+            trigger.triggers.Add(mouseOn);
+            trigger.triggers.Add(mouseOff);
+            AddScrollEvents(trigger, rect);
         }
 
         public static T GetComponentInParent<T>(Transform obj) where T : Component

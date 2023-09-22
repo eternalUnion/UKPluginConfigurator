@@ -71,7 +71,7 @@ namespace PluginConfig.API
             {
                 _image = value;
                 if (pluginImage != null)
-                    pluginImage.sprite = _image ?? PluginConfiguratorController.Instance.defaultPluginImage;
+                    pluginImage.sprite = _image ?? PluginConfiguratorController.defaultPluginImage;
             }
         }
 
@@ -253,6 +253,9 @@ namespace PluginConfig.API
         /// <param name="guid">ID of the plugin, guild will be set to this</param>
         public static PluginConfigurator Create(string displayName, string guid)
         {
+            if (PluginConfiguratorController.ConfigExists(guid))
+                throw new ArgumentException("Config with GUID " + guid + " already exists");
+
             PluginConfigurator config = new PluginConfigurator()
             {
                 displayName = displayName,
@@ -262,7 +265,7 @@ namespace PluginConfig.API
 
             config.firstTime = !File.Exists(config.defaultConfigFilePath);
 
-            PluginConfiguratorController.Instance.RegisterConfigurator(config);
+            PluginConfiguratorController.RegisterConfigurator(config);
             config.Init_LoadPresets();
             config.Init_LoadFromFile();
 
@@ -293,7 +296,7 @@ namespace PluginConfig.API
 
                     if (currentPresetPath == null)
                     {
-                        PluginConfiguratorController.Instance.LogWarning($"Invalid preset config for {guid}");
+                        PluginConfiguratorController.LogWarning($"Invalid preset config for {guid}");
 
                         currentPresetPath = "";
                         currentPreset = null;
@@ -310,21 +313,21 @@ namespace PluginConfig.API
                         string name = stream.ReadLine();
                         if(name == null)
                         {
-                            PluginConfiguratorController.Instance.LogWarning($"Invalid preset config ending for {guid}");
+                            PluginConfiguratorController.LogWarning($"Invalid preset config ending for {guid}");
                             break;
                         }
 
                         string indexStr = stream.ReadLine();
                         if(indexStr == null)
                         {
-                            PluginConfiguratorController.Instance.LogWarning($"Invalid preset config ending for {guid}");
+                            PluginConfiguratorController.LogWarning($"Invalid preset config ending for {guid}");
                             break;
                         }
 
                         int index = 0;
                         if(!int.TryParse(indexStr, out index))
                         {
-                            PluginConfiguratorController.Instance.LogWarning($"Invalid list index for {guid}:{id}:{name}");
+                            PluginConfiguratorController.LogWarning($"Invalid list index for {guid}:{id}:{name}");
                             index = 0;
                         }
 
@@ -345,7 +348,7 @@ namespace PluginConfig.API
                     currentPreset = presets.Find(preset => preset.fileId == currentPresetPath);
                     if(currentPreset == null)
                     {
-                        PluginConfiguratorController.Instance.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
+                        PluginConfiguratorController.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
                     }
                 }
             }
@@ -412,7 +415,7 @@ namespace PluginConfig.API
                         string data = stream.ReadLine();
                         if (data == null)
                             data = "";
-                        PluginConfiguratorController.Instance.LogDebug($"{guid}:{data}");
+                        PluginConfiguratorController.LogDebug($"{guid}:{data}");
                         config[guid] = data;
                     }
                 }
@@ -453,7 +456,7 @@ namespace PluginConfig.API
                     if (preset.markedForDelete)
                     {
                         if (File.Exists(preset.filePath))
-                            try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.Instance.LogError(e.ToString()); }
+                            try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError(e.ToString()); }
                         continue;
                     }
 
@@ -491,7 +494,7 @@ namespace PluginConfig.API
             }
             catch (Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Pre config event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Pre config event for {guid} threw an error: {e}");
             }
 
             if (!saveToFile)
@@ -503,7 +506,7 @@ namespace PluginConfig.API
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.Instance.LogError($"Post config event for {guid} threw an error: {e}");
+                    PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
                 }
 
                 return;
@@ -544,7 +547,7 @@ namespace PluginConfig.API
             }
             catch(Exception e)
             {
-                PluginConfiguratorController.Instance.LogError($"Post config event for {guid} threw an error: {e}");
+                PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
             }    
         }
 
@@ -665,7 +668,7 @@ namespace PluginConfig.API
                 GameObject.Destroy(preset.currentUI.container.gameObject);
 
             if (File.Exists(preset.filePath))
-                try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.Instance.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
+                try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
 
             isPresetHeaderDirty = true;
             FlushPresets();
@@ -694,7 +697,7 @@ namespace PluginConfig.API
 
             private void OnEnable()
             {
-                esc.previousPage = PluginConfiguratorController.Instance.activePanel;
+                esc.previousPage = PluginConfiguratorController.activePanel;
                 transform.SetSiblingIndex(transform.parent.childCount - 1);
             }
 
@@ -706,7 +709,7 @@ namespace PluginConfig.API
 
         internal static RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment, float width = 620)
         {
-            GameObject button = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, content);
+            GameObject button = GameObject.Instantiate(PluginConfiguratorController.sampleBigButton, content);
             RectTransform buttonRect = button.GetComponent<RectTransform>();
             buttonRect.anchorMin = new Vector2(0, 1);
             buttonRect.anchorMax = new Vector2(0, 1);
@@ -757,7 +760,7 @@ namespace PluginConfig.API
                 GameObject editButtonTxt = editButton.GetChild(0).gameObject;
                 GameObject.DestroyImmediate(editButtonTxt.GetComponent<Text>());
                 Image editImg = editButtonTxt.AddComponent<Image>();
-                editImg.sprite = PluginConfiguratorController.Instance.penIcon;
+                editImg.sprite = PluginConfiguratorController.penIcon;
                 editButtonTxt.GetComponent<RectTransform>().sizeDelta = new Vector2(-15, -15);
 
                 RectTransform deleteButton = CreateBigContentButton(container.transform, "DELETE", TextAnchor.MiddleCenter);
@@ -766,7 +769,7 @@ namespace PluginConfig.API
                 GameObject deleteButtonTxt = deleteButton.GetChild(0).gameObject;
                 GameObject.DestroyImmediate(deleteButtonTxt.GetComponent<Text>());
                 Image deleteImg = deleteButtonTxt.AddComponent<Image>();
-                deleteImg.sprite = PluginConfiguratorController.Instance.trashIcon;
+                deleteImg.sprite = PluginConfiguratorController.trashIcon;
                 deleteButtonTxt.GetComponent<RectTransform>().sizeDelta = new Vector2(-15, -15);
 
                 float sqSize = (60f - 5) / 2;
@@ -852,7 +855,7 @@ namespace PluginConfig.API
                     return;
                 isPresetHeaderDirty = true;
 
-                PluginConfiguratorController.Instance.LogDebug($"Changing preset to {preset.name}");
+                PluginConfiguratorController.LogDebug($"Changing preset to {preset.name}");
                 ChangePreset(preset);
             });
             info.upButton.onClick.AddListener(() =>
@@ -892,7 +895,7 @@ namespace PluginConfig.API
         private Transform content;
         internal void CreatePresetUI(Transform optionsMenu)
         {
-            this.presetMenuButton = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleBigButton, optionsMenu);
+            this.presetMenuButton = GameObject.Instantiate(PluginConfiguratorController.sampleBigButton, optionsMenu);
             RectTransform presetMenuButtonRect = this.presetMenuButton.GetComponent<RectTransform>();
             presetMenuButtonRect.sizeDelta = new Vector2(-675, 40);
             presetMenuButtonRect.anchoredPosition = new Vector2(-10, -77);
@@ -919,7 +922,7 @@ namespace PluginConfig.API
             MenuEsc esc = presetPanel.AddComponent<MenuEsc>();
             PresetPanelComp presetPanelComp = presetPanel.AddComponent<PresetPanelComp>();
 
-            presetPanelList = GameObject.Instantiate(PluginConfiguratorController.Instance.sampleMenu, presetPanel.transform);
+            presetPanelList = GameObject.Instantiate(PluginConfiguratorController.sampleMenu, presetPanel.transform);
             presetPanelList.SetActive(true);
             RectTransform presetPanelListRect = presetPanelList.GetComponent<RectTransform>();
             presetPanelListRect.anchoredPosition = new Vector2(0, 40);
@@ -946,7 +949,7 @@ namespace PluginConfig.API
             Button defaultPresetButtonComp = currentDefaultPresetButton = defaultPresetButton.GetComponent<Button>();
             defaultPresetButtonComp.onClick.AddListener(() =>
             {
-                PluginConfiguratorController.Instance.LogDebug("Changing preset to default preset");
+                PluginConfiguratorController.LogDebug("Changing preset to default preset");
                 ChangePreset(null);
             });
 
@@ -1067,10 +1070,10 @@ namespace PluginConfig.API
             GameObject panel = rootPanel.CreateUI(null);
 
             configButton.onClick = new Button.ButtonClickedEvent();
-            configButton.onClick.AddListener(() => PluginConfiguratorController.Instance.mainPanel.SetActive(false));
+            configButton.onClick.AddListener(() => PluginConfiguratorController.mainPanel.SetActive(false));
             configButton.onClick.AddListener(() =>
             {
-                PluginConfiguratorController.Instance.activePanel = panel;
+                PluginConfiguratorController.activePanel = panel;
                 rootPanel.OpenPanelInternally(false);
             });
 
@@ -1115,19 +1118,19 @@ namespace PluginConfig.API
 
             if (nonCriticalConflicts.Count != 0)
             {
-                PluginConfiguratorController.Instance.LogWarning("Non-critical GUID conflicts:");
+                PluginConfiguratorController.LogWarning("Non-critical GUID conflicts:");
                 foreach (KeyValuePair<ConfigField, ConfigField> duplicate in nonCriticalConflicts)
                 {
-                    PluginConfiguratorController.Instance.LogWarning($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+                    PluginConfiguratorController.LogWarning($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
                 }
             }
 
             if (criticalConflicts.Count != 0)
             {
-                PluginConfiguratorController.Instance.LogError("Critical GUID conflicts:");
+                PluginConfiguratorController.LogError("Critical GUID conflicts:");
                 foreach (KeyValuePair<ConfigField, ConfigField> duplicate in criticalConflicts)
                 {
-                    PluginConfiguratorController.Instance.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+                    PluginConfiguratorController.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
                 }
             }
         }
