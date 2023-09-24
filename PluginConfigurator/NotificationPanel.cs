@@ -46,7 +46,7 @@ namespace PluginConfig
 				closed = true;
 
 				if (this == currentNotification)
-					NotificationPanel.CloseInternal();
+					CloseInternal();
 			}
 		}
 
@@ -54,7 +54,7 @@ namespace PluginConfig
 		internal static Notification currentNotification = null;
 
 		private static RectTransform root;
-		public static void InitUI()
+		internal static void InitUI()
 		{
 			if (root == null && PluginConfiguratorController.optionsMenu != null)
 			{
