@@ -29,6 +29,9 @@ namespace PluginConfig.API.Fields
         private ConfigColorField currentUi;
 
         private readonly bool _saveToConfig = true;
+        private string lastRed = "0";
+        private string lastGreen = "0";
+        private string lastBlue = "0";
 
 		private string _displayName;
 		public override string displayName
@@ -50,6 +53,9 @@ namespace PluginConfig.API.Fields
             currentUi.red.SetValueWithoutNotify(c.r);
             currentUi.green.SetValueWithoutNotify(c.g);
             currentUi.blue.SetValueWithoutNotify(c.b);
+            currentUi.redInput.SetTextWithoutNotify(((int)(c.r * 255)).ToString());
+            currentUi.greenInput.SetTextWithoutNotify(((int)(c.g * 255)).ToString());
+            currentUi.blueInput.SetTextWithoutNotify(((int)(c.b * 255)).ToString());
             currentUi.SetColor(c.r, c.g, c.b);
         }
 
@@ -126,10 +132,14 @@ namespace PluginConfig.API.Fields
                 _interactable = value;
                 if (currentUi != null)
                 {
-                    currentUi.red.interactable = _interactable && parentInteractable;
-                    currentUi.green.interactable = _interactable && parentInteractable;
-                    currentUi.blue.interactable = _interactable && parentInteractable;
-                    SetInteractableColor(_interactable && parentInteractable);
+                    bool fieldInteractable = _interactable && parentInteractable;
+                    currentUi.red.interactable = fieldInteractable;
+                    currentUi.green.interactable = fieldInteractable;
+                    currentUi.blue.interactable = fieldInteractable;
+                    currentUi.redInput.interactable = fieldInteractable;
+                    currentUi.greenInput.interactable = fieldInteractable;
+                    currentUi.blueInput.interactable = fieldInteractable;
+                    SetInteractableColor(fieldInteractable);
                 }
             }
         }
@@ -178,6 +188,19 @@ namespace PluginConfig.API.Fields
             currentUi.green.gameObject.AddComponent<ColorFieldSliderComponent>().callback = this;
             currentUi.blue.interactable = slidersInteractable;
             currentUi.blue.gameObject.AddComponent<ColorFieldSliderComponent>().callback = this;
+            
+            currentUi.redInput.interactable = slidersInteractable;
+            currentUi.redInput.onValueChanged.AddListener(val => { if (!currentUi.redInput.wasCanceled) lastRed = val; });
+            currentUi.redInput.onEndEdit.AddListener(val => OnInputFieldChange(currentUi.redInput, currentUi.red, ref lastRed));
+
+            currentUi.greenInput.interactable = slidersInteractable;
+            currentUi.greenInput.onValueChanged.AddListener(val => { if (!currentUi.greenInput.wasCanceled) lastGreen = val; });
+            currentUi.greenInput.onEndEdit.AddListener(val => OnInputFieldChange(currentUi.greenInput, currentUi.green, ref lastGreen));
+
+            currentUi.blueInput.interactable = slidersInteractable;
+            currentUi.blueInput.onValueChanged.AddListener(val => { if (!currentUi.blueInput.wasCanceled) lastBlue = val; });
+            currentUi.blueInput.onEndEdit.AddListener(val => OnInputFieldChange(currentUi.blueInput, currentUi.blue, ref lastBlue));
+
             SetSliders(_value);
 
             currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
@@ -217,6 +240,33 @@ namespace PluginConfig.API.Fields
             }
 
             value = eventData.value;
+        }
+
+        internal void OnInputFieldChange(InputField field, Slider targetSlider, ref string lastValue)
+        {
+            if (field.wasCanceled)
+            {
+                if (!PluginConfiguratorController.cancelOnEsc.value)
+                    field.SetTextWithoutNotify(lastValue);
+                else
+                    return;
+            }
+
+            int currentValue = (int)(targetSlider.normalizedValue * 255);
+
+            if (!int.TryParse(field.text, out int value))
+            {
+                field.SetTextWithoutNotify(currentValue.ToString());
+                return;
+            }
+
+            value = Mathf.Clamp(value, 0, 255);
+            field.SetTextWithoutNotify(value.ToString());
+            if (currentValue == value)
+                return;
+
+            targetSlider.SetNormalizedValueWithoutNotify(value / 255f);
+            OnCompValueChange();
         }
 
         internal void OnReset()

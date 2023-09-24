@@ -131,7 +131,7 @@ namespace PluginConfig.API.Fields
                 return;
             currentUi.slider.interactable = val;
             currentUi.input.interactable = val;
-            currentUi.transform.Find("Text").GetComponent<Text>().color = val ? Color.white : Color.gray;
+            currentUi.name.color = val ? Color.white : Color.gray;
         }
         private bool _interactable = true;
         public override bool interactable { get => _interactable; set {

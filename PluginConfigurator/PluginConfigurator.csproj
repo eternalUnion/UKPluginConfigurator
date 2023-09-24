@@ -38,6 +38,9 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>Libs\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="UltraTweaker">
+      <HintPath>Libs\UltraTweakerStripped.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Addressables">
       <HintPath>Libs\Unity.Addressables.dll</HintPath>
     </Reference>

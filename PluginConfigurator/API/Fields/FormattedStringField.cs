@@ -12,6 +12,47 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API.Fields
 {
+    public struct CharacterInfo
+    {
+        public Color color;
+        public bool bold;
+        public bool italic;
+
+        public static readonly CharacterInfo defaultCharacter = new CharacterInfo(Color.white, false, false);
+
+        public CharacterInfo()
+        {
+            color = Color.white;
+            bold = false;
+            italic = false;
+        }
+
+        public CharacterInfo(Color color, bool bold, bool italic)
+        {
+            this.color = color;
+            this.bold = bold;
+            this.italic = italic;
+        }
+
+        public static bool operator ==(CharacterInfo l, CharacterInfo r)
+        {
+            return l.color == r.color && l.bold == r.bold && l.italic == r.italic;
+        }
+
+        public static bool operator !=(CharacterInfo l, CharacterInfo r)
+        {
+            return l.color != r.color || l.bold != r.bold || l.italic != r.italic;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is CharacterInfo c)
+                return c == this;
+
+            return false;
+        }
+    }
+
     internal static class RichTextFormatter
     {
         public static string GetColorCode(Color c)
@@ -117,51 +158,10 @@ namespace PluginConfig.API.Fields
         }
     }
 
-    public struct CharacterInfo
-    {
-        public Color color;
-        public bool bold;
-        public bool italic;
-
-        public CharacterInfo()
-        {
-            color = Color.white;
-            bold = false;
-            italic = false;
-        }
-
-        public CharacterInfo(Color color, bool bold, bool italic)
-        {
-            this.color = color;
-            this.bold = bold;
-            this.italic = italic;
-        }
-
-        public static bool operator ==(CharacterInfo l, CharacterInfo r)
-        {
-            return l.color == r.color && l.bold == r.bold && l.italic == r.italic;
-        }
-
-        public static bool operator !=(CharacterInfo l, CharacterInfo r)
-        {
-            return l.color != r.color || l.bold != r.bold || l.italic != r.italic;
-        }
-    }
-
     internal class FormattedStringPanelComp : MonoBehaviour
     {
-        public InputField inputField;
-        public Text displayText;
-        public Text formattedText;
+        public ConfigFormattedStringEditorField currentUi;
 
-        public Slider redSlider;
-        public Slider greenSlider;
-        public Slider blueSlider;
-
-        public Toggle boldToggle;
-        public Toggle italicToggle;
-
-        private MenuEsc esc;
         private FormattedStringField caller;
         public GameObject lastPage;
 
@@ -170,7 +170,7 @@ namespace PluginConfig.API.Fields
 
         public CharacterInfo currentFormat
         {
-            get => new CharacterInfo(currentColor, boldToggle.isOn, italicToggle.isOn);
+            get => new CharacterInfo(currentColor, currentUi.bold.isOn, currentUi.italic.isOn);
         }
 
         string lastText = "";
@@ -178,7 +178,7 @@ namespace PluginConfig.API.Fields
 
         private Color currentColor
         {
-            get => new Color(redSlider.normalizedValue, greenSlider.normalizedValue, blueSlider.normalizedValue);
+            get => new Color(currentUi.redSlider.normalizedValue, currentUi.greenSlider.normalizedValue, currentUi.blueSlider.normalizedValue);
         }
 
         private void RebuildDisplay()
@@ -187,14 +187,14 @@ namespace PluginConfig.API.Fields
 
             if (lastText.Length == 0)
             {
-                formattedText.text = "";
+                currentUi.formattedText.text = "";
                 return;
             }
 
-            int begin = (int)m_DrawStart.GetValue(inputField);
-            int end = (int)m_DrawEnd.GetValue(inputField);
-            
-            formattedText.text = RichTextFormatter.GetFormattedText(lastText, textFormat, begin, end);
+            int begin = (int)m_DrawStart.GetValue(currentUi.input);
+            int end = (int)m_DrawEnd.GetValue(currentUi.input);
+
+            currentUi.formattedText.text = RichTextFormatter.GetFormattedText(lastText, textFormat, begin, end);
         }
 
         int lastCaretPos = -1;
@@ -205,32 +205,28 @@ namespace PluginConfig.API.Fields
         List<CharacterInfo> formatBeforeFocus;
         void Update()
         {
-            if (lastCaretPos != inputField.caretPosition || dirtyFlag)
+            if (lastCaretPos != currentUi.input.caretPosition || dirtyFlag)
             {
                 dirtyFlag = false;
-                lastCaretPos = inputField.caretPosition;
+                lastCaretPos = currentUi.input.caretPosition;
                 RebuildDisplay();
             }
 
-            if(focused != inputField.isFocused)
+            if(focused != currentUi.input.isFocused)
             {
-                if(inputField.isFocused)
+                if(currentUi.input.isFocused)
                 {
                     formatBeforeFocus = new List<CharacterInfo>(textFormat);
                 }
-                focused = inputField.isFocused;
+                focused = currentUi.input.isFocused;
             }
         }
 
-        static Type backEvent = typeof(MenuEsc).Assembly.GetType("BackSelectEvent");
-        static FieldInfo backEventField = backEvent.GetField("m_OnBack", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-
         internal void Initialize()
         {
-            esc = GetComponent<MenuEsc>();
-            inputField.onValueChanged.AddListener((newText) =>
+            currentUi.input.onValueChanged.AddListener((newText) =>
             {
-                if(inputField.wasCanceled)
+                if(currentUi.input.wasCanceled)
                 {
                     if(PluginConfiguratorController.cancelOnEsc.value)
                     {
@@ -239,7 +235,7 @@ namespace PluginConfig.API.Fields
                     }
                     else
                     {
-                        inputField.SetTextWithoutNotify(lastText);
+                        currentUi.input.SetTextWithoutNotify(lastText);
                     }
 
                     dirtyFlag = true;
@@ -249,20 +245,20 @@ namespace PluginConfig.API.Fields
                 int deltaLength = newText.Length - lastText.Length;
                 if (deltaLength > 0)
                 {
-                    int insertPosition = inputField.caretPosition - deltaLength;
+                    int insertPosition = currentUi.input.caretPosition - deltaLength;
                     textFormat.Insert(insertPosition, currentFormat);
                 }
                 else
                 {
-                    textFormat.RemoveRange(inputField.caretPosition, -deltaLength);
+                    textFormat.RemoveRange(currentUi.input.caretPosition, -deltaLength);
                 }
 
                 lastText = newText;
                 dirtyFlag = true;
             });
-            inputField.caretColor = Color.white;
-            inputField.customCaretColor = true;
-            displayText.color = new Color(0, 0, 0, 0);
+            currentUi.input.caretColor = Color.white;
+            currentUi.input.customCaretColor = true;
+            currentUi.displayText.color = new Color(0, 0, 0, 0);
         }
 
         private void OnEnable()
@@ -287,15 +283,22 @@ namespace PluginConfig.API.Fields
             panel.SetActive(false);
             this.caller = caller;
 
-            redSlider.normalizedValue = 1;
-            greenSlider.normalizedValue = 1;
-            blueSlider.normalizedValue = 1;
-            boldToggle.isOn = false;
-            italicToggle.isOn = false;
-            boldToggle.interactable = caller.supportBoldText;
-            italicToggle.interactable = caller.supportItalicText;
+            currentUi.redSlider.SetNormalizedValueWithoutNotify(1);
+            currentUi.greenSlider.SetNormalizedValueWithoutNotify(1);
+            currentUi.blueSlider.SetNormalizedValueWithoutNotify(1);
 
-            esc.previousPage = lastPage;
+            currentUi.redInput.SetTextWithoutNotify("255");
+            currentUi.greenInput.SetTextWithoutNotify("255");
+            currentUi.blueInput.SetTextWithoutNotify("255");
+
+            currentUi.SetColor();
+
+            currentUi.bold.isOn = false;
+            currentUi.italic.isOn = false;
+            currentUi.bold.interactable = caller.supportBoldText;
+            currentUi.italic.interactable = caller.supportItalicText;
+
+            currentUi.menuEsc.previousPage = lastPage;
             PluginConfiguratorController.activePanel = gameObject;
             PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
             PluginConfiguratorController.backButton.onClick.AddListener(() =>
@@ -308,140 +311,104 @@ namespace PluginConfig.API.Fields
                 PluginConfiguratorController.activePanel = lastPage;
             });
 
-            displayText.supportRichText = false;
-            formattedText.supportRichText = true;
+            currentUi.displayText.supportRichText = false;
+            currentUi.formattedText.supportRichText = true;
 
             lastText = caller._rawString;
             textFormat = new List<CharacterInfo>(caller._format);
 
             RichTextFormatter.AssureFormatMatchesTextSize(textFormat, lastText.Length, currentFormat);
-            inputField.text = lastText;
-            int begin = (int)m_DrawStart.GetValue(inputField);
-            int end = (int)m_DrawEnd.GetValue(inputField);
-            formattedText.text = RichTextFormatter.GetFormattedText(lastText, textFormat, begin, end);
+            currentUi.input.text = lastText;
+            int begin = (int)m_DrawStart.GetValue(currentUi.input);
+            int end = (int)m_DrawEnd.GetValue(currentUi.input);
+            currentUi.formattedText.text = RichTextFormatter.GetFormattedText(lastText, textFormat, begin, end);
         }
     }
 
     internal static class FormattedStringPanel
     {
-        private static GameObject _panel;
-        private static GameObject panel { get
+        private const string ASSET_PATH = "PluginConfigurator/Fields/FormattedStringEditor.prefab";
+
+        private class OnSelectListener : MonoBehaviour, ISelectHandler
+        {
+            public InputField field;
+            public string lastValue = "";
+
+            public void OnSelect(BaseEventData data)
+            {
+                lastValue = field.text;
+            }
+        }
+
+        private static void OnInputChange(InputField field, Slider slider, string lastValue)
+        {
+            int currentValue = (int)(slider.normalizedValue * 255);
+
+            if (field.wasCanceled)
+            {
+                if (PluginConfiguratorController.cancelOnEsc.value)
+                {
+                    field.SetTextWithoutNotify(currentValue.ToString());
+                    return;
+                }
+
+                field.SetTextWithoutNotify(lastValue);
+            }
+
+            if (!int.TryParse(field.text, out int value))
+            {
+                field.SetTextWithoutNotify(currentValue.ToString());
+                return;
+            }
+
+            value = Mathf.Clamp(value, 0, 255);
+            field.SetTextWithoutNotify(value.ToString());
+            slider.SetNormalizedValueWithoutNotify(value / 255f);
+            _panel.SetColor();
+        }
+
+        private static ConfigFormattedStringEditorField _panel;
+        private static ConfigFormattedStringEditorField panel
+        {
+            get
             {
                 if(_panel == null)
                 {
-                    _panel = new GameObject();
-                    RectTransform panelRect = _panel.AddComponent<RectTransform>();
-                    panelRect.anchorMin = new Vector2(0, 0);
-                    panelRect.anchorMax = new Vector2(1, 1);
-                    panelRect.SetParent(PluginConfiguratorController.optionsMenu);
-                    panelRect.sizeDelta = new Vector2(0, 0);
-                    panelRect.localScale = Vector3.one;
-                    panelRect.anchoredPosition = Vector3.zero;
-                    _panel.SetActive(false); // FIXME
-                    MenuEsc esc = _panel.AddComponent<MenuEsc>();
-                    FormattedStringPanelComp comp = _panel.AddComponent<FormattedStringPanelComp>();
+                    _panel = Addressables.InstantiateAsync(ASSET_PATH, PluginConfiguratorController.optionsMenu).WaitForCompletion().GetComponent<ConfigFormattedStringEditorField>();
+                    _panel.gameObject.SetActive(false);
 
-                    GameObject inputField = PluginConfiguratorController.MakeInputFieldNoBG(panelRect, panelRect);
-                    RectTransform inputRect = inputField.GetComponent<RectTransform>();
-                    inputRect.anchorMin = inputRect.anchorMax = new Vector2(0.5f, 0.5f);
-                    inputRect.pivot = new Vector2(0.5f, 0.5f);
-                    inputRect.sizeDelta = new Vector2(600, 30);
-                    inputRect.anchoredPosition = new Vector2(0, 0);
-                    InputField inputComp = inputField.GetComponent<InputField>();
-
-                    GameObject colorText = GameObject.Instantiate(PluginConfiguratorController.sampleHeader);
-                    RectTransform colorTextRect = colorText.GetComponent<RectTransform>();
-                    colorTextRect.SetParent(panelRect);
-                    colorTextRect.pivot = new Vector2(0, 0.5f);
-                    colorTextRect.anchorMax = colorTextRect.anchorMin = new Vector2(0.5f, 0.5f);
-                    colorTextRect.sizeDelta = new Vector2(500, 100);
-                    colorTextRect.anchoredPosition = new Vector2(-328f, -40f); // -355
-                    Text colorTextComp = colorText.GetComponent<Text>();
-                    colorTextComp.fontSize = 48;
-                    colorTextComp.text = "Current format";
-
-                    GameObject colorPreview = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Image").gameObject, panelRect);
-                    RectTransform colorPreviewRect = colorPreview.GetComponent<RectTransform>();
-                    colorPreviewRect.anchoredPosition = new Vector2(-270, -100);
-                    Image previewImage = colorPreview.GetComponent<Image>();
-
-                    void SetupSlider(Slider slider, Text text)
+                    FormattedStringPanelComp comp = _panel.gameObject.AddComponent<FormattedStringPanelComp>();
+                    
+                    static void SetupSlider(Slider slider, InputField input)
                     {
-                        GameObject.DestroyImmediate(text.GetComponent<SliderValueToText>());
-                        slider.wholeNumbers = true;
                         slider.minValue = 0;
-                        slider.maxValue = 255;
-                        slider.onValueChanged.AddListener((newValue) => text.text = ((int)newValue).ToString());
+                        slider.maxValue = 1;
                         slider.SetValueWithoutNotify(255);
+                        input.SetTextWithoutNotify("255");
                     }
 
-                    // image: -260 -12
-                    // red: -120 8
-                    GameObject redSlider = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Red").gameObject, panelRect);
-                    RectTransform redRect = redSlider.GetComponent<RectTransform>();
-                    redRect.anchoredPosition = colorPreviewRect.anchoredPosition + new Vector2(125, 20);
-                    Slider redSliderComp = UnityUtils.GetComponentInChildrenRecursively<Slider>(redRect);
-                    redSliderComp.onValueChanged = new Slider.SliderEvent();
-                    Text redText = UnityUtils.GetComponentsInChildrenRecursively<Text>(redRect).First(text => text.name == "Value");
-                    SetupSlider(redSliderComp, redText);
-                    redText.text = ((int)redSliderComp.value).ToString();
+                    SetupSlider(_panel.redSlider, _panel.redInput);
+                    OnSelectListener redListener = _panel.redSlider.gameObject.AddComponent<OnSelectListener>();
+                    redListener.field = _panel.redInput;
+                    _panel.redInput.onValueChanged.AddListener(val => redListener.lastValue = val);
+                    _panel.redInput.onEndEdit.AddListener(val => OnInputChange(_panel.redInput, _panel.redSlider, redListener.lastValue));
 
-                    GameObject greenSlider = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Green").gameObject, panelRect);
-                    RectTransform greenRect = greenSlider.GetComponent<RectTransform>();
-                    greenRect.anchoredPosition = colorPreviewRect.anchoredPosition + new Vector2(125, 0);
-                    Slider greenSliderComp = UnityUtils.GetComponentInChildrenRecursively<Slider>(greenRect);
-                    greenSliderComp.onValueChanged = new Slider.SliderEvent();
-                    Text greenText = UnityUtils.GetComponentsInChildrenRecursively<Text>(greenRect).First(text => text.name == "Value");
-                    SetupSlider(greenSliderComp, greenText);
-                    greenText.text = ((int)greenSliderComp.value).ToString();
+                    SetupSlider(_panel.greenSlider, _panel.greenInput);
+                    OnSelectListener greenListener = _panel.greenSlider.gameObject.AddComponent<OnSelectListener>();
+                    greenListener.field = _panel.greenInput;
+                    _panel.greenInput.onValueChanged.AddListener(val => greenListener.lastValue = val);
+                    _panel.greenInput.onEndEdit.AddListener(val => OnInputChange(_panel.greenInput, _panel.greenSlider, greenListener.lastValue));
 
-                    GameObject blueSlider = GameObject.Instantiate(PluginConfiguratorController.sampleColor.transform.Find("Blue").gameObject, panelRect);
-                    RectTransform blueRect = blueSlider.GetComponent<RectTransform>();
-                    blueRect.anchoredPosition = colorPreviewRect.anchoredPosition + new Vector2(125, -20);
-                    Slider blueSliderComp = UnityUtils.GetComponentInChildrenRecursively<Slider>(blueRect);
-                    blueSliderComp.onValueChanged = new Slider.SliderEvent();
-                    Text blueText = UnityUtils.GetComponentsInChildrenRecursively<Text>(blueRect).First(text => text.name == "Value");
-                    SetupSlider(blueSliderComp, blueText);
-                    blueText.text = ((int)blueSliderComp.value).ToString();
+                    SetupSlider(_panel.blueSlider, _panel.blueInput);
+                    OnSelectListener blueListener = _panel.blueSlider.gameObject.AddComponent<OnSelectListener>();
+                    blueListener.field = _panel.blueInput;
+                    _panel.blueInput.onValueChanged.AddListener(val => blueListener.lastValue = val);
+                    _panel.blueInput.onEndEdit.AddListener(val => OnInputChange(_panel.blueInput, _panel.blueSlider, blueListener.lastValue));
 
-                    redSliderComp.onValueChanged.AddListener(newValue => previewImage.color = new Color(redSliderComp.normalizedValue, greenSliderComp.normalizedValue, blueSliderComp.normalizedValue));
-                    greenSliderComp.onValueChanged.AddListener(newValue => previewImage.color = new Color(redSliderComp.normalizedValue, greenSliderComp.normalizedValue, blueSliderComp.normalizedValue));
-                    blueSliderComp.onValueChanged.AddListener(newValue => previewImage.color = new Color(redSliderComp.normalizedValue, greenSliderComp.normalizedValue, blueSliderComp.normalizedValue));
-                    previewImage.color = new Color(redSliderComp.normalizedValue, greenSliderComp.normalizedValue, blueSliderComp.normalizedValue);
+                    _panel.bold.isOn = false;
+                    _panel.italic.isOn = false;
 
-                    GameObject boldToggle = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Toggle").gameObject, panelRect);
-                    Toggle boldComp = boldToggle.GetComponent<Toggle>();
-                    boldComp.onValueChanged = new Toggle.ToggleEvent();
-                    RectTransform boldRect = boldToggle.GetComponent<RectTransform>();
-                    boldRect.anchoredPosition = new Vector2(-183, -150);
-                    GameObject boldText = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Text").gameObject, panelRect);
-                    RectTransform boldTextRect = boldText.GetComponent<RectTransform>();
-                    boldTextRect.anchorMin = boldTextRect.anchorMax = new Vector2(0.5f, 0.5f);
-                    boldTextRect.anchoredPosition = new Vector2(-280, -150);
-                    boldText.GetComponent<Text>().text = "Bold";
-
-                    GameObject italicToggle = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Toggle").gameObject, panelRect);
-                    Toggle italicComp = italicToggle.GetComponent<Toggle>();
-                    italicComp.onValueChanged = new Toggle.ToggleEvent();
-                    RectTransform italicRect = italicToggle.GetComponent<RectTransform>();
-                    italicRect.anchoredPosition = new Vector2(-183, -170);
-                    GameObject italicText = GameObject.Instantiate(PluginConfiguratorController.sampleBoolField.transform.Find("Text").gameObject, panelRect);
-                    RectTransform italicTextRect = italicText.GetComponent<RectTransform>();
-                    italicTextRect.anchorMin = italicTextRect.anchorMax = new Vector2(0.5f, 0.5f);
-                    italicTextRect.anchoredPosition = new Vector2(-280, -170);
-                    italicText.GetComponent<Text>().text = "Italic";
-
-                    comp.inputField = inputComp;
-                    comp.redSlider = redSliderComp;
-                    comp.greenSlider = greenSliderComp;
-                    comp.blueSlider = blueSliderComp;
-
-                    comp.displayText = UnityUtils.GetComponentInChildrenRecursively<Text>(inputRect);
-                    comp.formattedText = GameObject.Instantiate(comp.displayText, comp.displayText.transform.parent);
-
-                    comp.boldToggle = boldComp;
-                    comp.italicToggle = italicComp;
-
+                    comp.currentUi = _panel;
                     comp.Initialize();
                 }
 
@@ -465,7 +432,7 @@ namespace PluginConfig.API.Fields
     {
         internal string _rawString;
         internal List<FormattedStringBuilder.FormatRange> _format;
-        internal CharacterInfo backupCharacter = new CharacterInfo();
+        internal CharacterInfo defaultCharacter = new CharacterInfo();
         
 		public string rawString { get => _rawString; }
 
@@ -523,7 +490,7 @@ namespace PluginConfig.API.Fields
 
             int remaining = _rawString.Length - formatList.Count;
             for (int i = 0; i < remaining; i++)
-                formatList.Add(backupCharacter);
+                formatList.Add(defaultCharacter);
 
             return formatList;
         }
@@ -551,8 +518,8 @@ namespace PluginConfig.API.Fields
 
         internal List<FormatRange> format = new List<FormatRange>();
 
-        public CharacterInfo currentFormat = new CharacterInfo();
-        private CharacterInfo lastFormat = new CharacterInfo();
+        public CharacterInfo currentFormat = CharacterInfo.defaultCharacter;
+        private CharacterInfo lastFormat = CharacterInfo.defaultCharacter;
         private int lastPosition = 0;
 
 		public void Append(string str)
@@ -873,6 +840,7 @@ namespace PluginConfig.API.Fields
                 if (currentUi != null)
                 {
                     currentUi.edit.interactable = _interactable && parentInteractable;
+                    currentUi.name.color = (_interactable && parentInteractable) ? Color.white : Color.gray;
                 }
             }
         }
@@ -946,7 +914,6 @@ namespace PluginConfig.API.Fields
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.reset.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.reset.gameObject.SetActive(false));
 
-            currentUi.edit.interactable = interactable && parentInteractable;
             currentUi.edit.onClick = new Button.ButtonClickedEvent();
             currentUi.edit.onClick.AddListener(() =>
             {
@@ -956,6 +923,8 @@ namespace PluginConfig.API.Fields
             });
             
             field.SetActive(!_hidden && !parentHidden);
+            currentUi.edit.interactable = interactable && parentInteractable;
+            currentUi.name.color = (_interactable && parentInteractable) ? Color.white : Color.gray;
             return field;
         }
 

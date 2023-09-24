@@ -207,6 +207,7 @@ namespace PluginConfig.API.Functionals
                 ui.gameObject.SetActive(!hidden && !parentHidden && !_hiddens[i]);
                 ui.button.interactable = interactable && parentInteractable && _interactables[i];
 
+                currentUi[i] = ui;
                 currentOffset += width + _space / 2;
             }
 

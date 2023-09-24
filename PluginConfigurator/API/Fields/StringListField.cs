@@ -203,7 +203,7 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            currentUi.name.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;
@@ -266,6 +266,11 @@ namespace PluginConfig.API.Fields
 
         public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, string defaultValue) : this(parentPanel, displayName, guid, values, defaultValue, true, true) { }
 
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, int defaultIndex, bool saveToConfig, bool createUi) : this(parentPanel, displayName, guid, values, values.ElementAt(defaultIndex), saveToConfig, createUi) { }
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, int defaultIndex, bool saveToConfig) : this(parentPanel, displayName, guid, values, values.ElementAt(defaultIndex), saveToConfig, true) { }
+
+        public StringListField(ConfigPanel parentPanel, string displayName, string guid, IEnumerable<string> values, int defaultIndex) : this(parentPanel, displayName, guid, values, values.ElementAt(defaultIndex), true, true) { }
 
         // List based ctors (legacy)
 

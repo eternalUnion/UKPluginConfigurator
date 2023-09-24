@@ -12,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\PluginConfigurator\Libs\Assembly-CSharp.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\PluginConfigurator\Libs\UnityEngine.UI.dll</HintPath>
     </Reference>

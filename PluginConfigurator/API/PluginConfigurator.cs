@@ -1,9 +1,11 @@
 ﻿#pragma warning disable IDE1006
+using PluginConfiguratorComponents;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AddressableAssets;
 using UnityEngine.Networking;
 using UnityEngine.UI;
 
@@ -11,6 +13,12 @@ namespace PluginConfig.API
 {
     public class PluginConfigurator
     {
+        private const string ASSET_PATH_PRESET_BUTTON = "PluginConfigurator/PresetButton.prefab";
+        private const string ASSET_PATH_PRESET_PANEL = "PluginConfigurator/PresetPanel.prefab";
+        private const string ASSET_PATH_PRESET_ADD_BUTTON = "PluginConfigurator/PresetAddButton.prefab";
+        private const string ASSET_PATH_DEFAULT_PRESET_BUTTON = "PluginConfigurator/DefaultPresetButton.prefab";
+        private const string ASSET_PATH_CUSTOM_PRESET_BUTTON = "PluginConfigurator/CustomPresetButton.prefab";
+
         /// <summary>
         /// The text displayed on the plugin button
         /// </summary>
@@ -71,7 +79,7 @@ namespace PluginConfig.API
             {
                 _image = value;
                 if (pluginImage != null)
-                    pluginImage.sprite = _image ?? PluginConfiguratorController.defaultPluginImage;
+                    pluginImage.sprite = _image ?? PluginConfiguratorController.defaultPluginIcon;
             }
         }
 
@@ -106,13 +114,13 @@ namespace PluginConfig.API
             public string filePath;
             public string fileId;
             public int listIndex;
-            public PresetButtonInfo currentUI;
+            public ConfigCustomPresetField currentUI;
 
             public bool markedForDelete = false;
 
             public int GetListIndexFromUI()
             {
-                return currentUI == null ? listIndex : currentUI.container.GetSiblingIndex() - 1;
+                return currentUI == null ? listIndex : currentUI.transform.GetSiblingIndex() - 1;
             }
         }
 
@@ -140,9 +148,9 @@ namespace PluginConfig.API
                 SetButtonColor(currentDefaultPresetButton, new Color(1, 0, 0));
                 presetButtonText.text = "[Default Preset]";
             }
-            else if (preset.currentUI.container != null)
+            else if (preset.currentUI != null)
             {
-                SetButtonColor(preset.currentUI.mainButton, new Color(1, 0, 0));
+                SetButtonColor(preset.currentUI.preset, new Color(1, 0, 0));
                 presetButtonText.text = preset.name;
             }
         }
@@ -157,22 +165,22 @@ namespace PluginConfig.API
             {
                 SetButtonColor(currentDefaultPresetButton, new Color(1, 1, 1));
             }
-            else if (preset.currentUI.container != null)
+            else if (preset.currentUI != null)
             {
-                SetButtonColor(preset.currentUI.mainButton, new Color(1, 1, 1));
+                SetButtonColor(preset.currentUI.preset, new Color(1, 1, 1));
             }
         }
 
-        internal GameObject presetMenuButton;
+        internal GameObject presetMenuButtonObj;
         internal Button presetMenuButtonComp;
         internal Text presetButtonText;
 
-        internal GameObject presetPanel;
+        internal GameObject presetPanelObj;
         internal GameObject presetPanelList;
 
         internal GameObject defaultPresetButtonContainer;
 
-        internal RectTransform addPresetButton;
+        internal ConfigButtonField addPresetButton;
 
         internal bool presetButtonCanBeShown = false;
 		private bool _presetButtonHidden = false;
@@ -182,8 +190,8 @@ namespace PluginConfig.API
 			set
 			{
 				_presetButtonHidden = value;
-                if (presetMenuButton != null)
-                    presetMenuButton.SetActive(presetButtonCanBeShown && !_presetButtonHidden);
+                if (presetMenuButtonObj != null)
+                    presetMenuButtonObj.SetActive(presetButtonCanBeShown && !_presetButtonHidden);
 			}
 		}
 
@@ -664,8 +672,8 @@ namespace PluginConfig.API
             }
 
             presets.Remove(preset);
-            if(preset.currentUI.container != null)
-                GameObject.Destroy(preset.currentUI.container.gameObject);
+            if(preset.currentUI != null)
+                GameObject.Destroy(preset.currentUI.gameObject);
 
             if (File.Exists(preset.filePath))
                 try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
@@ -707,117 +715,29 @@ namespace PluginConfig.API
             }
         }
 
-        internal static RectTransform CreateBigContentButton(Transform content, string text, TextAnchor alignment, float width = 620)
+        private ConfigCustomPresetField CreateCustomPresetButton(Transform content, string mainText)
         {
-            GameObject button = GameObject.Instantiate(PluginConfiguratorController.sampleBigButton, content);
-            RectTransform buttonRect = button.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0, 1);
-            buttonRect.anchorMax = new Vector2(0, 1);
-            buttonRect.pivot = new Vector2(0, 1);
-            buttonRect.sizeDelta = new Vector2(width, 60);
-            buttonRect.anchoredPosition = Vector2.zero;
-            Button buttonButtonComp = button.GetComponent<Button>();
-            buttonButtonComp.onClick = new Button.ButtonClickedEvent();
-            Text buttonButtonText = button.GetComponentInChildren<Text>();
-            buttonButtonText.text = text;
-            buttonButtonText.alignment = alignment;
-            if(alignment == TextAnchor.MiddleLeft)
-                buttonButtonText.GetComponent<RectTransform>().anchoredPosition = new Vector2(7, 0);
+            GameObject container = Addressables.InstantiateAsync(ASSET_PATH_CUSTOM_PRESET_BUTTON, content).WaitForCompletion();
+            ConfigCustomPresetField customPreset = container.GetComponent<ConfigCustomPresetField>();
 
-            return buttonRect;
-        }
-
-        internal class PresetButtonInfo
-        {
-            public RectTransform container;
-            public Button mainButton;
-            public Button resetButton;
-            public Button deleteButton;
-            public Button upButton;
-            public Button downButton;
-
-            public static PresetButtonInfo CreateButton(Transform content, string mainText, PluginConfigurator config)
+            customPreset.nameInput.onEndEdit.AddListener((text) =>
             {
-                GameObject container = new GameObject();
-                RectTransform containerRect = container.AddComponent<RectTransform>();
-                containerRect.anchorMin = new Vector2(0, 1);
-                containerRect.anchorMax = new Vector2(0, 1);
-                containerRect.SetParent(content);
-                containerRect.sizeDelta = new Vector2(620, 60);
-                containerRect.localScale = Vector3.one;
-                containerRect.anchoredPosition = Vector3.zero;
+                if (customPreset.nameInput.wasCanceled)
+                    return;
 
-                RectTransform mainButton = CreateBigContentButton(container.transform, mainText, TextAnchor.MiddleLeft);
-                mainButton.sizeDelta = new Vector2(352.5f, 60);
+                isPresetHeaderDirty = true;
+                customPreset.nameInput.interactable = false;
+            });
 
-                RectTransform resetButton = CreateBigContentButton(container.transform, "RESET", TextAnchor.MiddleCenter);
-                resetButton.sizeDelta = new Vector2(100, 60);
-                resetButton.anchoredPosition = new Vector2(mainButton.anchoredPosition.x + mainButton.sizeDelta.x + 5, 0);
+            customPreset.edit.onClick.AddListener(() =>
+            {
+                customPreset.nameInput.interactable = true;
+                customPreset.nameInput.Select();
+            });
 
-                RectTransform editButton = CreateBigContentButton(container.transform, "EDIT", TextAnchor.MiddleCenter);
-                editButton.sizeDelta = new Vector2(60, 60);
-                editButton.anchoredPosition = new Vector2(resetButton.anchoredPosition.x + resetButton.sizeDelta.x + 5, 0);
-                GameObject editButtonTxt = editButton.GetChild(0).gameObject;
-                GameObject.DestroyImmediate(editButtonTxt.GetComponent<Text>());
-                Image editImg = editButtonTxt.AddComponent<Image>();
-                editImg.sprite = PluginConfiguratorController.penIcon;
-                editButtonTxt.GetComponent<RectTransform>().sizeDelta = new Vector2(-15, -15);
+            customPreset.nameInput.SetTextWithoutNotify(mainText);
 
-                RectTransform deleteButton = CreateBigContentButton(container.transform, "DELETE", TextAnchor.MiddleCenter);
-                deleteButton.sizeDelta = new Vector2(60, 60);
-                deleteButton.anchoredPosition = new Vector2(editButton.anchoredPosition.x + editButton.sizeDelta.x + 5, 0);
-                GameObject deleteButtonTxt = deleteButton.GetChild(0).gameObject;
-                GameObject.DestroyImmediate(deleteButtonTxt.GetComponent<Text>());
-                Image deleteImg = deleteButtonTxt.AddComponent<Image>();
-                deleteImg.sprite = PluginConfiguratorController.trashIcon;
-                deleteButtonTxt.GetComponent<RectTransform>().sizeDelta = new Vector2(-15, -15);
-
-                float sqSize = (60f - 5) / 2;
-                RectTransform upButton = CreateBigContentButton(container.transform, "▲", TextAnchor.MiddleCenter);
-                upButton.sizeDelta = new Vector2(sqSize, sqSize);
-                upButton.anchoredPosition = new Vector2(deleteButton.anchoredPosition.x + deleteButton.sizeDelta.x + 5, 0);
-
-                RectTransform downButton = CreateBigContentButton(container.transform, "▼", TextAnchor.MiddleCenter);
-                downButton.sizeDelta = new Vector2(sqSize, sqSize);
-                downButton.anchoredPosition = new Vector2(deleteButton.anchoredPosition.x + deleteButton.sizeDelta.x + 5, -sqSize - 5);
-
-                GameObject fieldActivator = new GameObject();
-                RectTransform fieldActivatorRect = fieldActivator.AddComponent<RectTransform>();
-                fieldActivatorRect.anchorMin = new Vector2(0, 0);
-                fieldActivatorRect.anchorMax = new Vector2(1, 1);
-                fieldActivatorRect.SetParent(mainButton.transform);
-                fieldActivatorRect.sizeDelta = new Vector2(0, 0);
-                fieldActivatorRect.localScale = Vector3.zero;
-                fieldActivatorRect.anchoredPosition = Vector3.zero;
-
-                InputField input = fieldActivatorRect.gameObject.AddComponent<InputField>();
-                Text mainTextComp = mainButton.GetComponentInChildren<Text>();
-                input.textComponent = mainTextComp;
-                input.interactable = false;
-                input.onEndEdit.AddListener((text) =>
-                {
-                    config.isPresetHeaderDirty = true;
-                    input.interactable = false;
-                });
-
-                editButton.GetComponent<Button>().onClick.AddListener(() =>
-                {
-                    input.interactable = true;
-                    input.Select();
-                });
-
-                input.SetTextWithoutNotify(mainText);
-
-                return new PresetButtonInfo()
-                {
-                    container = containerRect,
-                    mainButton = mainButton.GetComponent<Button>(),
-                    resetButton = resetButton.GetComponent<Button>(),
-                    deleteButton = deleteButton.GetComponent<Button>(),
-                    upButton = upButton.GetComponent<Button>(),
-                    downButton = downButton.GetComponent<Button>()
-                };
-            }
+            return customPreset;
         }
 
         private void SetButtonColor(Button btn, Color clr)
@@ -830,16 +750,16 @@ namespace PluginConfig.API
             btn.colors = colors;
         }
 
-        private PresetButtonInfo CreateButtonFromPreset(Preset preset, Transform content, int index = -1)
+        private ConfigCustomPresetField CreateButtonFromPreset(Preset preset, Transform content, int index = -1)
         {
-            PresetButtonInfo info = PresetButtonInfo.CreateButton(content, preset.name, this);
+            ConfigCustomPresetField info = CreateCustomPresetButton(content, preset.name);
             preset.currentUI = info;
 
             if(index < 0)
                 index = content.childCount - 2;
-            info.container.SetSiblingIndex(index);
+            info.transform.SetSiblingIndex(index);
 
-            UnityUtils.GetComponentInChildrenRecursively<InputField>(info.container.transform).onEndEdit.AddListener(name =>
+            info.nameInput.onEndEdit.AddListener(name =>
             {
                 if (preset.name == name)
                     return;
@@ -849,7 +769,7 @@ namespace PluginConfig.API
                 if (currentPreset == preset)
                     presetButtonText.text = preset.name;
             });
-            info.mainButton.onClick.AddListener(() =>
+            info.preset.onClick.AddListener(() =>
             {
                 if (currentPreset == preset)
                     return;
@@ -858,29 +778,29 @@ namespace PluginConfig.API
                 PluginConfiguratorController.LogDebug($"Changing preset to {preset.name}");
                 ChangePreset(preset);
             });
-            info.upButton.onClick.AddListener(() =>
+            info.moveUp.onClick.AddListener(() =>
             {
-                if (info.container.GetSiblingIndex() > 1)
+                if (info.transform.GetSiblingIndex() > 1)
                 {
-                    info.container.SetSiblingIndex(info.container.GetSiblingIndex() - 1);
-                    preset.listIndex = info.container.GetSiblingIndex() - 1;
+                    info.transform.SetSiblingIndex(info.transform.GetSiblingIndex() - 1);
+                    preset.listIndex = info.transform.GetSiblingIndex() - 1;
                     isPresetHeaderDirty = true;
                 }
             });
-            info.downButton.onClick.AddListener(() =>
+            info.moveDown.onClick.AddListener(() =>
             {
-                if (info.container.GetSiblingIndex() < content.childCount - 2)
+                if (info.transform.GetSiblingIndex() < content.childCount - 2)
                 {
-                    info.container.SetSiblingIndex(info.container.GetSiblingIndex() + 1);
-                    preset.listIndex = info.container.GetSiblingIndex() - 1;
+                    info.transform.SetSiblingIndex(info.transform.GetSiblingIndex() + 1);
+                    preset.listIndex = info.transform.GetSiblingIndex() - 1;
                     isPresetHeaderDirty = true;
                 }
             });
-            info.deleteButton.onClick.AddListener(() =>
+            info.delete.onClick.AddListener(() =>
             {
                 DeletePreset(preset);
             });
-            info.resetButton.onClick.AddListener(() =>
+            info.reset.onClick.AddListener(() =>
             {
                 ResetPreset(preset);
             });
@@ -895,76 +815,41 @@ namespace PluginConfig.API
         private Transform content;
         internal void CreatePresetUI(Transform optionsMenu)
         {
-            this.presetMenuButton = GameObject.Instantiate(PluginConfiguratorController.sampleBigButton, optionsMenu);
-            RectTransform presetMenuButtonRect = this.presetMenuButton.GetComponent<RectTransform>();
-            presetMenuButtonRect.sizeDelta = new Vector2(-675, 40);
-            presetMenuButtonRect.anchoredPosition = new Vector2(-10, -77);
-            Button presetMenuButtonComp = this.presetMenuButtonComp = this.presetMenuButton.GetComponent<Button>();
-            presetMenuButtonComp.interactable = _presetButtonInteractable;
-            presetMenuButtonComp.onClick = new Button.ButtonClickedEvent();
-            presetButtonText = this.presetMenuButton.transform.Find("Text").GetComponent<Text>();
-            presetButtonText.alignment = TextAnchor.MiddleLeft;
-            RectTransform presetMenuTextRect = presetButtonText.GetComponent<RectTransform>();
-            presetMenuTextRect.anchoredPosition = new Vector2(7, 0);
-            this.presetMenuButton.SetActive(false);
+            presetMenuButtonObj = Addressables.InstantiateAsync(ASSET_PATH_PRESET_BUTTON, optionsMenu).WaitForCompletion();
+            presetMenuButtonObj.SetActive(false);
+            ConfigButtonField presetMenuButton = presetMenuButtonObj.GetComponent<ConfigButtonField>();
+            
+            presetMenuButton.button.interactable = _presetButtonInteractable;
+            presetButtonText = presetMenuButton.text;
 
-            presetPanel = new GameObject();
-            RectTransform presetPanelRect = presetPanel.AddComponent<RectTransform>();
-            presetPanelRect.anchorMin = new Vector2(0, 0);
-            presetPanelRect.anchorMax = new Vector2(1, 1);
-            presetPanelRect.SetParent(optionsMenu);
-            presetPanelRect.sizeDelta = new Vector2(0, 0);
-            presetPanelRect.localScale = Vector3.one;
-            presetPanelRect.anchoredPosition = Vector3.zero;
-            Image presetPanelBg = presetPanel.AddComponent<Image>();
-            presetPanelBg.color = new Color(0, 0, 0, 0.95f);
-            presetPanel.SetActive(false);
-            MenuEsc esc = presetPanel.AddComponent<MenuEsc>();
-            PresetPanelComp presetPanelComp = presetPanel.AddComponent<PresetPanelComp>();
+            presetPanelObj = Addressables.InstantiateAsync(ASSET_PATH_PRESET_PANEL, optionsMenu).WaitForCompletion();
+            presetPanelObj.SetActive(false);
+            ConfigPresetPanelField presetPanel = presetPanelObj.GetComponent<ConfigPresetPanelField>();
+            PresetPanelComp presetPanelComp = presetPanelObj.AddComponent<PresetPanelComp>();
 
-            presetPanelList = GameObject.Instantiate(PluginConfiguratorController.sampleMenu, presetPanel.transform);
-            presetPanelList.SetActive(true);
-            RectTransform presetPanelListRect = presetPanelList.GetComponent<RectTransform>();
-            presetPanelListRect.anchoredPosition = new Vector2(0, 40);
-            VerticalLayoutGroup contentLayout = UnityUtils.GetComponentInChildrenRecursively<VerticalLayoutGroup>(presetPanelList.transform);
-            contentLayout.spacing = 5;
-            Transform content = this.content = contentLayout.transform;
-            foreach (Transform child in content)
-                GameObject.Destroy(child.gameObject);
-            Text presetPanelListText = presetPanelList.transform.Find("Text").GetComponent<Text>();
-            presetPanelListText.text = "Presets";
+            content = presetPanel.content;
 
-            GameObject defaultPresetButtonContainer = new GameObject();
-            RectTransform defaultPresetButtonContainerRect = defaultPresetButtonContainer.AddComponent<RectTransform>();
-            defaultPresetButtonContainerRect.anchorMin = new Vector2(0, 1);
-            defaultPresetButtonContainerRect.anchorMax = new Vector2(0, 1);
-            defaultPresetButtonContainerRect.SetParent(content);
-            defaultPresetButtonContainerRect.sizeDelta = new Vector2(620, 60);
-            defaultPresetButtonContainerRect.localScale = Vector3.one;
-            defaultPresetButtonContainerRect.anchoredPosition = Vector3.zero;
-            this.defaultPresetButtonContainer = defaultPresetButtonContainer;
+            GameObject defaultPresetButton = Addressables.InstantiateAsync(ASSET_PATH_DEFAULT_PRESET_BUTTON, content).WaitForCompletion();
+            defaultPresetButtonContainer = defaultPresetButton;
+            ConfigDefaultPresetButtonField defaultPreset = defaultPresetButton.GetComponent<ConfigDefaultPresetButtonField>();
 
-            RectTransform defaultPresetButton = CreateBigContentButton(defaultPresetButtonContainer.transform, "[Default Config]", TextAnchor.MiddleLeft);
-            defaultPresetButton.sizeDelta = new Vector2(515, 60);
-            Button defaultPresetButtonComp = currentDefaultPresetButton = defaultPresetButton.GetComponent<Button>();
-            defaultPresetButtonComp.onClick.AddListener(() =>
+            currentDefaultPresetButton = defaultPreset.button;
+            currentDefaultPresetButton.onClick.AddListener(() =>
             {
                 PluginConfiguratorController.LogDebug("Changing preset to default preset");
                 ChangePreset(null);
             });
 
-            RectTransform defaultResetButton = CreateBigContentButton(defaultPresetButtonContainer.transform, "RESET", TextAnchor.MiddleCenter);
-            defaultResetButton.sizeDelta = new Vector2(100, 60);
-            defaultResetButton.anchoredPosition = new Vector2(520, 0);
-            defaultResetButton.GetComponent<Button>().onClick.AddListener(() =>
+            defaultPreset.reset.onClick.AddListener(() =>
             {
                 ResetPreset(null);
             });
 
+            presetMenuButtonComp = presetMenuButton.button;
             presetMenuButtonComp.onClick.AddListener(() =>
             {
                 DiscoverNewPresetFiles();
-                presetPanel.SetActive(true);
+                presetPanelObj.SetActive(true);
             });
 
             foreach(Preset preset in presets)
@@ -972,18 +857,11 @@ namespace PluginConfig.API
                 preset.currentUI = CreateButtonFromPreset(preset, content);
             }
 
-            if (currentPreset == null)
-            {
-                UI_SelectPreset(null);
-            }
-            else
-            {
-                UI_SelectPreset(currentPreset);
-            }
+            UI_SelectPreset(currentPreset);
 
-            addPresetButton = CreateBigContentButton(content, "+", TextAnchor.MiddleCenter);
-            Button addPresetButtonComp = addPresetButton.GetComponent<Button>();
-            addPresetButtonComp.onClick.AddListener(() =>
+            addPresetButton = Addressables.InstantiateAsync(ASSET_PATH_PRESET_ADD_BUTTON, content).WaitForCompletion().GetComponent<ConfigButtonField>();
+
+            addPresetButton.button.onClick.AddListener(() =>
             {
                 string name = $"Copy of {((currentPreset == null) ? "default config" : currentPreset.name)}";
                 string id = System.Guid.NewGuid().ToString();
@@ -1005,33 +883,22 @@ namespace PluginConfig.API
                     filePath = presetPath
                 });
 
-                preset.listIndex = Mathf.Clamp(preset.currentUI.container.GetSiblingIndex() - 1, 0, int.MaxValue);
+                preset.listIndex = Mathf.Clamp(preset.currentUI.transform.GetSiblingIndex() - 1, 0, int.MaxValue);
             });
 
             foreach (Preset preset in presets)
             {
-                preset.currentUI.container.SetSiblingIndex(Math.Min(content.childCount - 2, Math.Max(preset.listIndex + 1, 1)));
+                preset.currentUI.transform.SetSiblingIndex(Math.Min(content.childCount - 2, Math.Max(preset.listIndex + 1, 1)));
             }
             defaultPresetButtonContainer.transform.SetAsFirstSibling();
-            addPresetButton.SetAsLastSibling();
+            addPresetButton.transform.SetAsLastSibling();
 
-            // old parent: presetPanelListRect
-            RectTransform exportRect = CreateBigContentButton(presetPanelListRect, "Export current preset", TextAnchor.MiddleCenter, 325);
-            exportRect.anchorMin = exportRect.anchorMax = new Vector2(0.5f, 0.5f);
-            //exportRect.anchoredPosition = new Vector2(328, -680);
-            exportRect.pivot = new Vector2(0.5f, 1);
-            exportRect.anchoredPosition = new Vector2(-148, -320);
-            exportRect.GetComponent<Button>().onClick.AddListener(() =>
+            presetPanel.export.onClick.AddListener(() =>
             {
                 ExportCurrentPreset();
             });
 
-            RectTransform openPresetsRect = CreateBigContentButton(presetPanelListRect, "Open preset folder", TextAnchor.MiddleCenter, 325);
-            //openPresetsRect.anchoredPosition = new Vector2(328 + 325 + 5, -680);
-            openPresetsRect.pivot = new Vector2(0.5f, 1);
-            openPresetsRect.anchorMin = openPresetsRect.anchorMax = new Vector2(0.5f, 0.5f);
-            openPresetsRect.anchoredPosition = new Vector2(182, -320);
-            openPresetsRect.GetComponent<Button>().onClick.AddListener(() =>
+            presetPanel.openFolder.onClick.AddListener(() =>
             {
                 Application.OpenURL(configPresetsFolderPath);
             });
@@ -1070,7 +937,7 @@ namespace PluginConfig.API
             GameObject panel = rootPanel.CreateUI(null);
 
             configButton.onClick = new Button.ButtonClickedEvent();
-            configButton.onClick.AddListener(() => PluginConfiguratorController.mainPanel.SetActive(false));
+            configButton.onClick.AddListener(() => PluginConfiguratorController.mainPanel.gameObject.SetActive(false));
             configButton.onClick.AddListener(() =>
             {
                 PluginConfiguratorController.activePanel = panel;

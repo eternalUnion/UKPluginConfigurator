@@ -84,7 +84,7 @@ namespace PluginConfig.API.Fields
             if (currentUi == null)
                 return;
 
-            currentUi.transform.Find("Text").GetComponent<Text>().color = interactable ? Color.white : Color.gray;
+            currentUi.name.color = interactable ? Color.white : Color.gray;
         }
 
         private bool _interactable = true;

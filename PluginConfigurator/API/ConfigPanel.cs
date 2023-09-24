@@ -44,7 +44,7 @@ namespace PluginConfig.API
                 if(panel.parentPanel == null)
                 {
                     panel.rootConfig.FlushAll();
-                    PluginConfiguratorController.mainPanel.SetActive(true);
+                    PluginConfiguratorController.mainPanel.gameObject.SetActive(true);
                     PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
                     PluginConfiguratorController.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
                 }
@@ -56,13 +56,13 @@ namespace PluginConfig.API
 			});
 
 			panel.rootConfig.presetButtonCanBeShown = true;
-			panel.rootConfig.presetMenuButton.SetActive(!panel.rootConfig.presetButtonHidden);
+			panel.rootConfig.presetMenuButtonObj.SetActive(!panel.rootConfig.presetButtonHidden);
         }
         
         void OnDisable()
         {
 			panel.rootConfig.presetButtonCanBeShown = false;
-			panel.rootConfig.presetMenuButton.SetActive(false);
+			panel.rootConfig.presetMenuButtonObj.SetActive(false);
         }
     }
 
@@ -336,7 +336,7 @@ namespace PluginConfig.API
 
 			MenuEsc esc = panel.AddComponent<MenuEsc>();
             if (parentPanel == null)
-                esc.previousPage = PluginConfiguratorController.mainPanel;
+                esc.previousPage = PluginConfiguratorController.mainPanel.gameObject;
             else
                 esc.previousPage = parentPanel.GetConcretePanelObj();
 

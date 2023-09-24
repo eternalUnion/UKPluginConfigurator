@@ -9,25 +9,34 @@ namespace PluginConfiguratorComponents
     public class ConfigColorField : MonoBehaviour
     {
         public Text name;
+
+        public Image image;
+
         public Slider red;
         public Slider green;
         public Slider blue;
-        public Image image;
+
+        public InputField redInput;
+        public InputField greenInput;
+        public InputField blueInput;
 
         public Button resetButton;
 
-        public void SetR(float newR)
+        public void SliderSetR(float newR)
         {
+            redInput.SetTextWithoutNotify(((int)(red.normalizedValue * 255)).ToString());
             SetColor();
         }
 
-        public void SetG(float newG)
+        public void SliderSetG(float newG)
         {
+            greenInput.SetTextWithoutNotify(((int)(green.normalizedValue * 255)).ToString());
             SetColor();
         }
 
-        public void SetB(float newB)
+        public void SliderSetB(float newB)
         {
+            blueInput.SetTextWithoutNotify(((int)(blue.normalizedValue * 255)).ToString());
             SetColor();
         }
 
