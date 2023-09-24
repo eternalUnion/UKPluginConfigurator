@@ -148,7 +148,6 @@ namespace PluginConfig.API
         private PanelFieldType fieldType = PanelFieldType.Standard;
 
         private Sprite _icon;
-        private Image currentImage;
         /// <summary>
         /// If panel's field type contains an icon, the sprite will be used. Can be set trough <see cref="SetIconWithURL(string)"/>
         /// </summary>
@@ -157,8 +156,8 @@ namespace PluginConfig.API
             get => _icon;
             set {
                 _icon = value;
-                if (currentImage != null)
-                    currentImage.sprite = icon;
+                if (currentMenu != null && currentMenu.icon != null)
+                    currentMenu.icon.sprite = icon;
             }
         }
 

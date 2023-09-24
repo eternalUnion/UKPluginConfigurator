@@ -70,6 +70,8 @@ namespace PluginConfig.API.Functionals
             GameObject button = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = button.GetComponent<ConfigButtonField>();
 
+            currentUi.text.text = text;
+
             currentUi.button.onClick.AddListener(() =>
             {
                 if (onClick != null)
