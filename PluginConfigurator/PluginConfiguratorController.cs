@@ -101,9 +101,8 @@ namespace PluginConfig
 
 					configMenu.name.text = config.displayName;
 					configMenu.icon.sprite = config.image ?? defaultPluginIcon;
-
-                    config.pluginPanel = configMenuObj;
-					config.pluginButton = configMenu.button;
+					
+					config.configMenu = configMenu;
 
 					configMenuObj.SetActive(!config.hidden);
 					configMenu.button.interactable = config.interactable;
@@ -583,17 +582,18 @@ namespace PluginConfig
 
 			Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
 
-			MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+			static MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            static MethodInfo GetInstanceMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
-			void CheatKeyListener(BoolField.BoolValueChangeEvent data)
+            void CheatKeyListener(BoolField.BoolValueChangeEvent data)
 			{
 				if (data.value)
 				{
-					configuratorPatches.Patch(GetStaticMethod<CheatsManager>("HandleCheatBind"), new HarmonyMethod(GetStaticMethod<HandleCheatBindPatch>("Prefix")));
+					configuratorPatches.Patch(GetInstanceMethod<CheatsManager>("HandleCheatBind"), new HarmonyMethod(GetStaticMethod<HandleCheatBindPatch>("Prefix")));
 				}
 				else
 				{
-					configuratorPatches.Unpatch(GetStaticMethod<CheatsManager>("HandleCheatBind"), GetStaticMethod<HandleCheatBindPatch>("Prefix"));
+					configuratorPatches.Unpatch(GetInstanceMethod<CheatsManager>("HandleCheatBind"), GetStaticMethod<HandleCheatBindPatch>("Prefix"));
 				}
 			}
 			patchCheatKeys.onValueChange += CheatKeyListener;
@@ -604,22 +604,23 @@ namespace PluginConfig
 			{
 				if (data.value)
 				{
-					configuratorPatches.Patch(GetStaticMethod<OptionsManager>("UnPause"), new HarmonyMethod(GetStaticMethod<UnpausePatch>("Prefix")));
-					configuratorPatches.Patch(GetStaticMethod<OptionsManager>("CloseOptions"), new HarmonyMethod(GetStaticMethod<CloseOptionsPatch>("Prefix")));
+					configuratorPatches.Patch(GetInstanceMethod<OptionsManager>("UnPause"), new HarmonyMethod(GetStaticMethod<UnpausePatch>("Prefix")));
+					configuratorPatches.Patch(GetInstanceMethod<OptionsManager>("CloseOptions"), new HarmonyMethod(GetStaticMethod<CloseOptionsPatch>("Prefix")));
 				}
 				else
 				{
-					configuratorPatches.Unpatch(GetStaticMethod<OptionsManager>("UnPause"), GetStaticMethod<UnpausePatch>("Prefix"));
-					configuratorPatches.Unpatch(GetStaticMethod<OptionsManager>("CloseOptions"), GetStaticMethod<CloseOptionsPatch>("Prefix"));
+					configuratorPatches.Unpatch(GetInstanceMethod<OptionsManager>("UnPause"), GetStaticMethod<UnpausePatch>("Prefix"));
+					configuratorPatches.Unpatch(GetInstanceMethod<OptionsManager>("CloseOptions"), GetStaticMethod<CloseOptionsPatch>("Prefix"));
 				}
 			}
 			patchPause.onValueChange += UnpauseListener;
 			if (patchPause.value)
 				UnpauseListener(new BoolField.BoolValueChangeEvent() { value = true });
 
-			configuratorPatches.Patch(GetStaticMethod<HUDOptions>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
+			configuratorPatches.Patch(GetInstanceMethod<HUDOptions>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
+			configuratorPatches.Patch(GetInstanceMethod<MenuEsc>("Update"), transpiler: new HarmonyMethod(GetStaticMethod<MenuEscPatch>(nameof(MenuEscPatch.FixNullExcpCausedByUncheckedField))));
 
-			config.FlushAll();
+            config.FlushAll();
 			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
 		}
 

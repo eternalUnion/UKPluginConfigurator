@@ -51,7 +51,7 @@ namespace PluginConfig.API
         public string displayName { private set; get; }
 
         /// <summary>
-        /// Plugin id, do not change after releasing (this field is used to find the path to the config file). If a change is required, changing the display name is adviced
+        /// Plugin id, do not change after release (this field is used to find the path to the config file). If a change is required, changing the display name is adviced
         /// </summary>
         public string guid { private set; get; }
 
@@ -59,9 +59,6 @@ namespace PluginConfig.API
         /// The main configuration panel, opened after plugin config button is clicked
         /// </summary>
         public ConfigPanel rootPanel { private set; get; }
-
-        internal GameObject pluginPanel;
-        internal Button pluginButton;
 
         private bool _hidden = false;
         /// <summary>
@@ -73,8 +70,8 @@ namespace PluginConfig.API
             set
             {
                 _hidden = value;
-                if (pluginPanel != null)
-                    pluginPanel.SetActive(!value);
+                if (configMenu != null)
+                    configMenu.gameObject.SetActive(!value);
             }
         }
 
@@ -88,8 +85,8 @@ namespace PluginConfig.API
 			set
 			{
 				_interactable = value;
-				if (pluginButton != null)
-					pluginButton.interactable = value;
+				if (configMenu != null)
+                    configMenu.button.interactable = value;
 			}
 		}
 
@@ -107,6 +104,15 @@ namespace PluginConfig.API
                 if (pluginImage != null)
                     pluginImage.sprite = _image ?? PluginConfiguratorController.defaultPluginIcon;
             }
+        }
+
+        /// <summary>
+        /// Icon of the plugin. Can be set with a URL via <see cref="SetIconWithURL(string)"/>
+        /// </summary>
+        public Sprite icon
+        {
+            get => image;
+            set => image = value;
         }
 
         public void SetIconWithURL(string url)
@@ -130,8 +136,13 @@ namespace PluginConfig.API
             };
         }
 
+        // Set to true if a config panel is open and that panel is from this configurator
         internal bool presetButtonCanBeShown = false;
+
         private bool _presetButtonHidden = false;
+        /// <summary>
+        /// If set to true, button to access the preset menu will be hidden
+        /// </summary>
         public bool presetButtonHidden
         {
             get => _presetButtonHidden;
@@ -144,6 +155,9 @@ namespace PluginConfig.API
         }
 
         private bool _presetButtonInteractable = true;
+        /// <summary>
+        /// If set to false, button to access the preset menu cannot be clicked
+        /// </summary>
         public bool presetButtonInteractable
         {
             get => _presetButtonInteractable;
@@ -207,24 +221,13 @@ namespace PluginConfig.API
             get => Path.Combine(Paths.ConfigPath, "PluginConfigurator", guid + "_presets", "config.txt");
         }
 
+        // Get the text for the preset menu button
         private string currentPresetHeaderName
         {
             get => currentPreset == null ? "[Default Config]" : currentPreset.name;
         }
 
         #endregion
-
-        private static ColorBlock GetButtonColor(Color clr)
-        {
-            ColorBlock colors = ColorBlock.defaultColorBlock;
-
-            colors.normalColor = clr;
-            colors.pressedColor = clr * 0.5f;
-            colors.selectedColor = clr * 0.7f;
-            colors.highlightedColor = clr * 0.6f;
-
-            return colors;
-        }
 
         internal class Preset
         {
@@ -336,6 +339,13 @@ namespace PluginConfig.API
             }
         }
 
+        // Current UI
+        internal ConfigPluginMenuField configMenu;
+        internal ConfigButtonField presetMenuButton;
+        internal ConfigPresetPanelField presetPanel;
+        internal ConfigDefaultPresetButtonField defaultPresetButton;
+        internal ConfigButtonField addPresetButton;
+
         internal bool isDirty = false;
         internal Dictionary<string, string> config = new Dictionary<string, string>();
         internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
@@ -343,6 +353,28 @@ namespace PluginConfig.API
         internal bool isPresetHeaderDirty = false;
         internal List<Preset> presets = new List<Preset>();
         private Preset currentPreset;
+
+        private static ColorBlock GetButtonColor(Color clr)
+        {
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+
+            colors.normalColor = clr;
+            colors.pressedColor = clr * 0.5f;
+            colors.selectedColor = clr * 0.7f;
+            colors.highlightedColor = clr * 0.6f;
+
+            return colors;
+        }
+
+        private Preset CreatePreset(Preset newPreset)
+        {
+            presets.Add(newPreset);
+            if (presetPanel != null)
+                newPreset.CreateUI();
+            isPresetHeaderDirty = true;
+
+            return newPreset;
+        }
 
         private void ReorderAllPresetsFromId()
         {
@@ -411,21 +443,6 @@ namespace PluginConfig.API
                 preset.listIndex = newIndex;
             }
         }
-
-        private Preset CreatePreset(Preset newPreset)
-        {
-            presets.Add(newPreset);
-            if (presetPanel != null)
-                newPreset.CreateUI();
-            isPresetHeaderDirty = true;
-
-            return newPreset;
-        }
-
-        internal ConfigButtonField presetMenuButton;
-        internal ConfigPresetPanelField presetPanel;
-        internal ConfigDefaultPresetButtonField defaultPresetButton;
-        internal ConfigButtonField addPresetButton;
 
         internal void CreatePresetUI(Transform optionsMenu)
         {
