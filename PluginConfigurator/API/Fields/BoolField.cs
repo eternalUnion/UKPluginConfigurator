@@ -141,7 +141,7 @@ namespace PluginConfig.API.Fields
             currentUi.toggle.isOn = value;
             currentUi.toggle.interactable = _interactable && parentInteractable;
             currentUi.toggle.onValueChanged = new Toggle.ToggleEvent();
-            currentUi.toggle.onValueChanged.AddListener(OnCompValueChange);
+            currentUi.toggle.onValueChanged.AddListener(OnValueChange);
 
             currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
             currentUi.resetButton.onClick.AddListener(OnReset);
@@ -157,7 +157,7 @@ namespace PluginConfig.API.Fields
             return field;
         }
 
-        internal void OnCompValueChange(bool val)
+        internal void OnValueChange(bool val)
         {
             BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
             try
@@ -172,7 +172,8 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.toggle.SetIsOnWithoutNotify(_value);
+                if (currentUi != null)
+                    currentUi.toggle.SetIsOnWithoutNotify(_value);
                 return;
             }
 
@@ -181,10 +182,9 @@ namespace PluginConfig.API.Fields
 
         internal void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
-            currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
-            OnCompValueChange(defaultValue);
+            if (currentUi != null)
+                currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
+            OnValueChange(defaultValue);
         }
 
         public void TriggerValueChangeEvent()
@@ -218,19 +218,19 @@ namespace PluginConfig.API.Fields
             {
                 if (currentUi != null)
                     currentUi.toggle.SetIsOnWithoutNotify(true);
-                OnCompValueChange(true);
+                OnValueChange(true);
             }
             else if (data == "false")
             {
                 if (currentUi != null)
                     currentUi.toggle.SetIsOnWithoutNotify(false);
-                OnCompValueChange(false);
+                OnValueChange(false);
             }
             else
             {
                 if (currentUi != null)
                     currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
-                OnCompValueChange(defaultValue);
+                OnValueChange(defaultValue);
 
                 if (_saveToConfig)
                 {

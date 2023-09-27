@@ -53,6 +53,14 @@ namespace PluginConfig.API
         }
 
         /// <summary>
+        /// Even if <see cref="hidden"/> is false, field could be hidden by a <see cref="ConfigDivision"/>. This field returns true if either <see cref="hidden"/> is true or a parent division's <see cref="hidden"/> is true.
+        /// </summary>
+        public bool hierarchyHidden
+        {
+            get => hidden || parentHidden;
+        }
+
+        /// <summary>
         /// If disabled, field's value cannot be changed from the user interface
         /// </summary>
         public abstract bool interactable { get; set; }
@@ -62,6 +70,14 @@ namespace PluginConfig.API
                 _parentInteractable = value;
                 interactable = interactable;
             }
+        }
+
+        /// <summary>
+        /// Even if <see cref="interactable"/> is true, field could be disabled by a <see cref="ConfigDivision"/>. This field returns false if either <see cref="interactable"/> is false or a parent division's <see cref="hidden"/> is false.
+        /// </summary>
+        public bool hierarchyInteractable
+        {
+            get => interactable && hierarchyInteractable;
         }
 
         public PluginConfigurator rootConfig { private set; get; }
@@ -98,7 +114,7 @@ namespace PluginConfig.API
 				fields.RemoveAt(previousIndex);
                 fields.Insert(value, this);
 
-                if (parentPanel.currentPanel != null)
+                if (parentPanel.currentPanel != null && parentPanel.currentPanel.content.childCount != 0)
                 {
                     var ui = parentPanel.fieldObjects[previousIndex];
                     parentPanel.fieldObjects.RemoveAt(previousIndex);

@@ -70,7 +70,7 @@ namespace PluginConfig.API.Fields
         public float fieldHeight = 60;
 
         private bool initialized = false;
-        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height, string displayName) : base(displayName, guid, parentPanel)
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height, string displayName, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             fieldWidth = width;
             fieldHeight = height;
@@ -86,13 +86,22 @@ namespace PluginConfig.API.Fields
                 OnCreateUI(currentRect);
         }
 
-        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height) : this(parentPanel, guid, width, height, "") { }
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height, string displayName) : base(displayName, guid, parentPanel, true) { }
 
-        public CustomConfigValueField(ConfigPanel parentPanel, string guid, string displayName) : this(parentPanel, guid, 600, 60, displayName) { }
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, float width, float height) : this(parentPanel, guid, width, height, "", true) { }
 
-        public CustomConfigValueField(ConfigPanel parentPanel, string guid) : this(parentPanel, guid, "") { }
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, string displayName, bool createUi) : this(parentPanel, guid, 600, 60, displayName, createUi) { }
+
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid, string displayName) : this(parentPanel, guid, 600, 60, displayName, true) { }
+
+        public CustomConfigValueField(ConfigPanel parentPanel, string guid) : this(parentPanel, guid, "", true) { }
 
         private RectTransform currentRect;
+        /// <summary>
+        /// Called when field interface is created on a panel. This method may be called BEFORE the superior class constructor
+        /// </summary>
+        /// <param name="content">Container for the field, of width <see cref="fieldWidth"/> and of height <see cref="fieldHeight"/></param>
+        /// <returns></returns>
         internal override GameObject CreateUI(Transform content)
         {
             GameObject container = new GameObject();
@@ -135,9 +144,10 @@ namespace PluginConfig.API.Fields
         {
             get => _fieldValue; set
             {
-                _fieldValue = value.Replace("\n", "");
+                _fieldValue = value.Replace("\n", "").Replace("\r", "");
+                if (!rootConfig.config.TryGetValue(guid, out string oldVal) || oldVal != _fieldValue)
+                    rootConfig.isDirty = true;
                 rootConfig.config[guid] = _fieldValue;
-                rootConfig.isDirty = true;
             }
         }
 

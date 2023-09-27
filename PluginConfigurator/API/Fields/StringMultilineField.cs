@@ -148,7 +148,7 @@ namespace PluginConfig.API.Fields
             currentUi.input.interactable = interactable && parentInteractable;
             currentUi.input.characterValidation = InputField.CharacterValidation.None;
             currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
-            currentUi.input.onEndEdit.AddListener(OnCompValueChange);
+            currentUi.input.onEndEdit.AddListener(OnValueChange);
             currentUi.input.lineType = InputField.LineType.MultiLineNewline;
             currentUi.input.text = _value.Replace(separatorChar, '\n');
             
@@ -172,13 +172,11 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
             currentUi.input.SetTextWithoutNotify(defaultValue);
-            OnCompValueChange(defaultValue);
+            OnValueChange(defaultValue);
         }
 
-        internal void OnCompValueChange(string val)
+        internal void OnValueChange(string val)
         {
             if (currentUi != null && currentUi.input.wasCanceled)
             {
@@ -194,13 +192,15 @@ namespace PluginConfig.API.Fields
             string formattedVal = val.Replace('\n', separatorChar).Replace("\r", "");
             if (formattedVal == _value)
             {
-                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(val))
             {
-                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
@@ -217,12 +217,14 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
                 return;
             }
 
             value = eventData.value;
-            currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
+            if (currentUi != null)
+                currentUi.input.SetTextWithoutNotify(_value.Replace(separatorChar, '\n'));
         }
 
         public void TriggerValueChangeEvent()
@@ -238,7 +240,7 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadFromString(string data)
         {
-            OnCompValueChange(data.Replace(separatorChar, '\n'));
+            OnValueChange(data.Replace(separatorChar, '\n'));
         }
 
         internal override void ReloadDefault()

@@ -179,9 +179,8 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
-            currentUi.input.SetTextWithoutNotify(defaultValue.ToString(CultureInfo.InvariantCulture));
+            if (currentUi != null)
+                currentUi.input.SetTextWithoutNotify(defaultValue.ToString(CultureInfo.InvariantCulture));
             OnCompValueChange(defaultValue.ToString(CultureInfo.InvariantCulture));
         }
 
@@ -214,7 +213,8 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                    if (currentUi != null)
+                        currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                     return;
                 }
             }
@@ -224,14 +224,16 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                    if (currentUi != null)
+                        currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                     return;
                 }
             }
 
             if (newValue == _value)
             {
-                currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 return;
             }
 
@@ -248,12 +250,14 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
                 return;
             }
 
             value = eventData.value;
-            currentUi.input.SetTextWithoutNotify(value.ToString(CultureInfo.InvariantCulture));
+            if (currentUi != null)
+                currentUi.input.SetTextWithoutNotify(value.ToString(CultureInfo.InvariantCulture));
         }
 
         public void TriggerValueChangeEvent()

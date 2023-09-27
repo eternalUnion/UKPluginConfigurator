@@ -161,7 +161,7 @@ namespace PluginConfig.API.Fields
             currentUi.dropdown.interactable = interactable && parentInteractable;
             currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
             currentUi.dropdown.options.Clear();
-            currentUi.dropdown.onValueChanged.AddListener(OnCompValueChange);
+            currentUi.dropdown.onValueChanged.AddListener(OnValueChange);
 
             T[] enumVals = Enum.GetValues(typeof(T)) as T[];
             foreach (T val in enumVals)
@@ -194,19 +194,19 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
-            currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
-            OnCompValueChange(Array.IndexOf(values, defaultValue));
+            if (currentUi != null)
+                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
+            OnValueChange(Array.IndexOf(values, defaultValue));
         }
 
-        internal void OnCompValueChange(int val)
+        internal void OnValueChange(int val)
         {
             T[] values = Enum.GetValues(typeof(T)) as T[];
             if(val >= values.Length)
             {
                 PluginConfiguratorController.LogWarning("Enum index requested does not exist");
-                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
+                if (currentUi != null)
+                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 
@@ -227,12 +227,14 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
+                if (currentUi != null)
+                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
                 return;
             }
 
             value = eventData.value;
-            currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
+            if (currentUi != null)
+                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
         }
 
         public void TriggerValueChangeEvent()
@@ -263,12 +265,12 @@ namespace PluginConfig.API.Fields
         {
             if (Enum.TryParse<T>(data, out T newValue))
             {
-                OnCompValueChange(Array.IndexOf(values, newValue));
+                OnValueChange(Array.IndexOf(values, newValue));
             }
             else
             {
                 _value = defaultValue;
-                OnCompValueChange(Array.IndexOf(values, newValue));
+                OnValueChange(Array.IndexOf(values, newValue));
 
                 if (_saveToConfig)
                 {

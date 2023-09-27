@@ -1,9 +1,12 @@
 ﻿#pragma warning disable IDE1006
+using BepInEx;
+using MonoMod.RuntimeDetour;
 using PluginConfiguratorComponents;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Networking;
@@ -11,6 +14,27 @@ using UnityEngine.UI;
 
 namespace PluginConfig.API
 {
+    internal class PresetPanelComp : MonoBehaviour
+    {
+        MenuEsc esc;
+
+        private void Awake()
+        {
+            esc = GetComponent<MenuEsc>();
+        }
+
+        private void OnEnable()
+        {
+            esc.previousPage = PluginConfiguratorController.activePanel;
+            transform.SetSiblingIndex(transform.parent.childCount - 1);
+        }
+
+        private void OnDisable()
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
     public class PluginConfigurator
     {
         private const string ASSET_PATH_PRESET_BUTTON = "PluginConfigurator/PresetButton.prefab";
@@ -18,6 +42,8 @@ namespace PluginConfig.API
         private const string ASSET_PATH_PRESET_ADD_BUTTON = "PluginConfigurator/PresetAddButton.prefab";
         private const string ASSET_PATH_DEFAULT_PRESET_BUTTON = "PluginConfigurator/DefaultPresetButton.prefab";
         private const string ASSET_PATH_CUSTOM_PRESET_BUTTON = "PluginConfigurator/CustomPresetButton.prefab";
+        
+        #region API Properties
 
         /// <summary>
         /// The text displayed on the plugin button
@@ -104,12 +130,106 @@ namespace PluginConfig.API
             };
         }
 
-		internal bool isDirty = false;
-        internal Dictionary<string, string> config = new Dictionary<string, string>();
-        internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
+        internal bool presetButtonCanBeShown = false;
+        private bool _presetButtonHidden = false;
+        public bool presetButtonHidden
+        {
+            get => _presetButtonHidden;
+            set
+            {
+                _presetButtonHidden = value;
+                if (presetMenuButton != null)
+                    presetMenuButton.gameObject.SetActive(presetButtonCanBeShown && !_presetButtonHidden);
+            }
+        }
+
+        private bool _presetButtonInteractable = true;
+        public bool presetButtonInteractable
+        {
+            get => _presetButtonInteractable;
+            set
+            {
+                _presetButtonInteractable = value;
+                if (presetMenuButton != null)
+                    presetMenuButton.button.interactable = value;
+            }
+        }
+
+        /// <summary>
+        /// Returns null if no preset is selected. Otherwise returns name of the currently selected preset
+        /// </summary>
+        public string currentPresetName
+        {
+            get => currentPreset == null ? null : currentPreset.name;
+        }
+
+        #endregion
+
+        #region Internal Properties
+
+        /// <summary>
+        /// File path of the default config, located at BepInEx/config/PluginConfigurator/{guid}.config
+        /// </summary>
+        public string defaultConfigFilePath
+        {
+            get => Path.Combine(Paths.ConfigPath, "PluginConfigurator", $"{guid}.config");
+        }
+
+        /// <summary>
+        /// File path of the selected preset, located at BepInEx/config/PluginConfigurator/{guid}_presets/{preset file name} OR default config path if no preset is selected
+        /// </summary>
+        public string currentConfigFilePath
+        {
+            get => currentPreset == null ? defaultConfigFilePath : currentPreset.filePath;
+        }
+
+        /// <summary>
+        /// Folder path of the current plugin config folder, located at BepInEx/config/PluginConfigurator
+        /// </summary>
+        public string configFolderPath
+        {
+            get => Path.Combine(Paths.ConfigPath, "PluginConfigurator");
+        }
+
+        /// <summary>
+        /// Folder path of the current plugin config preset folder, located at 
+        /// </summary>
+        public string configPresetsFolderPath
+        {
+            get => Path.Combine(Paths.ConfigPath, "PluginConfigurator", guid + "_presets");
+        }
+
+        /// <summary>
+        /// Directory to preset header file
+        /// </summary>
+        internal string configPresetsHeaderPath
+        {
+            get => Path.Combine(Paths.ConfigPath, "PluginConfigurator", guid + "_presets", "config.txt");
+        }
+
+        private string currentPresetHeaderName
+        {
+            get => currentPreset == null ? "[Default Config]" : currentPreset.name;
+        }
+
+        #endregion
+
+        private static ColorBlock GetButtonColor(Color clr)
+        {
+            ColorBlock colors = ColorBlock.defaultColorBlock;
+
+            colors.normalColor = clr;
+            colors.pressedColor = clr * 0.5f;
+            colors.selectedColor = clr * 0.7f;
+            colors.highlightedColor = clr * 0.6f;
+
+            return colors;
+        }
 
         internal class Preset
         {
+            public readonly PluginConfigurator rootConfig;
+
             public string name;
             public string filePath;
             public string fileId;
@@ -118,166 +238,462 @@ namespace PluginConfig.API
 
             public bool markedForDelete = false;
 
+            public Preset(PluginConfigurator config)
+            {
+                rootConfig = config;
+            }
+
+            public void SetButtonColor()
+            {
+                if (currentUI == null)
+                    return;
+
+                currentUI.preset.colors = GetButtonColor(rootConfig.currentPreset == this ? Color.red : Color.white);
+            }
+
+            public void SetResetInteractable()
+            {
+                if (currentUI == null)
+                    return;
+
+                currentUI.reset.interactable = rootConfig.currentPreset == this;
+            }
+
+            public void CreateUI()
+            {
+                if (currentUI != null)
+                    return;
+
+                currentUI = Addressables.InstantiateAsync(ASSET_PATH_CUSTOM_PRESET_BUTTON, rootConfig.presetPanel.content).WaitForCompletion().GetComponent<ConfigCustomPresetField>();
+                currentUI.nameInput.SetTextWithoutNotify(name);
+
+                currentUI.preset.onClick.AddListener(() =>
+                {
+                    if (rootConfig.currentPreset == this)
+                        return;
+
+                    rootConfig.ChangePreset(this);
+                });
+
+                currentUI.reset.interactable = rootConfig.currentPreset == this;
+                currentUI.reset.onClick.AddListener(() =>
+                {
+                    if (rootConfig.currentPreset != this)
+                    {
+                        currentUI.reset.interactable = false;
+                        return;
+                    }
+
+                    rootConfig.ResetPreset(this);
+                });
+
+                currentUI.edit.onClick.AddListener(() =>
+                {
+                    currentUI.nameInput.interactable = true;
+                    currentUI.nameInput.Select();
+                });
+
+                currentUI.nameInput.onEndEdit.AddListener((newVal) =>
+                {
+                    currentUI.nameInput.interactable = false;
+                    if (name == newVal)
+                        return;
+
+                    rootConfig.isPresetHeaderDirty = true;
+                    name = newVal;
+                    currentUI.nameInput.SetTextWithoutNotify(newVal);
+                });
+
+                currentUI.delete.onClick.AddListener(() =>
+                {
+                    rootConfig.DeletePreset(this);
+                });
+
+                currentUI.moveUp.onClick.AddListener(() =>
+                {
+                    if (currentUI.transform.GetSiblingIndex() <= 1)
+                        return;
+
+                    currentUI.transform.SetSiblingIndex(currentUI.transform.GetSiblingIndex() - 1);
+                    rootConfig.SetPresetIndexFromUi();
+                });
+
+                currentUI.moveDown.onClick.AddListener(() =>
+                {
+                    if (currentUI.transform.GetSiblingIndex() >= currentUI.transform.parent.childCount - 2)
+                        return;
+
+                    currentUI.transform.SetSiblingIndex(currentUI.transform.GetSiblingIndex() + 1);
+                    rootConfig.SetPresetIndexFromUi();
+                });
+
+                SetButtonColor();
+            }
+
             public int GetListIndexFromUI()
             {
                 return currentUI == null ? listIndex : currentUI.transform.GetSiblingIndex() - 1;
             }
         }
 
+        internal bool isDirty = false;
+        internal Dictionary<string, string> config = new Dictionary<string, string>();
+        internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
+
         internal bool isPresetHeaderDirty = false;
         internal List<Preset> presets = new List<Preset>();
         private Preset currentPreset;
 
+        private void ReorderAllPresetsFromId()
+        {
+            if (presetPanel == null)
+                return;
+
+            defaultPresetButton.transform.SetSiblingIndex(0);
+            int siblingIndex = 0;
+            foreach (Preset preset in presets.OrderBy(p => p.listIndex))
+            {
+                if (preset.currentUI == null)
+                    preset.CreateUI();
+
+                preset.currentUI.transform.SetSiblingIndex(siblingIndex + 1);
+                if (preset.listIndex != siblingIndex)
+                {
+                    preset.listIndex = siblingIndex;
+                    isPresetHeaderDirty = true;
+                }
+
+                siblingIndex += 1;
+            }
+
+            if (isPresetHeaderDirty)
+                FlushPresets();
+
+            addPresetButton.transform.SetAsLastSibling();
+        }
+        
+        private void RecolorAllPresets()
+        {
+            if (presetPanel == null)
+                return;
+
+            defaultPresetButton.button.colors = GetButtonColor(currentPreset == null ? Color.red : Color.white);
+            foreach (var preset in presets)
+                preset.SetButtonColor();
+        }
+
+        private void ResetPresetButtons()
+        {
+            if (presetPanel == null)
+                return;
+
+            defaultPresetButton.reset.interactable = currentPreset == null;
+            foreach (var preset in presets)
+                preset.SetResetInteractable();
+        }
+
+        private void SetPresetIndexFromUi()
+        {
+            if (presetPanel == null)
+                return;
+
+            foreach (var preset in presets)
+            {
+                if (preset.currentUI == null)
+                {
+                    preset.CreateUI();
+                    preset.currentUI.transform.SetSiblingIndex(preset.currentUI.transform.parent.childCount - 2);
+                }
+
+                int newIndex = preset.currentUI.transform.GetSiblingIndex() - 1;
+                if (newIndex != preset.listIndex)
+                    isPresetHeaderDirty = true;
+                preset.listIndex = newIndex;
+            }
+        }
+
         private Preset CreatePreset(Preset newPreset)
         {
             presets.Add(newPreset);
-            if (UIActive)
-                newPreset.currentUI = CreateButtonFromPreset(newPreset, content);
+            if (presetPanel != null)
+                newPreset.CreateUI();
             isPresetHeaderDirty = true;
 
             return newPreset;
         }
 
-        private void UI_SelectPreset(Preset preset)
-        {
-            if (!UIActive)
-                return;
-
-            if (preset == null)
-            {
-                SetButtonColor(currentDefaultPresetButton, new Color(1, 0, 0));
-                presetButtonText.text = "[Default Preset]";
-            }
-            else if (preset.currentUI != null)
-            {
-                SetButtonColor(preset.currentUI.preset, new Color(1, 0, 0));
-                presetButtonText.text = preset.name;
-            }
-        }
-
-        private void UI_DeselectPreset(Preset preset)
-        {
-            if (!UIActive)
-                return;
-
-            presetButtonText.text = "--- DESELECTED ---";
-            if (preset == null)
-            {
-                SetButtonColor(currentDefaultPresetButton, new Color(1, 1, 1));
-            }
-            else if (preset.currentUI != null)
-            {
-                SetButtonColor(preset.currentUI.preset, new Color(1, 1, 1));
-            }
-        }
-
-        internal GameObject presetMenuButtonObj;
-        internal Button presetMenuButtonComp;
-        internal Text presetButtonText;
-
-        internal GameObject presetPanelObj;
-        internal GameObject presetPanelList;
-
-        internal GameObject defaultPresetButtonContainer;
-
+        internal ConfigButtonField presetMenuButton;
+        internal ConfigPresetPanelField presetPanel;
+        internal ConfigDefaultPresetButtonField defaultPresetButton;
         internal ConfigButtonField addPresetButton;
 
-        internal bool presetButtonCanBeShown = false;
-		private bool _presetButtonHidden = false;
-		public bool presetButtonHidden
-		{
-			get => _presetButtonHidden;
-			set
-			{
-				_presetButtonHidden = value;
-                if (presetMenuButtonObj != null)
-                    presetMenuButtonObj.SetActive(presetButtonCanBeShown && !_presetButtonHidden);
-			}
-		}
-
-		private bool _presetButtonInteractable = true;
-        public bool presetButtonInteractable
+        internal void CreatePresetUI(Transform optionsMenu)
         {
-            get => _presetButtonInteractable;
-            set
+            presetMenuButton = Addressables.InstantiateAsync(ASSET_PATH_PRESET_BUTTON, optionsMenu).WaitForCompletion().GetComponent<ConfigButtonField>();
+            presetMenuButton.gameObject.SetActive(false);
+            presetMenuButton.text.text = currentPresetHeaderName;
+            presetMenuButton.button.interactable = _presetButtonInteractable;
+            presetMenuButton.button.onClick.AddListener(() =>
             {
-                _presetButtonInteractable = value;
-                if (presetMenuButtonComp != null)
-                    presetMenuButtonComp.interactable = value;
-			}
-        }
+                DiscoverNewPresetFiles();
+                presetPanel.gameObject.SetActive(true);
+            });
 
-        private bool UIActive
-        {
-            get => defaultPresetButtonContainer != null;
-        }
+            GameObject presetPanelObj = Addressables.InstantiateAsync(ASSET_PATH_PRESET_PANEL, optionsMenu).WaitForCompletion();
+            presetPanelObj.SetActive(false);
+            presetPanel = presetPanelObj.GetComponent<ConfigPresetPanelField>();
+            PresetPanelComp presetPanelComp = presetPanelObj.AddComponent<PresetPanelComp>();
 
-        /// <summary>
-        /// File path of the current default config file including the file name
-        /// </summary>
-        public string defaultConfigFilePath
-        {
-            get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator", $"{guid}.config");
-        }
-
-        public string currentConfigFilePath
-        {
-            get => currentPreset == null ? defaultConfigFilePath : currentPreset.filePath;
-        }
-
-        /// <summary>
-        /// Directory of the current plugin config folder
-        /// </summary>
-        public string configFolderPath
-        {
-            get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator");
-        }
-
-        /// <summary>
-        /// Directory of the current plugin config preset folder
-        /// </summary>
-        public string configPresetsFolderPath
-        {
-            get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator", guid + "_presets");
-        }
-
-        /// <summary>
-        /// Directory to preset header file
-        /// </summary>
-        internal string configPresetsHeaderPath
-        {
-            get => Path.Combine(Environment.CurrentDirectory, "BepInEx", "config", "PluginConfigurator", guid + "_presets", "config.txt");
-        }
-
-        private PluginConfigurator()
-        {
-
-        }
-
-        /// <summary>
-        /// Create a new configurator. Use one instance troughtought the session
-        /// </summary>
-        /// <param name="displayName">Name of the plugin, displayName will be set to this</param>
-        /// <param name="guid">ID of the plugin, guild will be set to this</param>
-        public static PluginConfigurator Create(string displayName, string guid)
-        {
-            if (PluginConfiguratorController.ConfigExists(guid))
-                throw new ArgumentException("Config with GUID " + guid + " already exists");
-
-            PluginConfigurator config = new PluginConfigurator()
+            GameObject defaultPresetButtonObj = Addressables.InstantiateAsync(ASSET_PATH_DEFAULT_PRESET_BUTTON, presetPanel.content).WaitForCompletion();
+            defaultPresetButton = defaultPresetButtonObj.GetComponent<ConfigDefaultPresetButtonField>();
+            defaultPresetButton.button.colors = GetButtonColor(currentPreset == null ? Color.red : Color.white);
+            defaultPresetButton.button.onClick.AddListener(() =>
             {
-                displayName = displayName,
-                guid = guid
-            };
-            config.rootPanel = new ConfigPanel(config);
+                ChangePreset(null);
+            });
+            defaultPresetButton.reset.interactable = currentPreset == null;
+            defaultPresetButton.reset.onClick.AddListener(() =>
+            {
+                ResetPreset(null);
+            });
 
-            config.firstTime = !File.Exists(config.defaultConfigFilePath);
+            foreach (Preset preset in presets)
+                preset.CreateUI();
 
-            PluginConfiguratorController.RegisterConfigurator(config);
-            config.Init_LoadPresets();
-            config.Init_LoadFromFile();
+            addPresetButton = Addressables.InstantiateAsync(ASSET_PATH_PRESET_ADD_BUTTON, presetPanel.content).WaitForCompletion().GetComponent<ConfigButtonField>();
+            addPresetButton.button.onClick.AddListener(() =>
+            {
+                string name = $"Copy of {currentPresetName}";
+                string id = Guid.NewGuid().ToString();
+                string originalPath = currentConfigFilePath;
+                string presetPath = Path.Combine(configPresetsFolderPath, $"{id}.config");
 
-            return config;
+                if (!Directory.Exists(configPresetsFolderPath))
+                    Directory.CreateDirectory(configPresetsFolderPath);
+
+                if (File.Exists(originalPath))
+                    File.Copy(originalPath, presetPath);
+
+                Preset preset = CreatePreset(new Preset(this)
+                {
+                    name = name,
+                    fileId = id,
+                    filePath = presetPath,
+                    listIndex = addPresetButton.transform.GetSiblingIndex() - 1
+                });
+
+                preset.currentUI.transform.SetSiblingIndex(preset.listIndex + 1);
+            });
+
+            ReorderAllPresetsFromId();
+
+            presetPanel.export.onClick.AddListener(() =>
+            {
+                ExportCurrentPreset();
+            });
+
+            presetPanel.openFolder.onClick.AddListener(() =>
+            {
+                Application.OpenURL(configPresetsFolderPath);
+            });
+        }
+
+        private void ChangePreset(Preset newPreset)
+        {
+            if (newPreset == currentPreset)
+                return;
+
+            string presetIdBefore = currentPreset == null ? null : currentPreset.fileId;
+            string presetIdAfter = newPreset == null ? null : newPreset.fileId;
+
+            try
+            {
+                if (prePresetChangeEvent != null)
+                    prePresetChangeEvent.Invoke(presetIdBefore, presetIdAfter);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+            }
+
+            FlushAll();
+
+            currentPreset = newPreset;
+
+            if (presetMenuButton != null)
+                presetMenuButton.text.text = currentPresetHeaderName;
+
+            RecolorAllPresets();
+            ResetPresetButtons();
+
+            config.Clear();
+            string filePath = currentConfigFilePath;
+
+            if (File.Exists(filePath))
+            {
+                PluginConfiguratorController.logger.LogInfo($"Loading preset from {filePath}");
+                using (StreamReader stream = File.OpenText(filePath))
+                {
+                    while (!stream.EndOfStream)
+                    {
+                        string guid = stream.ReadLine();
+                        if (guid == null || string.IsNullOrEmpty(guid))
+                            break;
+
+                        string data = stream.ReadLine();
+                        if (data == null)
+                            data = "";
+                        config[guid] = data;
+                    }
+                }
+            }
+
+            Dictionary<int, List<ConfigField>> priorityDictionary = new Dictionary<int, List<ConfigField>>();
+            foreach (ConfigField field in fields.Values)
+            {
+                if (priorityDictionary.TryGetValue(field.presetLoadPriority, out List<ConfigField> list))
+                {
+                    list.Add(field);
+                }
+                else
+                {
+                    priorityDictionary.Add(field.presetLoadPriority, new List<ConfigField>() { field });
+                }
+            }
+
+            var priorityList = priorityDictionary.ToList();
+            bool dirty = false;
+            foreach (List<ConfigField> list in priorityList.OrderByDescending(i => i.Key).Select(i => i.Value))
+            {
+                foreach (ConfigField field in list)
+                {
+                    if (config.TryGetValue(field.guid, out string val))
+                    {
+                        field.ReloadFromString(val);
+                        if (!dirty)
+                        {
+                            if (!config.TryGetValue(field.guid, out string newVal) || val != newVal)
+                                dirty = true;
+                        }
+                    }
+                    else
+                    {
+                        dirty = true;
+                        field.ReloadDefault();
+                    }
+                }
+            }
+
+            isDirty = dirty;
+            isPresetHeaderDirty = true;
+
+            try
+            {
+                if (postPresetChangeEvent != null)
+                    postPresetChangeEvent.Invoke(presetIdBefore, presetIdAfter);
+            }
+            catch (Exception e)
+            {
+                PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+            }
+
+            FlushAll();
+        }
+
+        private void ResetPreset(Preset preset)
+        {
+            // Resetting preset without switching to it is not allowed
+            if (preset != currentPreset)
+            {
+                if (presetPanel != null)
+                {
+                    if (preset == null)
+                        defaultPresetButton.reset.interactable = false;
+                    else
+                        preset.currentUI.reset.interactable = false;
+                }
+
+                return;
+            }
+
+            config.Clear();
+            
+            Dictionary<int, List<ConfigField>> priorityDictionary = new Dictionary<int, List<ConfigField>>();
+            foreach (ConfigField field in fields.Values)
+            {
+                if (priorityDictionary.TryGetValue(field.presetLoadPriority, out List<ConfigField> list))
+                {
+                    list.Add(field);
+                }
+                else
+                {
+                    priorityDictionary.Add(field.presetLoadPriority, new List<ConfigField>() { field });
+                }
+            }
+
+            var priorityList = priorityDictionary.ToList();
+            foreach (List<ConfigField> list in priorityList.OrderByDescending(i => i.Key).Select(i => i.Value))
+            {
+                foreach (ConfigField field in list)
+                {
+                    field.ReloadDefault();
+                }
+            }
+
+            FlushAll();
+        }
+
+        private void DeletePreset(Preset preset)
+        {
+            if (preset == currentPreset)
+            {
+                ChangePreset(null);
+            }
+
+            presets.Remove(preset);
+            if (preset.currentUI != null)
+                GameObject.Destroy(preset.currentUI.gameObject);
+
+            if (File.Exists(preset.filePath))
+                try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
+            
+            isPresetHeaderDirty = true;
+            FlushPresets();
+        }
+
+        public bool DeletePreset(string presetID)
+        {
+            Preset foundPreset = presets.Where(preset => preset.fileId == presetID).FirstOrDefault();
+            if (foundPreset == null)
+                return false;
+
+            DeletePreset(foundPreset);
+            return true;
+        }
+
+        private void DiscoverNewPresetFiles()
+        {
+            if (!Directory.Exists(configPresetsFolderPath))
+            {
+                Directory.CreateDirectory(configPresetsFolderPath);
+                return;
+            }
+
+            string headerFilePath = configPresetsHeaderPath;
+            foreach (string file in Directory.GetFiles(configPresetsFolderPath))
+            {
+                if (file == headerFilePath || !file.EndsWith(".config"))
+                    continue;
+
+                string fileID = Path.GetFileNameWithoutExtension(file);
+                if (string.IsNullOrWhiteSpace(fileID))
+                    continue;
+
+                if (presets.Where(p => p.fileId == fileID).Any())
+                    continue;
+
+                CreatePreset(new Preset(this) { filePath = file, fileId = fileID, listIndex = presets.Count, name = fileID });
+            }
         }
         
         private void Init_LoadPresets()
@@ -332,14 +748,16 @@ namespace PluginConfig.API
                             break;
                         }
 
-                        int index = 0;
-                        if(!int.TryParse(indexStr, out index))
+                        if(!int.TryParse(indexStr, out int index))
                         {
                             PluginConfiguratorController.LogWarning($"Invalid list index for {guid}:{id}:{name}");
                             index = 0;
                         }
 
-                        CreatePreset(new Preset()
+                        if (presets.Where(p => p.fileId == id).Any())
+                            continue;
+
+                        CreatePreset(new Preset(this)
                         {
                             fileId = id,
                             filePath = Path.Combine(configPresetsFolderPath, $"{id}.config"),
@@ -362,40 +780,6 @@ namespace PluginConfig.API
             }
 
             DiscoverNewPresetFiles();
-        }
-
-        private void DiscoverNewPresetFiles()
-        {
-            if(!Directory.Exists(configPresetsFolderPath))
-            {
-                Directory.CreateDirectory(configPresetsFolderPath);
-                return;
-            }
-
-            string headerFilePath = configPresetsHeaderPath;
-            foreach (string file in Directory.GetFiles(configPresetsFolderPath))
-            {
-                if (file == headerFilePath || !file.EndsWith(".config"))
-                    continue;
-
-                string fileID = Path.GetFileName(file);
-                fileID = fileID.Substring(0, fileID.Length - ".config".Length);
-                if (string.IsNullOrWhiteSpace(fileID))
-                    continue;
-
-                bool exists = false;
-                foreach(Preset preset in presets)
-                    if(preset.fileId == fileID)
-                    {
-                        exists = true;
-                        break;
-                    }
-
-                if (exists)
-                    continue;
-
-                CreatePreset(new Preset() { filePath = file, fileId = fileID, listIndex = presets.Count, name = fileID });
-            }
         }
 
         private void Init_LoadFromFile()
@@ -441,6 +825,12 @@ namespace PluginConfig.API
         /// Triggered after the config is flushed (either by a menu close, a game quit or by a call)
         /// </summary>
         public event PostConfigChangeEvent postConfigChange;
+
+        public delegate void PrePresetChangeEvent(string presetIdBefore, string presetIdAfter);
+        public event PrePresetChangeEvent prePresetChangeEvent;
+
+        public delegate void PostPresetChangeEvent(string presetIdBefore, string presetIdAfter);
+        public event PostPresetChangeEvent postPresetChangeEvent;
 
         public bool saveToFile = true;
 
@@ -538,11 +928,11 @@ namespace PluginConfig.API
             {
                 foreach (KeyValuePair<string, string> data in config)
                 {
-                    if (data.Key == null || data.Value == null)
+                    if (data.Key == null)
                         continue;
 
                     stream.WriteLine(data.Key);
-                    stream.WriteLine(data.Value);
+                    stream.WriteLine(data.Value == null ? "" : data.Value.Replace("\n", "").Replace("\r", ""));
                 }
             }
 
@@ -557,77 +947,6 @@ namespace PluginConfig.API
             {
                 PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
             }    
-        }
-
-        private void ChangePreset(Preset newPreset, bool reset = false)
-        {
-            if (newPreset == currentPreset && !reset)
-                return;
-
-            UI_DeselectPreset(currentPreset);
-            FlushAll();
-
-            currentPreset = newPreset;
-            UI_SelectPreset(currentPreset);
-            string filePath = currentConfigFilePath;
-
-            config.Clear();
-
-            if(!reset && File.Exists(filePath))
-            {
-                PluginConfiguratorController.logger.LogInfo($"Loading preset from {filePath}");
-                using (StreamReader stream = File.OpenText(filePath))
-                {
-                    while (!stream.EndOfStream)
-                    {
-                        string guid = stream.ReadLine();
-                        if (guid == null || string.IsNullOrEmpty(guid))
-                            break;
-
-                        string data = stream.ReadLine();
-                        if (data == null)
-                            data = "";
-                        config[guid] = data;
-                    }
-                }
-            }
-
-            Dictionary<int, List<ConfigField>> priorityDictionary = new Dictionary<int, List<ConfigField>>();
-            foreach(ConfigField field in fields.Values)
-            {
-                if(priorityDictionary.TryGetValue(field.presetLoadPriority, out List<ConfigField> list))
-                {
-                    list.Add(field);
-                }
-                else
-                {
-                    priorityDictionary.Add(field.presetLoadPriority, new List<ConfigField>() { field });
-                }
-            }
-
-            List<KeyValuePair<int, List<ConfigField>>> priorityList = priorityDictionary.ToList();
-            priorityList.Sort((pair1, pair2) => pair2.Key.CompareTo(pair1.Key));
-
-            foreach(KeyValuePair<int, List<ConfigField>> list in priorityList)
-            {
-                foreach(ConfigField field in list.Value)
-                {
-                    if (config.TryGetValue(field.guid, out string val) && !reset)
-                        field.ReloadFromString(val);
-                    else
-                        field.ReloadDefault();
-                }
-            }
-
-            isPresetHeaderDirty = true;
-            FlushAll();
-        }
-
-        private void ResetPreset(Preset preset)
-        {
-            Preset lastPreset = currentPreset;
-            ChangePreset(preset, true);
-            ChangePreset(lastPreset);
         }
 
         private void ExportCurrentPreset()
@@ -664,245 +983,10 @@ namespace PluginConfig.API
             Application.OpenURL(exportFolder);
         }
 
-        private void DeletePreset(Preset preset)
-        {
-            if (preset == currentPreset)
-            {
-                ChangePreset(null);
-            }
-
-            presets.Remove(preset);
-            if(preset.currentUI != null)
-                GameObject.Destroy(preset.currentUI.gameObject);
-
-            if (File.Exists(preset.filePath))
-                try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
-
-            isPresetHeaderDirty = true;
-            FlushPresets();
-        }
-
-        public bool DeletePreset(string presetID)
-        {
-            Preset foundPreset = presets.Where(preset => preset.fileId == presetID).FirstOrDefault();
-            if (foundPreset == null)
-                return false;
-
-            DeletePreset(foundPreset);
-            return true;
-        }
-
+        /// <summary>
+        /// Will be set to true if the config is created for the first time, meaning the config file did not exist before
+        /// </summary>
         public bool firstTime { get; private set; }
-
-        private class PresetPanelComp : MonoBehaviour
-        {
-            MenuEsc esc;
-
-            private void Awake()
-            {
-                esc = GetComponent<MenuEsc>();
-            }
-
-            private void OnEnable()
-            {
-                esc.previousPage = PluginConfiguratorController.activePanel;
-                transform.SetSiblingIndex(transform.parent.childCount - 1);
-            }
-
-            private void OnDisable()
-            {
-                gameObject.SetActive(false);
-            }
-        }
-
-        private ConfigCustomPresetField CreateCustomPresetButton(Transform content, string mainText)
-        {
-            GameObject container = Addressables.InstantiateAsync(ASSET_PATH_CUSTOM_PRESET_BUTTON, content).WaitForCompletion();
-            ConfigCustomPresetField customPreset = container.GetComponent<ConfigCustomPresetField>();
-
-            customPreset.nameInput.onEndEdit.AddListener((text) =>
-            {
-                if (customPreset.nameInput.wasCanceled)
-                    return;
-
-                isPresetHeaderDirty = true;
-                customPreset.nameInput.interactable = false;
-            });
-
-            customPreset.edit.onClick.AddListener(() =>
-            {
-                customPreset.nameInput.interactable = true;
-                customPreset.nameInput.Select();
-            });
-
-            customPreset.nameInput.SetTextWithoutNotify(mainText);
-
-            return customPreset;
-        }
-
-        private void SetButtonColor(Button btn, Color clr)
-        {
-            ColorBlock colors = ColorBlock.defaultColorBlock;
-            colors.normalColor = clr;
-            colors.pressedColor = clr * 0.5f;
-            colors.selectedColor = clr * 0.7f;
-            colors.highlightedColor = clr * 0.6f;
-            btn.colors = colors;
-        }
-
-        private ConfigCustomPresetField CreateButtonFromPreset(Preset preset, Transform content, int index = -1)
-        {
-            ConfigCustomPresetField info = CreateCustomPresetButton(content, preset.name);
-            preset.currentUI = info;
-
-            if(index < 0)
-                index = content.childCount - 2;
-            info.transform.SetSiblingIndex(index);
-
-            info.nameInput.onEndEdit.AddListener(name =>
-            {
-                if (preset.name == name)
-                    return;
-
-                isPresetHeaderDirty = true;
-                preset.name = name;
-                if (currentPreset == preset)
-                    presetButtonText.text = preset.name;
-            });
-            info.preset.onClick.AddListener(() =>
-            {
-                if (currentPreset == preset)
-                    return;
-                isPresetHeaderDirty = true;
-
-                PluginConfiguratorController.LogDebug($"Changing preset to {preset.name}");
-                ChangePreset(preset);
-            });
-            info.moveUp.onClick.AddListener(() =>
-            {
-                if (info.transform.GetSiblingIndex() > 1)
-                {
-                    info.transform.SetSiblingIndex(info.transform.GetSiblingIndex() - 1);
-                    preset.listIndex = info.transform.GetSiblingIndex() - 1;
-                    isPresetHeaderDirty = true;
-                }
-            });
-            info.moveDown.onClick.AddListener(() =>
-            {
-                if (info.transform.GetSiblingIndex() < content.childCount - 2)
-                {
-                    info.transform.SetSiblingIndex(info.transform.GetSiblingIndex() + 1);
-                    preset.listIndex = info.transform.GetSiblingIndex() - 1;
-                    isPresetHeaderDirty = true;
-                }
-            });
-            info.delete.onClick.AddListener(() =>
-            {
-                DeletePreset(preset);
-            });
-            info.reset.onClick.AddListener(() =>
-            {
-                ResetPreset(preset);
-            });
-
-            if (preset == currentPreset)
-                UI_SelectPreset(preset);
-
-            return info;
-        }
-
-        private Button currentDefaultPresetButton = null;
-        private Transform content;
-        internal void CreatePresetUI(Transform optionsMenu)
-        {
-            presetMenuButtonObj = Addressables.InstantiateAsync(ASSET_PATH_PRESET_BUTTON, optionsMenu).WaitForCompletion();
-            presetMenuButtonObj.SetActive(false);
-            ConfigButtonField presetMenuButton = presetMenuButtonObj.GetComponent<ConfigButtonField>();
-            
-            presetMenuButton.button.interactable = _presetButtonInteractable;
-            presetButtonText = presetMenuButton.text;
-
-            presetPanelObj = Addressables.InstantiateAsync(ASSET_PATH_PRESET_PANEL, optionsMenu).WaitForCompletion();
-            presetPanelObj.SetActive(false);
-            ConfigPresetPanelField presetPanel = presetPanelObj.GetComponent<ConfigPresetPanelField>();
-            PresetPanelComp presetPanelComp = presetPanelObj.AddComponent<PresetPanelComp>();
-
-            content = presetPanel.content;
-
-            GameObject defaultPresetButton = Addressables.InstantiateAsync(ASSET_PATH_DEFAULT_PRESET_BUTTON, content).WaitForCompletion();
-            defaultPresetButtonContainer = defaultPresetButton;
-            ConfigDefaultPresetButtonField defaultPreset = defaultPresetButton.GetComponent<ConfigDefaultPresetButtonField>();
-
-            currentDefaultPresetButton = defaultPreset.button;
-            currentDefaultPresetButton.onClick.AddListener(() =>
-            {
-                PluginConfiguratorController.LogDebug("Changing preset to default preset");
-                ChangePreset(null);
-            });
-
-            defaultPreset.reset.onClick.AddListener(() =>
-            {
-                ResetPreset(null);
-            });
-
-            presetMenuButtonComp = presetMenuButton.button;
-            presetMenuButtonComp.onClick.AddListener(() =>
-            {
-                DiscoverNewPresetFiles();
-                presetPanelObj.SetActive(true);
-            });
-
-            foreach(Preset preset in presets)
-            {
-                preset.currentUI = CreateButtonFromPreset(preset, content);
-            }
-
-            UI_SelectPreset(currentPreset);
-
-            addPresetButton = Addressables.InstantiateAsync(ASSET_PATH_PRESET_ADD_BUTTON, content).WaitForCompletion().GetComponent<ConfigButtonField>();
-
-            addPresetButton.button.onClick.AddListener(() =>
-            {
-                string name = $"Copy of {((currentPreset == null) ? "default config" : currentPreset.name)}";
-                string id = System.Guid.NewGuid().ToString();
-                string originalPath = currentConfigFilePath;
-                string presetPath = Path.Combine(configPresetsFolderPath, $"{id}.config");
-
-                if (!Directory.Exists(configPresetsFolderPath))
-                {
-                    Directory.CreateDirectory(configPresetsFolderPath);
-                }
-
-                if (File.Exists(originalPath))
-                    File.Copy(originalPath, presetPath);
-
-                Preset preset = CreatePreset(new Preset()
-                {
-                    name = name,
-                    fileId = id,
-                    filePath = presetPath
-                });
-
-                preset.listIndex = Mathf.Clamp(preset.currentUI.transform.GetSiblingIndex() - 1, 0, int.MaxValue);
-            });
-
-            foreach (Preset preset in presets)
-            {
-                preset.currentUI.transform.SetSiblingIndex(Math.Min(content.childCount - 2, Math.Max(preset.listIndex + 1, 1)));
-            }
-            defaultPresetButtonContainer.transform.SetAsFirstSibling();
-            addPresetButton.transform.SetAsLastSibling();
-
-            presetPanel.export.onClick.AddListener(() =>
-            {
-                ExportCurrentPreset();
-            });
-
-            presetPanel.openFolder.onClick.AddListener(() =>
-            {
-                Application.OpenURL(configPresetsFolderPath);
-            });
-        }
 
         public bool PresetExists(string presetID)
         {
@@ -918,14 +1002,19 @@ namespace PluginConfig.API
                 Directory.CreateDirectory(configPresetsFolderPath);
 
             string savePath = Path.Combine(configPresetsFolderPath, $"{presetID}.config");
-            if(File.Exists(savePath))
+            if (File.Exists(savePath))
             {
                 try { File.Delete(savePath); } catch (Exception) { }
             }
 
             try { File.Copy(fileLocation, savePath); } catch(Exception) { return false; }
 
-            Preset preset = CreatePreset(new Preset() { fileId = presetID, filePath = savePath, name = presetName, listIndex = presets.Count });
+            Preset preset = CreatePreset(new Preset(this) { fileId = presetID, filePath = savePath, name = presetName, listIndex = presets.Count });
+            if (preset.currentUI != null)
+            {
+                preset.currentUI.transform.SetSiblingIndex(preset.currentUI.transform.parent.childCount - 2);
+                preset.listIndex = preset.currentUI.transform.GetSiblingIndex() - 1;
+            }
 
             isPresetHeaderDirty = true;
             FlushPresets();
@@ -946,6 +1035,41 @@ namespace PluginConfig.API
 
             CreatePresetUI(optionsMenu);
         }
+
+        private PluginConfigurator()
+        {
+
+        }
+
+        /// <summary>
+        /// Create a new configurator. Use one instance troughtought the session
+        /// </summary>
+        /// <param name="displayName">Name of the plugin, displayName will be set to this</param>
+        /// <param name="guid">ID of the plugin, guild will be set to this</param>
+        public static PluginConfigurator Create(string displayName, string guid)
+        {
+            if (PluginConfiguratorController.ConfigExists(guid))
+                throw new ArgumentException("Config with GUID " + guid + " already exists");
+
+            PluginConfigurator config = new PluginConfigurator()
+            {
+                displayName = displayName,
+                guid = guid
+            };
+            config.rootPanel = new ConfigPanel(config);
+
+            config.firstTime = !File.Exists(config.defaultConfigFilePath);
+
+            PluginConfiguratorController.RegisterConfigurator(config);
+            config.Init_LoadPresets();
+            config.Init_LoadFromFile();
+
+            return config;
+        }
+
+
+
+
 
         private void AddFields(ConfigPanel panel, List<ConfigField> fields)
         {

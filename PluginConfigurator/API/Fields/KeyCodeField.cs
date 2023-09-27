@@ -111,7 +111,7 @@ namespace PluginConfig.API.Fields
 			field.currentUi.keycode.GetComponent<Image>().color = normalColor;
 			listeningInstance = null;
 			if (changed)
-				field.OnCompValueChange(keyCode);
+				field.OnValueChange(keyCode);
 			OptionsManager.Instance.dontUnpause = false;
 		}
 	}
@@ -254,17 +254,16 @@ namespace PluginConfig.API.Fields
 
 		private void OnReset()
 		{
-			if (!interactable || !parentInteractable)
-				return;
 			currentUi.keycodeText.text = ControlsOptions.GetKeyName(defaultValue);
-			OnCompValueChange(defaultValue);
+			OnValueChange(defaultValue);
 		}
 
-		internal void OnCompValueChange(KeyCode val)
+		internal void OnValueChange(KeyCode val)
 		{
 			if (val == _value)
 			{
-                currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
+                if (currentUi != null)
+                    currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
 				return;
 			}
 
@@ -281,12 +280,14 @@ namespace PluginConfig.API.Fields
 
 			if (eventData.canceled)
 			{
-                currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
+                if (currentUi != null)
+                    currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
 				return;
 			}
 
 			value = eventData.value;
-            currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
+            if (currentUi != null)
+                currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
 		}
 
 		public void TriggerValueChangeEvent()
@@ -311,11 +312,11 @@ namespace PluginConfig.API.Fields
 		{
 			if (Enum.TryParse(data, out KeyCode code))
 			{
-				OnCompValueChange(code);
+				OnValueChange(code);
 			}
 			else
 			{
-				OnCompValueChange(KeyCode.None);
+				OnValueChange(KeyCode.None);
 			}
 		}
 

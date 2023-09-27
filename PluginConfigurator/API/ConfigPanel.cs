@@ -27,14 +27,21 @@ namespace PluginConfig.API
         // Lazy ui creation
         void Awake()
         {
-            panel.CreateFieldUI();
+            try
+            {
+                panel.CreateFieldUI();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Exception thrown while creating panel UI\n{e}");
+            }
+
             panel.RecalculateLayoutAll();
         }
 
         protected void OnEnable()
         {
             lastActivePanel = this;
-
             PluginConfiguratorController.activePanel = gameObject;
 
             PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
@@ -56,13 +63,13 @@ namespace PluginConfig.API
 			});
 
 			panel.rootConfig.presetButtonCanBeShown = true;
-			panel.rootConfig.presetMenuButtonObj.SetActive(!panel.rootConfig.presetButtonHidden);
+			panel.rootConfig.presetMenuButton.gameObject.SetActive(!panel.rootConfig.presetButtonHidden);
         }
         
         void OnDisable()
         {
 			panel.rootConfig.presetButtonCanBeShown = false;
-			panel.rootConfig.presetMenuButtonObj.SetActive(false);
+			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
         }
     }
 

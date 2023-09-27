@@ -147,7 +147,7 @@ namespace PluginConfig.API.Fields
             currentUi.input.characterValidation = InputField.CharacterValidation.None;
             currentUi.input.text = _value;
             currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
-            currentUi.input.onEndEdit.AddListener(OnCompValueChange);
+            currentUi.input.onEndEdit.AddListener(OnValueChange);
 
             currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
             currentUi.resetButton.onClick.AddListener(OnReset);
@@ -164,13 +164,12 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
-            currentUi.input.SetTextWithoutNotify(defaultValue.ToString());
-            OnCompValueChange(defaultValue);
+            if (currentUi != null)
+                currentUi.input.SetTextWithoutNotify(defaultValue.ToString());
+            OnValueChange(defaultValue);
         }
 
-        internal void OnCompValueChange(string val)
+        internal void OnValueChange(string val)
         {
             if (currentUi != null && currentUi.input.wasCanceled)
             {
@@ -185,13 +184,15 @@ namespace PluginConfig.API.Fields
 
             if (val == _value)
             {
-                currentUi.input.SetTextWithoutNotify(_value);
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value);
                 return;
             }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(val))
             {
-                currentUi.input.SetTextWithoutNotify(_value.ToString());
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
@@ -208,12 +209,14 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.input.SetTextWithoutNotify(_value.ToString());
+                if (currentUi != null)
+                    currentUi.input.SetTextWithoutNotify(_value.ToString());
                 return;
             }
 
             value = eventData.value;
-            currentUi.input.SetTextWithoutNotify(value.ToString());
+            if (currentUi != null)
+                currentUi.input.SetTextWithoutNotify(value.ToString());
         }
 
         public void TriggerValueChangeEvent()
@@ -229,7 +232,7 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadFromString(string data)
         {
-            OnCompValueChange(data);
+            OnValueChange(data);
         }
 
         internal override void ReloadDefault()

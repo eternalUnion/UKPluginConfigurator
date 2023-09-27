@@ -270,7 +270,7 @@ namespace PluginConfig.API.Fields
         {
             if(caller != null)
             {
-                caller.OnCompValueChange(lastText, textFormat);
+                caller.OnValueChange(lastText, textFormat);
                 caller = null;
 
                 gameObject.SetActive(false);
@@ -303,7 +303,7 @@ namespace PluginConfig.API.Fields
             PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
             PluginConfiguratorController.backButton.onClick.AddListener(() =>
             {
-                caller.OnCompValueChange(lastText, textFormat);
+                caller.OnValueChange(lastText, textFormat);
                 caller = null;
 
                 gameObject.SetActive(false);
@@ -930,27 +930,26 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
-
             string rawString = defaultValue.rawString;
             List<CharacterInfo> format = defaultValue.GetFormat();
 
             //currentInputText.text = RichTextFormatter.GetFormattedText(rawString, format, 0, rawString.Length);
-            OnCompValueChange(rawString, format);
+            OnValueChange(rawString, format);
         }
 
-        internal void OnCompValueChange(string rawString, List<CharacterInfo> format)
+        internal void OnValueChange(string rawString, List<CharacterInfo> format)
         {
             if (rawString == _rawString && _format.SequenceEqual(format))
             {
-                currentUi.text.text = formattedString;
+                if (currentUi != null)
+                    currentUi.text.text = formattedString;
                 return;
             }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(rawString))
             {
-                currentUi.text.text = formattedString;
+                if (currentUi != null)
+                    currentUi.text.text = formattedString;
                 return;
             }
 
@@ -967,7 +966,8 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.text.text = formattedString;
+                if (currentUi != null)
+                    currentUi.text.text = formattedString;
                 return;
             }
 
@@ -982,7 +982,8 @@ namespace PluginConfig.API.Fields
             }
 
             SetFormattedString();
-            currentUi.text.text = formattedString;
+            if (currentUi != null)
+                currentUi.text.text = formattedString;
         }
 
         public void TriggerValueChangeEvent()
@@ -1004,7 +1005,7 @@ namespace PluginConfig.API.Fields
             _rawString = currentRaw;
             _format = currentFormat;
 
-            OnCompValueChange(newRaw, newFormat);
+            OnValueChange(newRaw, newFormat);
         }
 
         internal override void ReloadDefault()
@@ -1022,7 +1023,7 @@ namespace PluginConfig.API.Fields
             _format = currentFormat;
             _formattedString = currentFormatted;
 
-            OnCompValueChange(newRaw, newFormat);
+            OnValueChange(newRaw, newFormat);
         }
     }
 }

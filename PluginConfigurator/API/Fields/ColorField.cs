@@ -18,7 +18,7 @@ namespace PluginConfig.API.Fields
         public void OnPointerUp(PointerEventData data)
         {
             if (callback != null)
-                callback.OnCompValueChange();
+                callback.OnValueChange();
         }
     }
 
@@ -216,7 +216,7 @@ namespace PluginConfig.API.Fields
             return field;
         }
 
-        internal void OnCompValueChange()
+        internal void OnValueChange()
         {
             Color newColor = new Color(currentUi.red.value, currentUi.green.value, currentUi.blue.value);
             if (newColor == _value)
@@ -266,15 +266,13 @@ namespace PluginConfig.API.Fields
                 return;
 
             targetSlider.SetNormalizedValueWithoutNotify(value / 255f);
-            OnCompValueChange();
+            OnValueChange();
         }
 
         internal void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
             SetSliders(defaultValue);
-            OnCompValueChange();
+            OnValueChange();
         }
 
         public void TriggerValueChangeEvent()
@@ -337,14 +335,14 @@ namespace PluginConfig.API.Fields
                 if (validData)
                 {
                     SetSliders(new Color(r, g, b));
-                    OnCompValueChange();
+                    OnValueChange();
                     return;
                 }
             }
 
             rootConfig.isDirty = true;
             SetSliders(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
-            OnCompValueChange();
+            OnValueChange();
 
             if (_saveToConfig)
             {

@@ -42,7 +42,7 @@ namespace PluginConfig
 		public static ManualLogSource logger;
 
         internal static Harmony ultraTweakerHarmony = new Harmony(PLUGIN_GUID + "_ultraTweakerPatches");
-        public static bool ultraTweaker
+        internal static bool ultraTweaker
 		{
 			get => AppDomain.CurrentDomain.GetAssemblies().Where(asm => asm.GetName().Name == "UltraTweaker").FirstOrDefault() != null;
         }

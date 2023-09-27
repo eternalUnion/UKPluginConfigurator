@@ -298,7 +298,7 @@ namespace PluginConfig.API.Fields
             currentUi.dropdown.interactable = interactable && parentInteractable;
             currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
             currentUi.dropdown.options.Clear();
-            currentUi.dropdown.onValueChanged.AddListener(OnCompValueChange);
+            currentUi.dropdown.onValueChanged.AddListener(OnValueChange);
             
             foreach (string val in values)
             {
@@ -324,18 +324,17 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
             currentUi.dropdown.SetValueWithoutNotify(values.IndexOf(_value));
-            OnCompValueChange(values.IndexOf(defaultValue));
+            OnValueChange(values.IndexOf(defaultValue));
         }
 
-        internal void OnCompValueChange(int val)
+        internal void OnValueChange(int val)
         {
             if (val < 0 || val >= values.Count)
             {
                 PluginConfiguratorController.LogWarning("String list index requested does not exist");
-                currentUi.dropdown.SetValueWithoutNotify(values.IndexOf(_value));
+                if (currentUi != null)
+                    currentUi.dropdown.SetValueWithoutNotify(values.IndexOf(_value));
                 return;
             }
 
@@ -355,12 +354,14 @@ namespace PluginConfig.API.Fields
 
             if (eventData.canceled)
             {
-                currentUi.dropdown.SetValueWithoutNotify(valueIndex);
+                if (currentUi != null)
+                    currentUi.dropdown.SetValueWithoutNotify(valueIndex);
                 return;
             }
 
             value = eventData.value;
-            currentUi.dropdown.SetValueWithoutNotify(valueIndex);
+            if (currentUi != null)
+                currentUi.dropdown.SetValueWithoutNotify(valueIndex);
         }
 
         public void TriggerValueChangeEvent()
@@ -392,12 +393,12 @@ namespace PluginConfig.API.Fields
             int index = values.IndexOf(data);
             if (index != -1)
             {
-                OnCompValueChange(index);
+                OnValueChange(index);
             }
             else
             {
                 _value = defaultValue;
-                OnCompValueChange(valueIndex);
+                OnValueChange(valueIndex);
 
                 if (_saveToConfig)
                 {

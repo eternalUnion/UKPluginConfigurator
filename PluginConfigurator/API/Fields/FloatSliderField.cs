@@ -347,9 +347,6 @@ namespace PluginConfig.API.Fields
 
         private void OnReset()
         {
-            if (!interactable || !parentInteractable)
-                return;
-
             float num = defaultValue;
             if (num < bounds.Item1)
                 num = bounds.Item1;
