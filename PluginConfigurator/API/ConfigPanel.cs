@@ -386,7 +386,8 @@ namespace PluginConfig.API
             foreach (ConfigField config in fields)
             {
                 List<Transform> fieldUI = new List<Transform>();
-                config.CreateUI(currentPanel.content);
+                if (config.createUI)
+                    config.CreateUI(currentPanel.content);
                 for (; currentChildIndex < currentPanel.content.childCount; currentChildIndex++)
                     fieldUI.Add(currentPanel.content.GetChild(currentChildIndex));
                 fieldObjects.Add(fieldUI);

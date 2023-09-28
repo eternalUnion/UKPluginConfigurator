@@ -105,7 +105,8 @@ namespace PluginConfig.API
 			if (currentVirtualPanel != null)
 			{
 				int currentIndex = currentVirtualPanel.content.childCount;
-				field.CreateUI(currentVirtualPanel.content);
+                if (field.createUI)
+				    field.CreateUI(currentVirtualPanel.content);
 				List<Transform> objects = new List<Transform>();
 				for (; currentIndex < currentVirtualPanel.content.childCount; currentIndex++)
 					objects.Add(currentVirtualPanel.content.GetChild(currentIndex));
@@ -144,7 +145,8 @@ namespace PluginConfig.API
 			foreach (ConfigField config in fields)
 			{
 				List<Transform> fieldUI = new List<Transform>();
-				config.CreateUI(currentVirtualPanel.content);
+                if (config.createUI)
+				    config.CreateUI(currentVirtualPanel.content);
 				for (; currentChildIndex < currentVirtualPanel.content.childCount; currentChildIndex++)
 					fieldUI.Add(currentVirtualPanel.content.GetChild(currentChildIndex));
 				fieldObjects.Add(fieldUI);
