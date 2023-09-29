@@ -11,9 +11,8 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/InputField.prefab";
 
-        internal ConfigInputField currentUi;
-
-		private readonly bool _saveToConfig = true;
+        protected ConfigInputField currentUi;
+		public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -35,7 +34,7 @@ namespace PluginConfig.API.Fields
                 if (currentUi != null)
                     currentUi.input.SetTextWithoutNotify(value.ToString());
 
-                if (_value != value && _saveToConfig)
+                if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = value.ToString();
@@ -99,10 +98,10 @@ namespace PluginConfig.API.Fields
         public IntField(ConfigPanel parentPanel, string displayName, string guid, int defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
-            if (_saveToConfig)
+            if (this.saveToConfig)
             {
                 rootConfig.fields.Add(guid, this);
                 if (rootConfig.config.TryGetValue(guid, out string data))
@@ -149,7 +148,7 @@ namespace PluginConfig.API.Fields
 
         private string lastInputText = "";
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigInputField>();
@@ -271,7 +270,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = defaultValue;
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     if (rootConfig.config.ContainsKey(guid))

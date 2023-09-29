@@ -18,9 +18,8 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/DropdownField.prefab";
 
-        internal ConfigDropdownField currentUi;
-
-        private readonly bool _saveToConfig = true;
+        protected ConfigDropdownField currentUi;
+        public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -51,7 +50,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 bool dirty = false;
-                if (!_value.Equals(value) && _saveToConfig)
+                if (!_value.Equals(value) && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -119,7 +118,7 @@ namespace PluginConfig.API.Fields
         public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
             foreach (T value in values)
@@ -151,7 +150,7 @@ namespace PluginConfig.API.Fields
 
         public EnumField(ConfigPanel parentPanel, string displayName, string guid, T defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigDropdownField>();
@@ -253,7 +252,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = defaultValue;
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = _value.ToString();
@@ -272,7 +271,7 @@ namespace PluginConfig.API.Fields
                 _value = defaultValue;
                 OnValueChange(Array.IndexOf(values, newValue));
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = _value.ToString();

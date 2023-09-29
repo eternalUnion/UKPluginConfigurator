@@ -14,9 +14,8 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/InputField.prefab";
 
-        internal ConfigInputField currentUi;
-
-		private readonly bool _saveToConfig = true;
+        protected ConfigInputField currentUi;
+		public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -36,7 +35,7 @@ namespace PluginConfig.API.Fields
             get => _value.Replace("\n", ""); set
             {
                 value = value.Replace("\n", "").Replace("\r", "");
-                if (_value != value && _saveToConfig)
+                if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = value;
@@ -102,13 +101,13 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
             if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue))
                 throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
 
-            if (_saveToConfig)
+            if (this.saveToConfig)
             {
                 rootConfig.fields.Add(guid, this);
                 if (rootConfig.config.TryGetValue(guid, out string data))
@@ -136,7 +135,7 @@ namespace PluginConfig.API.Fields
 
         private string lastInputText = "";
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigInputField>();

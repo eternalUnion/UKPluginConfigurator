@@ -586,9 +586,8 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/FormattedInputField.prefab";
 
-        internal ConfigFormattedInputField currentUi;
-
-        private readonly bool _saveToConfig = true;
+        protected ConfigFormattedInputField currentUi;
+        public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -772,7 +771,7 @@ namespace PluginConfig.API.Fields
                     _rawString = value;
                     RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
 
-                    if (_saveToConfig)
+                    if (saveToConfig)
                     {
                         rootConfig.isDirty = true;
                         rootConfig.config[guid] = TurnToDataString();
@@ -855,13 +854,13 @@ namespace PluginConfig.API.Fields
 
             this.defaultValue = defaultValue;
             this.allowEmptyValues = allowEmptyValues;
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
-            if (_saveToConfig)
+            if (this.saveToConfig)
             {
                 rootConfig.fields.Add(guid, this);
-                if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue.rawString))
+                if (!allowEmptyValues && string.IsNullOrWhiteSpace(defaultValue.rawString))
                     throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
 
                 if (rootConfig.config.TryGetValue(guid, out string data))
@@ -875,7 +874,7 @@ namespace PluginConfig.API.Fields
             }
             else
             {
-                if (!allowEmptyValues && String.IsNullOrWhiteSpace(defaultValue.rawString))
+                if (!allowEmptyValues && string.IsNullOrWhiteSpace(defaultValue.rawString))
                     throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
 
                 GetFromFormattedString(defaultValue);
@@ -891,7 +890,7 @@ namespace PluginConfig.API.Fields
 
         public FormattedStringField(ConfigPanel parentPanel, string displayName, string guid, FormattedString defaultValue) : this(parentPanel, displayName, guid, defaultValue, false, true, true) { }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigFormattedInputField>();
@@ -975,7 +974,7 @@ namespace PluginConfig.API.Fields
             _format = eventData.formattedString.GetFormat();
             RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
 
-            if (_saveToConfig)
+            if (saveToConfig)
             {
                 rootConfig.config[guid] = TurnToDataString();
                 rootConfig.isDirty = true;

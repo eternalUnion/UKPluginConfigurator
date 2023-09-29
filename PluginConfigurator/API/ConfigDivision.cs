@@ -40,10 +40,10 @@ namespace PluginConfig.API
         internal ConfigPanelVirtual currentVirtualPanel;
         internal ConfigDivisionComp currentDivComp;
 
-        internal override void RecalculateLayoutAll()
+        protected internal override void RecalculateLayoutDeepestFirst()
         {
             foreach (var panel in childPanels)
-                panel.RecalculateLayoutAll();
+                panel.RecalculateLayoutDeepestFirst();
 
             if (currentVirtualPanel == null)
                 return;
@@ -52,7 +52,7 @@ namespace PluginConfig.API
             LayoutRebuilder.ForceRebuildLayoutImmediate(currentVirtualPanel.trans);
         }
 
-        internal override void RecalculateLayout()
+        protected internal override void RecalculateLayout()
         {
             if (currentVirtualPanel != null)
             {
@@ -130,7 +130,7 @@ namespace PluginConfig.API
             return parentPanel.GetConcretePanel();
         }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             // Pass the concrete panel
             currentPanel = parentPanel.currentPanel;

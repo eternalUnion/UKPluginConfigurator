@@ -161,7 +161,7 @@ namespace PluginConfig.API
 
         public ConfigField(string displayName, string guid, ConfigPanel parentPanel) : this(displayName, guid, parentPanel, true) { }
 
-        internal abstract GameObject CreateUI(Transform content);
+        internal protected abstract GameObject CreateUI(Transform content);
 
         internal abstract void ReloadFromString(string data);
 

@@ -13,8 +13,8 @@ namespace PluginConfig.API.Functionals
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/ButtonField.prefab";
 
-        internal RectTransform currentContainer;
-        internal ConfigButtonField[] currentUi;
+        protected RectTransform currentContainer;
+        protected ConfigButtonField[] currentUi;
 
         private string _displayName;
 		public override string displayName
@@ -171,7 +171,7 @@ namespace PluginConfig.API.Functionals
             parentPanel.Register(this);
         }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = new GameObject();
             currentContainer = field.AddComponent<RectTransform>();

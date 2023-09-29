@@ -15,9 +15,8 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/ValueSliderField.prefab";
 
-        internal ConfigValueSliderField currentUi;
-
-        private readonly bool _saveToConfig = true;
+        protected ConfigValueSliderField currentUi;
+        public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -61,7 +60,7 @@ namespace PluginConfig.API.Fields
                     throw new ArgumentException("Float slider config's normalized value set outside [0, 1]");
 
                 bool dirty = false;
-                if (_normalizedValue != value && _saveToConfig)
+                if (_normalizedValue != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -86,7 +85,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 bool dirty = false;
-                if (_value != value && _saveToConfig)
+                if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -153,7 +152,7 @@ namespace PluginConfig.API.Fields
         {
             this.roundDecimalPoints = roundDecimalPoints;
             this.defaultValue = defaultValue;
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
             if (bounds.Item2 < bounds.Item1)
@@ -162,7 +161,7 @@ namespace PluginConfig.API.Fields
                 throw new ArgumentException("Float slider default value not inside bounds");
             _bounds = bounds;
 
-            if (_saveToConfig)
+            if (this.saveToConfig)
             {
                 rootConfig.fields.Add(guid, this);
                 if (rootConfig.config.TryGetValue(guid, out string data))
@@ -204,7 +203,7 @@ namespace PluginConfig.API.Fields
                 {
                     newValue = bounds.Item1;
 
-                    if (_saveToConfig)
+                    if (saveToConfig)
                     {
                         rootConfig.config[guid] = newValue.ToString(CultureInfo.InvariantCulture);
                         rootConfig.isDirty = true;
@@ -214,7 +213,7 @@ namespace PluginConfig.API.Fields
                 {
                     newValue = bounds.Item2;
 
-                    if (_saveToConfig)
+                    if (saveToConfig)
                     {
                         rootConfig.config[guid] = newValue.ToString(CultureInfo.InvariantCulture);
                         rootConfig.isDirty = true;
@@ -228,7 +227,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     if (rootConfig.config.ContainsKey(guid))
@@ -248,14 +247,14 @@ namespace PluginConfig.API.Fields
                 {
                     newValue = bounds.Item1;
 
-                    if (_saveToConfig)
+                    if (saveToConfig)
                         dirty = rootConfig.isDirty = true;
                 }
                 else if (newValue > bounds.Item2)
                 {
                     newValue = bounds.Item2;
 
-                    if (_saveToConfig)
+                    if (saveToConfig)
                         dirty = rootConfig.isDirty = true;
                 }
 
@@ -304,7 +303,7 @@ namespace PluginConfig.API.Fields
                 if (value != eventData.newValue)
                     value = eventData.newValue;
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     if (rootConfig.config.ContainsKey(guid))
@@ -414,7 +413,7 @@ namespace PluginConfig.API.Fields
 
         string lastInputText = "";
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigValueSliderField>();

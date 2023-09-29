@@ -36,7 +36,7 @@ namespace PluginConfig.API
                 Debug.LogError($"Exception thrown while creating panel UI\n{e}");
             }
 
-            panel.RecalculateLayoutAll();
+            panel.RecalculateLayoutDeepestFirst();
         }
 
         protected void OnEnable()
@@ -84,23 +84,28 @@ namespace PluginConfig.API
         private const string ASSET_PATH_MENU_ICON_BIG = "PluginConfigurator/Fields/ConfigMenuBigIcon.prefab";
         private const string ASSET_PATH_MENU_BIG_BUTTON = "PluginConfigurator/Fields/ConfigMenuBigButton.prefab";
 
-        internal ConfigPanelConcrete currentPanel;
-        internal ConfigMenuField currentMenu;
+        internal protected ConfigPanelConcrete currentPanel;
+        internal protected ConfigMenuField currentMenu;
         internal ConfigPanelComponent currentComp;
 
-        internal List<ConfigPanel> childPanels = new List<ConfigPanel>();
+        protected internal List<ConfigPanel> childPanels = new List<ConfigPanel>();
 
-        // Reverse domino effect to update the deepest nodes first
-        internal virtual void RecalculateLayoutAll()
+        /// <summary>
+        /// Update deepest panels first, meaning call this methods on child nodes first and then recalculate the rect size
+        /// </summary>
+        protected internal virtual void RecalculateLayoutDeepestFirst()
         {
             foreach (var panel in childPanels)
-                panel.RecalculateLayoutAll();
+                panel.RecalculateLayoutDeepestFirst();
 
             currentPanel.contentSizeFitter.SendMessage("SetDirty");
             LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.trans);
         }
         
-        internal virtual void RecalculateLayout()
+        /// <summary>
+        /// Only recalculate this panel's rect
+        /// </summary>
+        protected internal virtual void RecalculateLayout()
         {
             currentPanel.contentSizeFitter.SendMessage("SetDirty");
             LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.trans);
@@ -330,7 +335,7 @@ namespace PluginConfig.API
         }
 
         internal List<List<Transform>> fieldObjects = new List<List<Transform>>();
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject panel = Addressables.InstantiateAsync(ASSET_PATH_PANEL, PluginConfiguratorController.optionsMenu).WaitForCompletion();
             currentPanel = panel.GetComponent<ConfigPanelConcrete>();

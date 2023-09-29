@@ -15,7 +15,7 @@ namespace PluginConfig.API.Decorators
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/ConfigHeader.prefab";
 
-        internal ConfigHeaderField currentUi;
+        protected ConfigHeaderField currentUi;
 
 		public override string displayName
 		{
@@ -60,7 +60,7 @@ namespace PluginConfig.API.Decorators
                 _textColor = value;
                 if (currentUi == null)
                     return;
-                currentUi.text.color = value;
+                currentUi.text.color = (_interactable && parentInteractable) ? _textColor : _textColor * 0.5f;
             }
         }
 
@@ -111,7 +111,7 @@ namespace PluginConfig.API.Decorators
             } 
         }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject header = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = header.GetComponent<ConfigHeaderField>();

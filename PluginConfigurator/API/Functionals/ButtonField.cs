@@ -12,7 +12,7 @@ namespace PluginConfig.API.Functionals
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/ButtonField.prefab";
 
-        internal ConfigButtonField currentUi;
+        protected ConfigButtonField currentUi;
 
 		public override string displayName
 		{
@@ -65,7 +65,7 @@ namespace PluginConfig.API.Functionals
         public delegate void OnClick();
         public event OnClick onClick;
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject button = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = button.GetComponent<ConfigButtonField>();

@@ -102,7 +102,7 @@ namespace PluginConfig.API.Fields
         /// </summary>
         /// <param name="content">Container for the field, of width <see cref="fieldWidth"/> and of height <see cref="fieldHeight"/></param>
         /// <returns></returns>
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject container = new GameObject();
             RectTransform rect = currentRect = container.AddComponent<RectTransform>();

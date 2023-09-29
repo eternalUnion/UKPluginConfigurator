@@ -26,9 +26,9 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/ColorField.prefab";
 
-        private ConfigColorField currentUi;
+        protected ConfigColorField currentUi;
+        public readonly bool saveToConfig = true;
 
-        private readonly bool _saveToConfig = true;
         private string lastRed = "0";
         private string lastGreen = "0";
         private string lastBlue = "0";
@@ -73,7 +73,7 @@ namespace PluginConfig.API.Fields
             get => _value; set
             {
                 bool dirty = false;
-                if (_value != value && _saveToConfig)
+                if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -147,7 +147,7 @@ namespace PluginConfig.API.Fields
         public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
             if (saveToConfig)
@@ -174,7 +174,7 @@ namespace PluginConfig.API.Fields
 
         public ColorField(ConfigPanel parentPanel, string displayName, string guid, Color defaultValue) : this(parentPanel, displayName, guid, defaultValue, true) { }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigColorField>();
@@ -301,7 +301,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = defaultValue;
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     data = StringifyColor(_value);
@@ -344,7 +344,7 @@ namespace PluginConfig.API.Fields
             SetSliders(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
             OnValueChange();
 
-            if (_saveToConfig)
+            if (saveToConfig)
             {
                 data = StringifyColor(_value);
                 if (rootConfig.config.ContainsKey(guid))

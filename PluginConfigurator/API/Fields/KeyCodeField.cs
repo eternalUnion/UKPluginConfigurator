@@ -120,9 +120,8 @@ namespace PluginConfig.API.Fields
 	{
 		private const string ASSET_PATH = "PluginConfigurator/Fields/KeycodeField.prefab";
 
-		internal ConfigKeycodeField currentUi;
-
-		private readonly bool _saveToConfig = true;
+		internal protected ConfigKeycodeField currentUi;
+		public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -142,7 +141,7 @@ namespace PluginConfig.API.Fields
 			get => _value;
 			set
 			{
-				if (_value != value && _saveToConfig)
+				if (_value != value && saveToConfig)
 				{
 					rootConfig.isDirty = true;
 					rootConfig.config[guid] = value.ToString();
@@ -198,24 +197,24 @@ namespace PluginConfig.API.Fields
 		public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
 		{
 			this.defaultValue = defaultValue;
-			_saveToConfig = saveToConfig;
+			this.saveToConfig = saveToConfig;
 			strictGuid = saveToConfig;
 
-			if (_saveToConfig)
+			if (this.saveToConfig)
 			{
-				rootConfig.fields.Add(guid, this);
+                rootConfig.fields.Add(guid, this);
 				if (rootConfig.config.TryGetValue(guid, out string data))
-					LoadFromString(data);
+                    LoadFromString(data);
 				else
 				{
-					_value = defaultValue;
-					rootConfig.config.Add(guid, _value.ToString());
-					rootConfig.isDirty = true;
+                    _value = defaultValue;
+                    rootConfig.config.Add(guid, _value.ToString());
+                    rootConfig.isDirty = true;
 				}
 			}
 			else
 			{
-				_value = defaultValue;
+                _value = defaultValue;
 			}
 
 			parentPanel.Register(this);
@@ -225,7 +224,7 @@ namespace PluginConfig.API.Fields
 
         public KeyCodeField(ConfigPanel parentPanel, string displayName, string guid, KeyCode defaultValue) : this(parentPanel, displayName, guid, defaultValue, true, true) { }
 
-		internal override GameObject CreateUI(Transform content)
+		internal protected override GameObject CreateUI(Transform content)
 		{
 			GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
 			currentUi = field.GetComponent<ConfigKeycodeField>();

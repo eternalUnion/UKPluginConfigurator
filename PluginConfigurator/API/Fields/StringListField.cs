@@ -13,9 +13,8 @@ namespace PluginConfig.API.Fields
     {
         private const string ASSET_PATH = "PluginConfigurator/Fields/DropdownField.prefab";
 
-        internal ConfigDropdownField currentUi;
-
-        private readonly bool _saveToConfig = true;
+        protected ConfigDropdownField currentUi;
+        public readonly bool saveToConfig = true;
 
 		private string _displayName;
 		public override string displayName
@@ -97,7 +96,7 @@ namespace PluginConfig.API.Fields
                     throw new ArgumentException($"Invalid value set for {rootConfig.guid}:{guid}. Value must be present in the dropdown list");
 
                 bool dirty = false;
-                if (_value != value && _saveToConfig)
+                if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -121,7 +120,7 @@ namespace PluginConfig.API.Fields
                     throw new ArgumentException($"Invalid index set for {rootConfig.guid}:{guid}. Index must be in range [0, values count)");
                 
                 bool dirty = false;
-                if (value != valueIndex && _saveToConfig)
+                if (value != valueIndex && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     dirty = true;
@@ -226,7 +225,7 @@ namespace PluginConfig.API.Fields
         {
             this.defaultValue = defaultValue;
             this.values = values.ToList();
-            _saveToConfig = saveToConfig;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
             if (values.Count() == 0)
@@ -288,7 +287,7 @@ namespace PluginConfig.API.Fields
 
         public StringListField(ConfigPanel parentPanel, string displayName, string guid, string[] values, string defaultValue) : this(parentPanel, displayName, guid, (IEnumerable<string>)values, defaultValue, true, true) { }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigDropdownField>();
@@ -380,7 +379,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = defaultValue;
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = _value;
@@ -400,7 +399,7 @@ namespace PluginConfig.API.Fields
                 _value = defaultValue;
                 OnValueChange(valueIndex);
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = _value;

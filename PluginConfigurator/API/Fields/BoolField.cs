@@ -11,9 +11,8 @@ namespace PluginConfig.API.Fields
     {
         internal const string ASSET_PATH = "PluginConfigurator/Fields/ToggleField.prefab";
 
-        private ConfigToggleField currentUi;
-        private readonly bool _saveToConfig = true;
-        private readonly bool _createUI = true;
+        protected ConfigToggleField currentUi;
+        public readonly bool saveToConfig = true;
 
         private string _displayName;
 		public override string displayName
@@ -38,7 +37,7 @@ namespace PluginConfig.API.Fields
                 if (currentUi != null)
                     currentUi.toggle.SetIsOnWithoutNotify(value);
 
-                if (_value != value && _saveToConfig)
+                if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     rootConfig.config[guid] = value ? "true" : "false";
@@ -100,8 +99,7 @@ namespace PluginConfig.API.Fields
         public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue, bool saveToConfig, bool createUi) : base(displayName, guid, parentPanel, createUi)
         {
             this.defaultValue = defaultValue;
-            _saveToConfig = saveToConfig;
-            _createUI = createUi;
+            this.saveToConfig = saveToConfig;
             strictGuid = saveToConfig;
 
             if (saveToConfig)
@@ -129,9 +127,9 @@ namespace PluginConfig.API.Fields
         
         public BoolField(ConfigPanel parentPanel, string displayName, string guid, bool defaultValue) : this(parentPanel, displayName, guid, defaultValue, true, true) { }
 
-        internal override GameObject CreateUI(Transform content)
+        internal protected override GameObject CreateUI(Transform content)
         {
-            if (!_createUI)
+            if (!createUI)
                 return null;
 
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
@@ -203,7 +201,7 @@ namespace PluginConfig.API.Fields
             {
                 _value = defaultValue;
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     data = _value ? "true" : "false";
@@ -232,7 +230,7 @@ namespace PluginConfig.API.Fields
                     currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
                 OnValueChange(defaultValue);
 
-                if (_saveToConfig)
+                if (saveToConfig)
                 {
                     rootConfig.isDirty = true;
                     data = _value ? "true" : "false";

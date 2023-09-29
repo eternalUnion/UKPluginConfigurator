@@ -90,7 +90,7 @@ namespace PluginConfig.API.Fields
         public CustomConfigField(ConfigPanel parentPanel) : this(parentPanel, "") { }
 
         private RectTransform currentRect;
-		internal override GameObject CreateUI(Transform content)
+		internal protected override GameObject CreateUI(Transform content)
         {
             GameObject container = new GameObject();
             RectTransform rect = currentRect = container.AddComponent<RectTransform>();
