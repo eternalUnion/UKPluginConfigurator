@@ -12,6 +12,7 @@ namespace PluginConfiguratorComponents
         public Slider slider;
         public InputField input;
 
+        public Image fieldBg;
         public Button resetButton;
     }
 }

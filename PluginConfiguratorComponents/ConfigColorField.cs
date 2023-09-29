@@ -10,6 +10,7 @@ namespace PluginConfiguratorComponents
     {
         public Text name;
 
+        public Image fieldBg;
         public Image image;
 
         public Slider red;

@@ -12,6 +12,7 @@ namespace PluginConfiguratorComponents
         public Toggle toggle;
         public Image checkmark;
 
+        public Image fieldBg;
         public Button resetButton;
     }
 }

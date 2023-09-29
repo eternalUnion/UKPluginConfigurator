@@ -14,6 +14,20 @@ namespace PluginConfig.API.Fields
         protected ConfigToggleField currentUi;
         public readonly bool saveToConfig = true;
 
+        private Color _fieldColor = Color.black;
+        public Color fieldColor
+        {
+            get => _fieldColor;
+            set
+            {
+                _fieldColor = value;
+                if (currentUi == null)
+                    return;
+
+                currentUi.fieldBg.color = fieldColor;
+            }
+        }
+
         private string _displayName;
 		public override string displayName
         {
@@ -135,6 +149,8 @@ namespace PluginConfig.API.Fields
             GameObject field = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = field.GetComponent<ConfigToggleField>();
             currentUi.name.text = displayName;
+
+            currentUi.fieldBg.color = _fieldColor;
 
             currentUi.toggle.isOn = value;
             currentUi.toggle.interactable = _interactable && parentInteractable;

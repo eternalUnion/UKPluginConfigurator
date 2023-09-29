@@ -54,6 +54,21 @@ namespace PluginConfig.API.Functionals
             }
         }
 
+        private float _buttonHeight = 50;
+        public float buttonHeight
+        {
+            get => _buttonHeight;
+            set
+            {
+                _buttonHeight = value;
+                if (currentUi == null)
+                    return;
+
+                currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, _buttonHeight);
+                parentPanel.FieldDimensionChanged();
+            }
+        }
+
         public ButtonField(ConfigPanel parentPanel, string text, string guid) : base(text, guid, parentPanel)
         {
             this.text = text;
@@ -69,6 +84,8 @@ namespace PluginConfig.API.Functionals
         {
             GameObject button = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentUi = button.GetComponent<ConfigButtonField>();
+
+            currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, _buttonHeight);
 
             currentUi.text.text = text;
 

@@ -64,6 +64,20 @@ namespace PluginConfig.API.Fields
             return $"{c.r.ToString(CultureInfo.InvariantCulture)},{c.g.ToString(CultureInfo.InvariantCulture)},{c.b.ToString(CultureInfo.InvariantCulture)}";
         }
 
+        private Color _fieldColor = Color.black;
+        public Color fieldColor
+        {
+            get => _fieldColor;
+            set
+            {
+                _fieldColor = value;
+                if (currentUi == null)
+                    return;
+
+                currentUi.fieldBg.color = fieldColor;
+            }
+        }
+
         private Color _value;
         /// <summary>
         /// Get the value of the field. Setting the value will not call the <see cref="onValueChange"/> event.
@@ -180,6 +194,8 @@ namespace PluginConfig.API.Fields
             currentUi = field.GetComponent<ConfigColorField>();
 
             currentUi.name.text = displayName;
+
+            currentUi.fieldBg.color = _fieldColor;
 
             bool slidersInteractable = interactable && parentInteractable;
             currentUi.red.interactable = slidersInteractable;

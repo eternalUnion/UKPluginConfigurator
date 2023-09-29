@@ -30,8 +30,10 @@ namespace PluginConfig.API.Decorators
                 _text = value;
                 if (currentUi == null)
                     return;
+
                 currentUi.text.text = _text;
                 currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
+                parentPanel.FieldDimensionChanged();
             }
         }
 
@@ -46,9 +48,10 @@ namespace PluginConfig.API.Decorators
                     return;
                 }
 
-                currentUi.text.fontSize = value;
                 _textSize = value;
+                currentUi.text.fontSize = value;
                 currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
+                parentPanel.FieldDimensionChanged();
             }
         }
 
@@ -74,7 +77,6 @@ namespace PluginConfig.API.Decorators
                 if (currentUi == null)
                     return;
                 currentUi.text.alignment = _anchor;
-                currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, currentUi.text.preferredHeight);
             }
         }
 

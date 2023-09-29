@@ -31,6 +31,16 @@ namespace PluginConfig.API
         {
             div.RecalculateLayout();
         }
+
+        public bool dirty;
+        public void Update()
+        {
+            if (dirty)
+            {
+                dirty = false;
+                div.RecalculateLayout();
+            }
+        }
     }
 
     public class ConfigDivision : ConfigPanel
@@ -61,6 +71,12 @@ namespace PluginConfig.API
             }
 
             parentPanel.RecalculateLayout();
+        }
+
+        public override void FieldDimensionChanged()
+        {
+            if (currentDivComp != null)
+                currentDivComp.dirty = true;
         }
 
         public override string displayName { get; set; }

@@ -71,6 +71,16 @@ namespace PluginConfig.API
 			panel.rootConfig.presetButtonCanBeShown = false;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
         }
+
+        public bool dirty = false;
+        public void Update()
+        {
+            if (dirty)
+            {
+                dirty = false;
+                panel.RecalculateLayout();
+            }
+        }
     }
 
     /// <summary>
@@ -87,6 +97,20 @@ namespace PluginConfig.API
         internal protected ConfigPanelConcrete currentPanel;
         internal protected ConfigMenuField currentMenu;
         internal ConfigPanelComponent currentComp;
+
+        private Color _fieldColor = Color.black;
+        public Color fieldColor
+        {
+            get => _fieldColor;
+            set
+            {
+                _fieldColor = value;
+                if (currentMenu == null)
+                    return;
+
+                currentMenu.fieldBg.color = fieldColor;
+            }
+        }
 
         protected internal List<ConfigPanel> childPanels = new List<ConfigPanel>();
 
@@ -109,6 +133,15 @@ namespace PluginConfig.API
         {
             currentPanel.contentSizeFitter.SendMessage("SetDirty");
             LayoutRebuilder.ForceRebuildLayoutImmediate(currentPanel.trans);
+        }
+
+        /// <summary>
+        /// Called by fields when their dimensions change (ex. changing button size), requiring a layout recalculation
+        /// </summary>
+        public virtual void FieldDimensionChanged()
+        {
+            if (currentComp != null)
+                currentComp.dirty = true;
         }
 
         private string _displayName;
@@ -345,7 +378,7 @@ namespace PluginConfig.API
             
             currentPanel.header.text = _headerText;
 
-			MenuEsc esc = panel.AddComponent<MenuEsc>();
+            MenuEsc esc = panel.AddComponent<MenuEsc>();
             if (parentPanel == null)
                 esc.previousPage = PluginConfiguratorController.mainPanel.gameObject;
             else
@@ -372,6 +405,8 @@ namespace PluginConfig.API
                     currentMenu.buttonText.text = _buttonText;
                 currentMenu.button.onClick = new Button.ButtonClickedEvent();
                 currentMenu.button.onClick.AddListener(() => OpenPanelInternally(false));
+
+                currentMenu.fieldBg.color = _fieldColor;
 
                 currentMenu.gameObject.SetActive(!hidden && !parentHidden);
                 currentMenu.button.interactable = interactable && parentInteractable;

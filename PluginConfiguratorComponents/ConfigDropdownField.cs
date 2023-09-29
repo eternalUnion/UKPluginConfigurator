@@ -11,6 +11,7 @@ namespace PluginConfiguratorComponents
         public Text name;
         public Dropdown dropdown;
 
+        public Image fieldBg;
         public Button resetButton;
     }
 }

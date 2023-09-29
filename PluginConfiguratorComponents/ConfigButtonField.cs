@@ -10,5 +10,6 @@ namespace PluginConfiguratorComponents
     {
         public Text text;
         public Button button;
+        public RectTransform rect;
     }
 }

@@ -11,6 +11,7 @@ namespace PluginConfiguratorComponents
         public Text name;
         public Button button;
 
+        public Image fieldBg;
         public Text buttonText;
         public Image icon;
     }

@@ -25,6 +25,24 @@ namespace PluginConfig.API.Functionals
 
 		public int buttonCount = 0;
 
+        private float _buttonHeight = 50;
+        public float buttonHeight
+        {
+            get => _buttonHeight;
+            set
+            {
+                _buttonHeight = value;
+                if (currentContainer != null)
+                    currentContainer.sizeDelta = new Vector2(currentContainer.sizeDelta.x, _buttonHeight);
+
+                foreach (var button in currentUi)
+                    if (button != null)
+                        button.rect.sizeDelta = new Vector2(button.rect.sizeDelta.x, _buttonHeight);
+
+                parentPanel.FieldDimensionChanged();
+            }
+        }
+
         private bool _hidden = false;
         private bool[] _hiddens;
         public override bool hidden
@@ -177,8 +195,9 @@ namespace PluginConfig.API.Functionals
             currentContainer = field.AddComponent<RectTransform>();
             currentContainer.anchorMin = new Vector2(0, 1);
             currentContainer.anchorMax = new Vector2(0, 1);
+            currentContainer.pivot = new Vector2(0.5f, 1f);
             currentContainer.SetParent(content);
-            currentContainer.sizeDelta = new Vector2(600, 60);
+            currentContainer.sizeDelta = new Vector2(600, _buttonHeight);
             currentContainer.localScale = Vector3.one;
             currentContainer.anchoredPosition = Vector3.zero;
 
@@ -192,9 +211,8 @@ namespace PluginConfig.API.Functionals
                 GameObject button = Addressables.InstantiateAsync(ASSET_PATH, currentContainer).WaitForCompletion();
                 ConfigButtonField ui = button.GetComponent<ConfigButtonField>();
 
-                RectTransform rect = ui.GetComponent<RectTransform>();
-                rect.anchoredPosition = new Vector2(currentOffset, 0);
-                rect.sizeDelta = new Vector2(width, rect.sizeDelta.y);
+                ui.rect.anchoredPosition = new Vector2(currentOffset, 0);
+                ui.rect.sizeDelta = new Vector2(width, _buttonHeight);
 
                 int buttonIndex = i;
                 ui.button.onClick.AddListener(() =>

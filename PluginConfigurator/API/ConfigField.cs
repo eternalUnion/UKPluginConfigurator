@@ -57,7 +57,7 @@ namespace PluginConfig.API
         /// </summary>
         public bool hierarchyHidden
         {
-            get => hidden || parentHidden;
+            get => hidden || _parentHidden;
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace PluginConfig.API
         /// </summary>
         public bool hierarchyInteractable
         {
-            get => interactable && hierarchyInteractable;
+            get => interactable && _parentInteractable;
         }
 
         public PluginConfigurator rootConfig { private set; get; }

@@ -16,7 +16,21 @@ namespace PluginConfig.API.Fields
         protected ConfigDropdownField currentUi;
         public readonly bool saveToConfig = true;
 
-		private string _displayName;
+        private Color _fieldColor = Color.black;
+        public Color fieldColor
+        {
+            get => _fieldColor;
+            set
+            {
+                _fieldColor = value;
+                if (currentUi == null)
+                    return;
+
+                currentUi.fieldBg.color = fieldColor;
+            }
+        }
+
+        private string _displayName;
 		public override string displayName
 		{
 			get => _displayName;
@@ -293,6 +307,8 @@ namespace PluginConfig.API.Fields
             currentUi = field.GetComponent<ConfigDropdownField>();
 
             currentUi.name.text = displayName;
+
+            currentUi.fieldBg.color = _fieldColor;
 
             currentUi.dropdown.interactable = interactable && parentInteractable;
             currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
