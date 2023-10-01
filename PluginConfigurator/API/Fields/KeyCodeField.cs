@@ -163,9 +163,8 @@ namespace PluginConfig.API.Fields
 
 				_value = value;
 
-				if (currentUi == null)
-					return;
-                currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
+				if (currentUi != null)
+					currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
 			}
 		}
 
@@ -181,9 +180,36 @@ namespace PluginConfig.API.Fields
 			public bool canceled = false;
 		}
 		public delegate void KeyCodeValueChangeEventDelegate(KeyCodeValueChangeEvent data);
-		public event KeyCodeValueChangeEventDelegate onValueChange;
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event KeyCodeValueChangeEventDelegate onValueChange;
 
-		private bool _hidden = false;
+        public delegate void PostKeyCodeValueChangeEvent(KeyCode value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostKeyCodeValueChangeEvent postValueChangeEvent;
+		
+        public void TriggerValueChangeEvent()
+		{
+			if (onValueChange != null)
+			{
+				var eventData = new KeyCodeValueChangeEvent() { value = _value };
+                onValueChange.Invoke(eventData);
+
+				if (!eventData.canceled && eventData.value != _value)
+					value = eventData.value;
+			}
+		}
+
+        public void TriggerPostValueChangeEvent()
+		{
+			if (postValueChangeEvent != null)
+				postValueChangeEvent.Invoke(_value);
+		}
+
+        private bool _hidden = false;
 		public override bool hidden
 		{
 			get => _hidden; set
@@ -277,39 +303,46 @@ namespace PluginConfig.API.Fields
 		{
 			if (val == _value)
 			{
-                if (currentUi != null)
-                    currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
+                value = _value;
 				return;
 			}
 
 			KeyCodeValueChangeEvent eventData = new KeyCodeValueChangeEvent() { value = val };
-			try
+			if (onValueChange != null)
 			{
-				if (onValueChange != null)
+				try
+				{
 					onValueChange.Invoke(eventData);
-			}
-			catch (Exception e)
-			{
-				PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+				}
+				catch (Exception e)
+				{
+					PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+				}
 			}
 
 			if (eventData.canceled)
 			{
-                if (currentUi != null)
-                    currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
-				return;
+				val = _value;
+			}
+			else
+			{
+				val = eventData.value;
 			}
 
-			value = eventData.value;
-            if (currentUi != null)
-                currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
-		}
+			value = val;
 
-		public void TriggerValueChangeEvent()
-		{
-			if (onValueChange != null)
-				onValueChange.Invoke(new KeyCodeValueChangeEvent() { value = _value });
-		}
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
+            }
+        }
 
 		internal void LoadFromString(string data)
 		{

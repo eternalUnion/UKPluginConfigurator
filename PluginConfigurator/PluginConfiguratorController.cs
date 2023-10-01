@@ -431,7 +431,16 @@ namespace PluginConfig
 				testConfigs.Add(divConfig);
 				divConfig.saveToFile = true;
 
-				BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
+				divConfig.rootPanel.onPannelOpenEvent += (external) =>
+				{
+					Debug.LogError($"Root panel opened, external: {external}");
+				};
+                divConfig.rootPanel.onPannelCloseEvent += () =>
+                {
+                    Debug.LogError($"Root panel closed");
+                };
+
+                BoolField enabler1 = new BoolField(divConfig.rootPanel, "Enable div 1", "enabler1", true);
 				enabler1.presetLoadPriority = 1;
 				BoolField enabler2 = new BoolField(divConfig.rootPanel, "Enable div 2", "enabler2", true);
 				enabler2.presetLoadPriority = 1;
@@ -449,7 +458,15 @@ namespace PluginConfig
 				KeyCodeField keyCodeField = new KeyCodeField(div1, "A key", "aKey", KeyCode.None);
 
 				ConfigPanel bigButtonPanel = new ConfigPanel(div1, "Big Button Panel", "bigButtonPanel", ConfigPanel.PanelFieldType.BigButton);
-				ConfigPanel iconPanel = new ConfigPanel(div1, "Icon panel", "iconPanel", ConfigPanel.PanelFieldType.StandardWithBigIcon);
+				bigButtonPanel.onPannelOpenEvent += (external) =>
+                {
+                    Debug.LogWarning($"Sub panel opened, external: {external}");
+                };
+                bigButtonPanel.onPannelCloseEvent += () =>
+                {
+                    Debug.LogWarning($"Sub panel closed");
+                };
+                ConfigPanel iconPanel = new ConfigPanel(div1, "Icon panel", "iconPanel", ConfigPanel.PanelFieldType.StandardWithBigIcon);
 
 				FormattedStringBuilder builder = new FormattedStringBuilder();
 				builder.currentFormat = new API.Fields.CharacterInfo() { bold = true, color = Color.red };

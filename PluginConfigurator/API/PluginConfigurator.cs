@@ -91,7 +91,6 @@ namespace PluginConfig.API
 		}
 
         private Sprite _image = null;
-		internal Image pluginImage;
         /// <summary>
         /// Icon of the plugin. Can be set with a URL via <see cref="SetIconWithURL(string)"/>
         /// </summary>
@@ -101,8 +100,8 @@ namespace PluginConfig.API
             set
             {
                 _image = value;
-                if (pluginImage != null)
-                    pluginImage.sprite = _image ?? PluginConfiguratorController.defaultPluginIcon;
+                if (configMenu != null)
+                    configMenu.icon.sprite = _image ?? PluginConfiguratorController.defaultPluginIcon;
             }
         }
 
@@ -135,9 +134,6 @@ namespace PluginConfig.API
                 }
             };
         }
-
-        // Set to true if a config panel is open and that panel is from this configurator
-        internal bool presetButtonCanBeShown = false;
 
         private bool _presetButtonHidden = false;
         /// <summary>
@@ -177,9 +173,13 @@ namespace PluginConfig.API
             get => currentPreset == null ? null : currentPreset.name;
         }
 
-        #endregion
-
-        #region Internal Properties
+        /// <summary>
+        /// Returns null if no preset is selected. Otherwise returns identifier of the currently selected preset
+        /// </summary>
+        public string currentPresetId
+        {
+            get => currentPreset == null ? null : currentPreset.fileId;
+        }
 
         /// <summary>
         /// File path of the default config, located at BepInEx/config/PluginConfigurator/{guid}.config
@@ -213,6 +213,13 @@ namespace PluginConfig.API
             get => Path.Combine(Paths.ConfigPath, "PluginConfigurator", guid + "_presets");
         }
 
+        #endregion
+
+        #region Internal Properties
+
+        // Set to true if a config panel is open and that panel is from this configurator
+        internal bool presetButtonCanBeShown = false;
+        
         /// <summary>
         /// Directory to preset header file
         /// </summary>

@@ -74,7 +74,34 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void BoolValueChangeEventDelegate(BoolValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event BoolValueChangeEventDelegate onValueChange;
+
+        public delegate void PostBoolValueChangeEvent(bool value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostBoolValueChangeEvent postValueChangeEvent;
+
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new BoolValueChangeEvent() { value = _value };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && eventData.value != _value)
+                    value = eventData.value;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value);
+        }
 
         private bool _hidden = false;
         public override bool hidden
@@ -173,25 +200,45 @@ namespace PluginConfig.API.Fields
 
         internal void OnValueChange(bool val)
         {
-            BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
-            try
+            if (val == _value)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
+                value = _value;
+                return;
             }
-            catch(Exception e)
+
+            BoolValueChangeEvent eventData = new BoolValueChangeEvent() { value = val };
+            if (onValueChange != null)
             {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+                    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                if (currentUi != null)
-                    currentUi.toggle.SetIsOnWithoutNotify(_value);
-                return;
+                value = _value;
+            }
+            else
+            {
+                value = eventData.value;
             }
 
-            value = eventData.value;
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Post value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal void OnReset()
@@ -199,12 +246,6 @@ namespace PluginConfig.API.Fields
             if (currentUi != null)
                 currentUi.toggle.SetIsOnWithoutNotify(defaultValue);
             OnValueChange(defaultValue);
-        }
-
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new BoolValueChangeEvent() { value = _value });
         }
 
         internal void LoadFromString(string data)

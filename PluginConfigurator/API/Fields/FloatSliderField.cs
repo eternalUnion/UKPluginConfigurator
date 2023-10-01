@@ -73,23 +73,7 @@ namespace PluginConfig.API.Fields
                 if (value < 0 || value > 1)
                     throw new ArgumentException("Float slider config's normalized value set outside [0, 1]");
 
-                bool dirty = false;
-                if (_normalizedValue != value && saveToConfig)
-                {
-                    rootConfig.isDirty = true;
-                    dirty = true;
-                }
-
-                _normalizedValue = value;
-                _value = (float)Math.Round(Denormalize(_normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
-
-                if (dirty)
-                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
-
-                if (currentUi == null)
-                    return;
-                currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
-                currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
+                this.value = (float)Math.Round(Denormalize(value, bounds.Item1, bounds.Item2), roundDecimalPoints);
             }
         }
 
@@ -98,30 +82,25 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                bool dirty = false;
+                if (value < bounds.Item1)
+                    value = bounds.Item1;
+                else if (value > bounds.Item2)
+                    value = bounds.Item2;
+
                 if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
-                    dirty = true;
+                    rootConfig.config[guid] = ((float)Math.Round(value, roundDecimalPoints)).ToString(CultureInfo.InvariantCulture);
                 }
 
-                if (value < bounds.Item1)
-                    _value = bounds.Item1;
-                else if (value > bounds.Item2)
-                    _value = bounds.Item2;
-                else
-                    _value = value;
-
-                _value = (float)Math.Round(_value, roundDecimalPoints);
+                _value = (float)Math.Round(value, roundDecimalPoints);
                 _normalizedValue = Normalize(_value, bounds.Item1, bounds.Item2);
 
-                if (dirty)
-                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
-
-                if (currentUi == null)
-                    return;
-                currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
-                currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
+                if (currentUi != null)
+                {
+                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                    currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
+                }
             }
         }
 
@@ -182,16 +161,14 @@ namespace PluginConfig.API.Fields
                     LoadFromString(data);
                 else
                 {
-                    _value = defaultValue;
-                    _normalizedValue = (_value - bounds.Item1) / (bounds.Item2 - bounds.Item1);
-                    rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
+                    value = defaultValue;
+                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
                     rootConfig.isDirty = true;
                 }
             }
             else
             {
-                _value = defaultValue;
-                _normalizedValue = (_value - bounds.Item1) / (bounds.Item2 - bounds.Item1);
+                value = defaultValue;
             }
 
             parentPanel.Register(this);
@@ -234,12 +211,11 @@ namespace PluginConfig.API.Fields
                     }
                 }
 
-                _value = newValue;
-                _normalizedValue = Normalize(_value, bounds.Item1, bounds.Item2);
+                value = newValue;
             }
             else
             {
-                _value = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
+                value = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
 
                 if (saveToConfig)
                 {
@@ -254,76 +230,68 @@ namespace PluginConfig.API.Fields
 
         internal override void ReloadFromString(string data)
         {
-            if (float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
+            if (!float.TryParse(data, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
-                bool dirty = false;
-                if (newValue < bounds.Item1)
-                {
-                    newValue = bounds.Item1;
+                newValue = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
+            }
 
-                    if (saveToConfig)
-                        dirty = rootConfig.isDirty = true;
+            if (newValue < bounds.Item1)
+            {
+                newValue = bounds.Item1;
+            }
+            else if (newValue > bounds.Item2)
+            {
+                newValue = bounds.Item2;
+            }
+
+            if (newValue == _value)
+            {
+                value = _value;
+                return;
+            }
+
+            FloatSliderValueChangeEvent eventData = new FloatSliderValueChangeEvent(bounds) { newValue = newValue };
+            if (onValueChange != null)
+            {
+                try
+                {
+                    onValueChange.Invoke(eventData);
                 }
-                else if (newValue > bounds.Item2)
+                catch (Exception e)
                 {
-                    newValue = bounds.Item2;
-
-                    if (saveToConfig)
-                        dirty = rootConfig.isDirty = true;
-                }
-
-                FloatSliderValueChangeEvent eventData = new FloatSliderValueChangeEvent(bounds) { newValue = newValue };
-                if (onValueChange != null)
-                {
-                    try
-                    {
-                        onValueChange.Invoke(eventData);
-                    }
-                    catch (Exception e)
-                    {
-                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
-                    }
-
-                    if (eventData.canceled)
-                        newValue = value;
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
                 }
 
-                if (dirty)
+                if (eventData.canceled)
+                    newValue = _value;
+                else
+                    newValue = (float)Math.Round(Mathf.Clamp(eventData.newValue, bounds.Item1, bounds.Item2), roundDecimalPoints); ;
+            }
+
+            if (newValue != _value)
+            {
+                if (saveToConfig)
                 {
+                    rootConfig.isDirty = true;
+
                     if (rootConfig.config.ContainsKey(guid))
                         rootConfig.config[guid] = newValue.ToString(CultureInfo.InvariantCulture);
                     else
                         rootConfig.config.Add(guid, newValue.ToString(CultureInfo.InvariantCulture));
                 }
-                value = newValue;
             }
-            else
+
+            value = newValue;
+
+            if (postValueChangeEvent != null)
             {
-                value = (float)Math.Round(Mathf.Clamp(defaultValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
-
-                FloatSliderValueChangeEvent eventData = new FloatSliderValueChangeEvent(bounds) { newValue = value };
-                if (onValueChange != null)
+                try
                 {
-                    try
-                    {
-                        onValueChange.Invoke(eventData);
-                    }
-                    catch (Exception e)
-                    {
-                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
-                    }
+                    postValueChangeEvent.Invoke(_value, _bounds);
                 }
-
-                if (value != eventData.newValue)
-                    value = eventData.newValue;
-
-                if (saveToConfig)
+                catch (Exception e)
                 {
-                    rootConfig.isDirty = true;
-                    if (rootConfig.config.ContainsKey(guid))
-                        rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
-                    else
-                        rootConfig.config.Add(guid, _value.ToString(CultureInfo.InvariantCulture));
+                    Debug.LogError($"Post value change event for {guid} threw an error: {e}");
                 }
             }
         }
@@ -418,11 +386,33 @@ namespace PluginConfig.API.Fields
             }
         }
         public delegate void OnValueChangeEventDelegate(FloatSliderValueChangeEvent args);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event OnValueChangeEventDelegate onValueChange;
+
+        public delegate void PostFloatSliderValueChangeEvent(float value, Tuple<float, float> bounds);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostFloatSliderValueChangeEvent postValueChangeEvent;
+        
         public void TriggerValueChangeEvent()
         {
             if (onValueChange != null)
-                onValueChange.Invoke(new FloatSliderValueChangeEvent(bounds) { newValue = value });
+            {
+                var eventData = new FloatSliderValueChangeEvent(bounds) { newValue = value };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && eventData.newValue != _value)
+                    value = eventData.newValue;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value, _bounds);
         }
 
         string lastInputText = "";

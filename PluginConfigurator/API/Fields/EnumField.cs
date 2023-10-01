@@ -63,20 +63,16 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                bool dirty = false;
+                if (currentUi != null)
+                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
+
                 if (!_value.Equals(value) && saveToConfig)
                 {
                     rootConfig.isDirty = true;
-                    dirty = true;
+                    rootConfig.config[guid] = value.ToString();
                 }
 
                 _value = value;
-
-                if(dirty)
-                    rootConfig.config[guid] = _value.ToString();
-
-                if (currentUi != null)
-                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
             }
         }
 
@@ -93,7 +89,34 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void EnumValueChangeEventDelegate(EnumValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event EnumValueChangeEventDelegate onValueChange;
+
+        public delegate void PostEnumValueChangeEvent(T value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostEnumValueChangeEvent postValueChangeEvent;
+
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new EnumValueChangeEvent() { value = _value };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && !eventData.value.Equals(_value))
+                    value = eventData.value;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value);
+        }
 
         private bool _hidden = false;
         public override bool hidden
@@ -219,43 +242,49 @@ namespace PluginConfig.API.Fields
             T[] values = Enum.GetValues(typeof(T)) as T[];
             if(val >= values.Length)
             {
-                PluginConfiguratorController.LogWarning("Enum index requested does not exist");
-                if (currentUi != null)
-                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
-                return;
+                val = Array.IndexOf(values, _value);
             }
 
             T newValue = values[val];
             if (newValue.Equals(_value))
+            {
+                value = _value;
                 return;
+            }
 
             EnumValueChangeEvent eventData = new EnumValueChangeEvent() { value = newValue };
-            try
+            if (onValueChange != null)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+                    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                if (currentUi != null)
-                    currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, _value));
-                return;
+                value = _value;
+            }
+            else
+            {
+                value = eventData.value;
             }
 
-            value = eventData.value;
-            if (currentUi != null)
-                currentUi.dropdown.SetValueWithoutNotify(Array.IndexOf(values, value));
-        }
-
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new EnumValueChangeEvent() { value = _value });
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Post value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal void LoadFromString(string data)

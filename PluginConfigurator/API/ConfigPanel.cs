@@ -57,13 +57,22 @@ namespace PluginConfig.API
                 }
                 else
                 {
-                    //panel.parentPanel.panelObject.SetActive(true);
                     panel.parentPanel.ActivatePanel();
 				}
 			});
 
 			panel.rootConfig.presetButtonCanBeShown = true;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(!panel.rootConfig.presetButtonHidden);
+
+            try
+            {
+                panel.OnPanelOpen(panel.externalPanelOpenFlag);
+                panel.externalPanelOpenFlag = false;
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Exception thrown while calling on pannel open event\n{e}");
+            }
         }
         
         void OnDisable()
@@ -71,7 +80,14 @@ namespace PluginConfig.API
 			panel.rootConfig.presetButtonCanBeShown = false;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
 
-            panel.OnPanelClose();
+            try
+            {
+                panel.OnPanelClose();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Exception thrown while calling on pannel close event\n{e}");
+            }
         }
 
         public bool dirty = false;
@@ -110,7 +126,8 @@ namespace PluginConfig.API
                 if (currentMenu == null)
                     return;
 
-                currentMenu.fieldBg.color = fieldColor;
+                if (currentMenu.fieldBg != null)
+                    currentMenu.fieldBg.color = fieldColor;
             }
         }
 
@@ -356,7 +373,9 @@ namespace PluginConfig.API
         internal virtual void ActivatePanel()
         {
             if (currentPanel != null)
+            {
                 currentPanel.gameObject.SetActive(true);
+            }
         }
 
         internal virtual GameObject GetConcretePanelObj()
@@ -408,7 +427,8 @@ namespace PluginConfig.API
                 currentMenu.button.onClick = new Button.ButtonClickedEvent();
                 currentMenu.button.onClick.AddListener(() => OpenPanelInternally(false));
 
-                currentMenu.fieldBg.color = _fieldColor;
+                if (currentMenu.fieldBg != null)
+                    currentMenu.fieldBg.color = _fieldColor;
 
                 currentMenu.gameObject.SetActive(!hidden && !parentHidden);
                 currentMenu.button.interactable = interactable && parentInteractable;
@@ -455,6 +475,13 @@ namespace PluginConfig.API
                 onPannelCloseEvent.Invoke();
         }
 
+        internal void OnPanelOpen(bool external)
+        {
+            if (onPannelOpenEvent != null)
+                onPannelOpenEvent.Invoke(external);
+        }
+
+        internal bool externalPanelOpenFlag = false;
         internal void OpenPanelInternally(bool openedExternally)
         {
             if (openedExternally && PluginConfiguratorController.activePanel == null)
@@ -466,11 +493,10 @@ namespace PluginConfig.API
             if (PluginConfiguratorController.activePanel != null)
 			    PluginConfiguratorController.activePanel.SetActive(false);
 
+            externalPanelOpenFlag = openedExternally;
             currentPanel.gameObject.SetActive(true);
-			PluginConfiguratorController.activePanel = currentPanel.gameObject;
 
-            if (onPannelOpenEvent != null)
-                onPannelOpenEvent.Invoke(openedExternally);
+            PluginConfiguratorController.activePanel = currentPanel.gameObject;
 		}
 
         /// <summary>

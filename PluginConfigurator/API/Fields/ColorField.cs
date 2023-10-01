@@ -86,20 +86,16 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                bool dirty = false;
-                if (_value != value && saveToConfig)
-                {
-                    rootConfig.isDirty = true;
-                    dirty = true;
-                }
-
                 if (currentUi != null)
                     SetSliders(value);
 
+                if (_value != value && saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    rootConfig.config[guid] = StringifyColor(value);
+                }
+
                 _value = value;
-                
-                if(dirty)
-                    rootConfig.config[guid] = StringifyColor(_value);
             }
         }
 
@@ -116,7 +112,34 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void ColorValueChangeEventDelegate(ColorValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event ColorValueChangeEventDelegate onValueChange;
+
+        public delegate void PostColorValueChangeEvent(Color value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostColorValueChangeEvent postValueChangeEvent;
+
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new ColorValueChangeEvent() { value = _value };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && eventData.value != _value)
+                    value = eventData.value;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value);
+        }
 
         private bool _hidden = false;
         public override bool hidden
@@ -236,26 +259,44 @@ namespace PluginConfig.API.Fields
         {
             Color newColor = new Color(currentUi.red.value, currentUi.green.value, currentUi.blue.value);
             if (newColor == _value)
+            {
+                value = _value;
                 return;
+            }
 
             ColorValueChangeEvent eventData = new ColorValueChangeEvent() { value = newColor };
-            try
+            if (onValueChange != null)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+                    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                SetSliders(_value);
-                return;
+                value = _value;
+            }
+            else
+            {
+                value = eventData.value;
             }
 
-            value = eventData.value;
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Post value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal void OnInputFieldChange(InputField field, Slider targetSlider, ref string lastValue)
@@ -289,12 +330,6 @@ namespace PluginConfig.API.Fields
         {
             SetSliders(defaultValue);
             OnValueChange();
-        }
-
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new ColorValueChangeEvent() { value = _value });
         }
 
         internal void LoadFromString(string data)

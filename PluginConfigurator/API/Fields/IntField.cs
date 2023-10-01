@@ -70,7 +70,35 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void IntValueChangeEventDelegate(IntValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event IntValueChangeEventDelegate onValueChange;
+
+        public delegate void PostIntValueChangeEvent(int value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostIntValueChangeEvent postValueChangeEvent;
+        
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new IntValueChangeEvent() { value = _value };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && _value != eventData.value)
+                    value = eventData.value;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value);
+        }
+
 
         private bool _hidden = false;
         public override bool hidden
@@ -206,15 +234,15 @@ namespace PluginConfig.API.Fields
                     val = lastInputText;
                 }
                 else
+                {
+                    value = _value;
                     return;
+                }
             }
 
-            int newValue;
-            if(!int.TryParse(val, out newValue))
+            if(!int.TryParse(val, out int newValue))
             {
-                if (currentUi != null)
-                    currentUi.input.SetTextWithoutNotify(_value.ToString());
-                return;
+                newValue = _value;    
             }
 
             if(newValue < minimumValue)
@@ -223,8 +251,7 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    if (currentUi != null)
-                        currentUi.input.SetTextWithoutNotify(_value.ToString());
+                    value = _value;
                     return;
                 }
             }
@@ -234,46 +261,52 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    if (currentUi != null)
-                        currentUi.input.SetTextWithoutNotify(_value.ToString());
+                    value = _value;
                     return;
                 }
             }
 
             if (newValue == _value)
             {
-                if (currentUi != null)
-                    currentUi.input.SetTextWithoutNotify(_value.ToString());
+                value = _value;
                 return;
             }
 
             IntValueChangeEvent eventData = new IntValueChangeEvent() { value = newValue };
-            try
+            if (onValueChange != null)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+                    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                if (currentUi != null)
-                    currentUi.input.SetTextWithoutNotify(_value.ToString());
-                return;
+                newValue = _value;
+            }
+            else
+            {
+                newValue = eventData.value;
             }
 
-            value = eventData.value;
-            if (currentUi != null)
-                currentUi.input.SetTextWithoutNotify(value.ToString());
-        }
+            value = newValue;
 
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new IntValueChangeEvent() { value = _value });
+            if (postValueChangeEvent  != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Post value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal void LoadFromString(string data)

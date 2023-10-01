@@ -109,17 +109,13 @@ namespace PluginConfig.API.Fields
                 if (index == -1)
                     throw new ArgumentException($"Invalid value set for {rootConfig.guid}:{guid}. Value must be present in the dropdown list");
 
-                bool dirty = false;
                 if (_value != value && saveToConfig)
                 {
                     rootConfig.isDirty = true;
-                    dirty = true;
+                    rootConfig.config[guid] = value;
                 }
 
                 _value = value;
-
-                if (dirty)
-                    rootConfig.config[guid] = _value;
 
                 if (currentUi != null)
                     currentUi.dropdown.SetValueWithoutNotify(valueIndex);
@@ -132,21 +128,8 @@ namespace PluginConfig.API.Fields
             {
                 if (value < 0 || value >= values.Count)
                     throw new ArgumentException($"Invalid index set for {rootConfig.guid}:{guid}. Index must be in range [0, values count)");
-                
-                bool dirty = false;
-                if (value != valueIndex && saveToConfig)
-                {
-                    rootConfig.isDirty = true;
-                    dirty = true;
-                }
 
-                _value = values[value];
-
-                if (dirty)
-                    rootConfig.config[guid] = _value;
-
-                if (currentUi != null)
-                    currentUi.dropdown.SetValueWithoutNotify(value);
+                this.value = values[value];
             }
         }
 
@@ -198,7 +181,34 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void StringListValueChangeEventDelegate(StringListValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event StringListValueChangeEventDelegate onValueChange;
+
+        public delegate void PostStringListValueChangeEvent(string value, int valueIndex);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostStringListValueChangeEvent postValueChangeEvent;
+
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new StringListValueChangeEvent(this, _value);
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && _value != eventData.value)
+                    value = eventData.value;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value, values.IndexOf(_value));
+        }
 
         private bool _hidden = false;
         public override bool hidden
@@ -348,41 +358,51 @@ namespace PluginConfig.API.Fields
             if (val < 0 || val >= values.Count)
             {
                 PluginConfiguratorController.LogWarning("String list index requested does not exist");
-                if (currentUi != null)
-                    currentUi.dropdown.SetValueWithoutNotify(values.IndexOf(_value));
+                value = _value;
                 return;
             }
 
             if (val == valueIndex)
+            {
+                value = _value;
                 return;
+            }
 
             StringListValueChangeEvent eventData = new StringListValueChangeEvent(this, val);
-            try
+            if (onValueChange != null)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+                    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                if (currentUi != null)
-                    currentUi.dropdown.SetValueWithoutNotify(valueIndex);
-                return;
+                val = valueIndex;
+            }
+            else
+            {
+                val = eventData.valueIndex;
             }
 
-            value = eventData.value;
-            if (currentUi != null)
-                currentUi.dropdown.SetValueWithoutNotify(valueIndex);
-        }
+            value = values[val];
 
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new StringListValueChangeEvent(this, _value));
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value, values.IndexOf(_value));
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Post value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal void LoadFromString(string data)

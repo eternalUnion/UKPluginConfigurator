@@ -620,7 +620,7 @@ namespace PluginConfig.API.Fields
         internal string _rawString;
         internal List<CharacterInfo> _format = new List<CharacterInfo>();
 
-        private string TurnToDataString()
+        private static string ToDataString(string _rawString, List<CharacterInfo> _format)
         {
             if (_rawString == null || _rawString == "")
                 return "";
@@ -689,10 +689,78 @@ namespace PluginConfig.API.Fields
             return data.ToString();
         }
 
+        private static void FromDataString(string data, out string _rawString, out List<CharacterInfo> _format)
+        {
+            _format = new List<CharacterInfo>();
+            _rawString = "";
+
+            if (string.IsNullOrEmpty(data))
+                return;
+
+            StringBuilder newRaw = new StringBuilder();
+            CharacterInfo currentFormat = new CharacterInfo();
+
+            int dataLen = data.Length;
+            for (int i = 0; i < dataLen; i++)
+            {
+                char c = data[i];
+                if (c == formatIndicator)
+                {
+                    i += 1;
+                    if (i >= dataLen)
+                    {
+                        break;
+                    }
+
+                    c = data[i];
+                    if (c == 'C')
+                    {
+                        i += 1;
+                        if (i >= dataLen)
+                        {
+                            break;
+                        }
+
+                        byte r = (byte)data[i];
+                        i += 1;
+                        if (i >= dataLen)
+                        {
+                            break;
+                        }
+
+                        byte g = (byte)data[i];
+                        i += 1;
+                        if (i >= dataLen)
+                        {
+                            break;
+                        }
+
+                        byte b = (byte)data[i];
+                        currentFormat.color = new Color(r / 255f, g / 255f, b / 255f);
+                    }
+                    else if (c == 'B')
+                        currentFormat.bold = true;
+                    else if (c == 'b')
+                        currentFormat.bold = false;
+                    else if (c == 'I')
+                        currentFormat.italic = true;
+                    else if (c == 'i')
+                        currentFormat.italic = true;
+                }
+                else
+                {
+                    _format.Add(currentFormat);
+                    newRaw.Append(c);
+                }
+            }
+
+            _rawString = newRaw.ToString();
+        }
+
         private void GetFromDataString(string data)
         {
             _format.Clear();
-            if(data == null || data == "")
+            if(string.IsNullOrEmpty(data))
             {
                 _rawString = "";
                 return;
@@ -777,25 +845,26 @@ namespace PluginConfig.API.Fields
 
         public string rawString
         {
-            get => _rawString.Replace("\n", ""); set
+            get => _rawString; set
             {
                 value = value.Replace("\n", "").Replace("\r", "").Replace(formatIndicator.ToString(), "");
-                if (_rawString != value)
-                {
-                    _rawString = value;
-                    RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
+                bool dirty = _rawString != value;
 
+                _rawString = value;
+                RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
+                SetFormattedString();
+                
+                if (currentUi != null)
+                    currentUi.input.text = formattedString;
+
+                if (dirty && saveToConfig)
+                {
                     if (saveToConfig)
                     {
                         rootConfig.isDirty = true;
-                        rootConfig.config[guid] = TurnToDataString();
+                        rootConfig.config[guid] = ToDataString(_rawString, _format);
                     }
                 }
-
-                SetFormattedString();
-                if (currentUi == null)
-                    return;
-                currentUi.input.text = formattedString;
             }
         }
 
@@ -814,11 +883,23 @@ namespace PluginConfig.API.Fields
             get => new FormattedString(_rawString, _format);
             set
             {
+                string oldData = ToDataString(_rawString, _format);
+
                 GetFromFormattedString(value);
                 SetFormattedString();
 
+                string newData = ToDataString(_rawString, _format);
+                if (oldData != newData)
+                {
+                    if (saveToConfig)
+                    {
+                        rootConfig.isDirty = true;
+                        rootConfig.config[guid] = newData;
+                    }
+                }
+
                 if (currentUi != null)
-                    currentUi.input.text = formattedString;
+                    currentUi.text.text = formattedString;
             }
         }
 
@@ -830,7 +911,35 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void StringValueChangeEventDelegate(FormattedStringValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event StringValueChangeEventDelegate onValueChange;
+
+        public delegate void PostStringValueChangeEvent(FormattedString value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostStringValueChangeEvent postValueChangeEvent;
+
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new FormattedStringValueChangeEvent() { formattedString = new FormattedString(_rawString, _format) };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && eventData.formattedString != value)
+                    value = eventData.formattedString;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(value);
+        }
+
 
         private bool _hidden = false;
         public override bool hidden
@@ -878,11 +987,13 @@ namespace PluginConfig.API.Fields
                     throw new ArgumentException($"String field {guid} does not allow empty values but its default value is empty");
 
                 if (rootConfig.config.TryGetValue(guid, out string data))
+                {
                     GetFromDataString(data);
+                }
                 else
                 {
                     GetFromFormattedString(defaultValue);
-                    rootConfig.config.Add(guid, TurnToDataString());
+                    rootConfig.config.Add(guid, ToDataString(_rawString, _format));
                     rootConfig.isDirty = true;
                 }
             }
@@ -956,60 +1067,70 @@ namespace PluginConfig.API.Fields
         {
             if (rawString == _rawString && _format.SequenceEqual(format))
             {
-                if (currentUi != null)
-                    currentUi.text.text = formattedString;
+                value = value;
                 return;
             }
 
             if (!allowEmptyValues && string.IsNullOrWhiteSpace(rawString))
             {
-                if (currentUi != null)
-                    currentUi.text.text = formattedString;
+                value = value;
                 return;
             }
 
             FormattedStringValueChangeEvent eventData = new FormattedStringValueChangeEvent() { formattedString = new FormattedString(rawString, format) };
-            try
+            if (onValueChange != null)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+                    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                if (currentUi != null)
-                    currentUi.text.text = formattedString;
-                return;
+                value = value;
             }
-
-            _rawString = eventData.formattedString.rawString.Replace("\n", "").Replace("\r", "");
-            _format = eventData.formattedString.GetFormat();
-            RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
-
-            if (saveToConfig)
+            else
             {
-                rootConfig.config[guid] = TurnToDataString();
-                rootConfig.isDirty = true;
+                string oldData = ToDataString(_rawString, _format);
+
+                _rawString = eventData.formattedString.rawString.Replace("\n", "").Replace("\r", "").Replace(formatIndicator.ToString(), "");
+                _format = eventData.formattedString.GetFormat();
+                RichTextFormatter.AssureFormatMatchesTextSize(_format, _rawString.Length, new CharacterInfo());
+
+                value = new FormattedString(_rawString, _format);
+
+                string newData = ToDataString(_rawString, _format);
+                if (oldData != newData && saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    rootConfig.config[guid] = newData;
+                }
             }
 
-            SetFormattedString();
-            if (currentUi != null)
-                currentUi.text.text = formattedString;
-        }
-
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new FormattedStringValueChangeEvent() { formattedString = new FormattedString(_rawString, _format) });
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal override void ReloadFromString(string data)
         {
-            string currentRaw = _rawString;
+            FromDataString(data, out string _raw, out List<CharacterInfo> _form);
+            OnValueChange(_raw, _form);
+
+            /*string currentRaw = _rawString;
             List<CharacterInfo> currentFormat = new List<CharacterInfo>(_format);
 
             GetFromDataString(data);
@@ -1019,8 +1140,7 @@ namespace PluginConfig.API.Fields
 
             _rawString = currentRaw;
             _format = currentFormat;
-
-            OnValueChange(newRaw, newFormat);
+            */
         }
 
         internal override void ReloadDefault()

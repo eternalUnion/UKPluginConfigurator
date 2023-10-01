@@ -46,19 +46,16 @@ namespace PluginConfig.API.Fields
         {
             get => _value; set
             {
-                bool dirty = false;
-                if (_value != value && saveToConfig)
-                {
-                    rootConfig.isDirty = true;
-                    dirty = true;
-                }
                 if (currentUi != null)
                     currentUi.input.SetTextWithoutNotify(value.ToString(CultureInfo.InvariantCulture));
                 
-                _value = value;
+                if (_value != value && saveToConfig)
+                {
+                    rootConfig.isDirty = true;
+                    rootConfig.config[guid] = value.ToString(CultureInfo.InvariantCulture);
+                }
 
-                if(dirty)
-                    rootConfig.config[guid] = _value.ToString(CultureInfo.InvariantCulture);
+                _value = value;
             }
         }
 
@@ -74,7 +71,34 @@ namespace PluginConfig.API.Fields
             public bool canceled = false;
         }
         public delegate void FloatValueChangeEventDelegate(FloatValueChangeEvent data);
+        /// <summary>
+        /// Called before the value of the field is changed. <see cref="value"/> is NOT set when this event is called. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
         public event FloatValueChangeEventDelegate onValueChange;
+
+        public delegate void PostFloatValueChangeEvent(float value);
+        /// <summary>
+        /// Called after the value of the field is changed. This event is NOT called when <see cref="value"/> is set.
+        /// </summary>
+        public event PostFloatValueChangeEvent postValueChangeEvent;
+        
+        public void TriggerValueChangeEvent()
+        {
+            if (onValueChange != null)
+            {
+                var eventData = new FloatValueChangeEvent() { value = _value };
+                onValueChange.Invoke(eventData);
+
+                if (!eventData.canceled && eventData.value != _value)
+                    value = eventData.value;
+            }
+        }
+
+        public void TriggerPostValueChangeEvent()
+        {
+            if (postValueChangeEvent != null)
+                postValueChangeEvent.Invoke(_value);
+        }
 
         private bool _hidden = false;
         public override bool hidden
@@ -214,12 +238,9 @@ namespace PluginConfig.API.Fields
 
             val = val.Replace(',', '.');
 
-            float newValue;
-            if (!float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out newValue))
+            if (!float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out float newValue))
             {
-                if(currentUi != null)
-                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
-                return;
+                newValue = _value;
             }
 
             if (newValue < minimumValue)
@@ -228,8 +249,7 @@ namespace PluginConfig.API.Fields
                     newValue = minimumValue;
                 else
                 {
-                    if (currentUi != null)
-                        currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                    value = _value;
                     return;
                 }
             }
@@ -239,46 +259,50 @@ namespace PluginConfig.API.Fields
                     newValue = maximumValue;
                 else
                 {
-                    if (currentUi != null)
-                        currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                    value = _value;
                     return;
                 }
             }
 
             if (newValue == _value)
             {
-                if (currentUi != null)
-                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
+                value = _value;
                 return;
             }
 
             FloatValueChangeEvent eventData = new FloatValueChangeEvent() { value = newValue };
-            try
+			if (onValueChange != null)
             {
-				if (onValueChange != null)
-					onValueChange.Invoke(eventData);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                try
+                {
+				    onValueChange.Invoke(eventData);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
             }
 
             if (eventData.canceled)
             {
-                if (currentUi != null)
-                    currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
-                return;
+                value = _value;
+            }
+            else
+            {
+                value = eventData.value;
             }
 
-            value = eventData.value;
-            if (currentUi != null)
-                currentUi.input.SetTextWithoutNotify(value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        public void TriggerValueChangeEvent()
-        {
-			if (onValueChange != null)
-				onValueChange.Invoke(new FloatValueChangeEvent() { value = _value });
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value);
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         internal void LoadFromString(string data)
