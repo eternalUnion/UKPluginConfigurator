@@ -70,6 +70,8 @@ namespace PluginConfig.API
         {
 			panel.rootConfig.presetButtonCanBeShown = false;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
+
+            panel.OnPanelClose();
         }
 
         public bool dirty = false;
@@ -443,6 +445,15 @@ namespace PluginConfig.API
 		/// Invoked when the panel is opened by the user or via <see cref="OpenPanel"/>
 		/// </summary>
 		public event OpenPanelEventDelegate onPannelOpenEvent;
+
+        public delegate void ClosePanelEventDelegate();
+        public event ClosePanelEventDelegate onPannelCloseEvent;
+
+        internal void OnPanelClose()
+        {
+            if (onPannelCloseEvent != null)
+                onPannelCloseEvent.Invoke();
+        }
 
         internal void OpenPanelInternally(bool openedExternally)
         {

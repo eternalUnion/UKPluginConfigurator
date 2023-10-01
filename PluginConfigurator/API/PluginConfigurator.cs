@@ -523,14 +523,16 @@ namespace PluginConfig.API
             string presetIdBefore = currentPreset == null ? null : currentPreset.fileId;
             string presetIdAfter = newPreset == null ? null : newPreset.fileId;
 
-            try
+            if (prePresetChangeEvent != null)
             {
-                if (prePresetChangeEvent != null)
+                try
+                {
                     prePresetChangeEvent.Invoke(presetIdBefore, presetIdAfter);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+                }
             }
 
             FlushAll();
@@ -604,14 +606,16 @@ namespace PluginConfig.API
             isDirty = dirty;
             isPresetHeaderDirty = true;
 
-            try
+            if (postPresetChangeEvent != null)
             {
-                if (postPresetChangeEvent != null)
+                try
+                {
                     postPresetChangeEvent.Invoke(presetIdBefore, presetIdAfter);
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+                }
             }
 
             FlushAll();
@@ -631,6 +635,20 @@ namespace PluginConfig.API
                 }
 
                 return;
+            }
+
+            string presetId = currentPreset == null ? null : currentPreset.fileId;
+
+            if (prePresetResetEvent != null)
+            {
+                try
+                {
+                    prePresetResetEvent.Invoke(presetId);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Exception thrown while calling pre preset reset event\n{e}");
+                }
             }
 
             config.Clear();
@@ -654,6 +672,18 @@ namespace PluginConfig.API
                 foreach (ConfigField field in list)
                 {
                     field.ReloadDefault();
+                }
+            }
+
+            if (postPresetResetEvent != null)
+            {
+                try
+                {
+                    postPresetResetEvent.Invoke(presetId);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Exception thrown while calling pre preset reset event\n{e}");
                 }
             }
 
@@ -844,10 +874,28 @@ namespace PluginConfig.API
         public event PostConfigChangeEvent postConfigChange;
 
         public delegate void PrePresetChangeEvent(string presetIdBefore, string presetIdAfter);
+        /// <summary>
+        /// Triggered before a preset is switched
+        /// </summary>
         public event PrePresetChangeEvent prePresetChangeEvent;
 
         public delegate void PostPresetChangeEvent(string presetIdBefore, string presetIdAfter);
+        /// <summary>
+        /// Triggered after a preset is switched
+        /// </summary>
         public event PostPresetChangeEvent postPresetChangeEvent;
+
+        public delegate void PrePresetResetEvent(string presetId);
+        /// <summary>
+        /// Called before a preset is reset. Preset ID is null if no preset is selected
+        /// </summary>
+        public event PrePresetResetEvent prePresetResetEvent;
+
+        public delegate void PostPresetResetEvent(string presetId);
+        /// <summary>
+        /// Called after a preset is reset. Preset ID is null if no preset is selected
+        /// </summary>
+        public event PostPresetResetEvent postPresetResetEvent;
 
         public bool saveToFile = true;
 
@@ -902,14 +950,16 @@ namespace PluginConfig.API
             if (!isDirty)
                 return;
 
-            try
+            if (preConfigChange != null)
             {
-                if (preConfigChange != null)
+                try
+                {
                     preConfigChange.Invoke();
-            }
-            catch (Exception e)
-            {
-                PluginConfiguratorController.LogError($"Pre config event for {guid} threw an error: {e}");
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Pre config event for {guid} threw an error: {e}");
+                }
             }
 
             if (!saveToFile)
@@ -955,15 +1005,17 @@ namespace PluginConfig.API
 
             isDirty = false;
 
-            try
+            if (postConfigChange != null)
             {
-                if (postConfigChange != null)
+                try
+                {
                     postConfigChange.Invoke();
+                }
+                catch (Exception e)
+                {
+                    PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
+                }
             }
-            catch(Exception e)
-            {
-                PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
-            }    
         }
 
         private void ExportCurrentPreset()
