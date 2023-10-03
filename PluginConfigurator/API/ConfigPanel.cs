@@ -8,7 +8,6 @@ using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using static HarmonyLib.AccessTools;
 
 namespace PluginConfig.API
 {
@@ -79,6 +78,9 @@ namespace PluginConfig.API
         {
 			panel.rootConfig.presetButtonCanBeShown = false;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
+
+            if (PluginConfiguratorController.activePanel == this)
+                PluginConfiguratorController.activePanel = null;
 
             try
             {
@@ -506,6 +508,29 @@ namespace PluginConfig.API
         {
             OpenPanelInternally(true);
 		}
+
+        /// <summary>
+        /// Close the panel if it is active
+        /// </summary>
+        public void ClosePanel()
+        {
+            if (currentPanel != null && currentPanel.gameObject.activeSelf)
+            {
+                currentPanel.gameObject.SetActive(false);
+
+                if (parentPanel == null)
+                {
+                    rootConfig.FlushAll();
+                    PluginConfiguratorController.mainPanel.gameObject.SetActive(true);
+                    PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
+                    PluginConfiguratorController.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
+                }
+                else
+                {
+                    parentPanel.ActivatePanel();
+                }
+            }
+        }
 
 		internal override void ReloadFromString(string data)
         {
