@@ -213,6 +213,16 @@ namespace PluginConfig.API
             get => Path.Combine(Paths.ConfigPath, "PluginConfigurator", guid + "_presets");
         }
 
+        /// <summary>
+        /// Is true while user is switching between presets. Can be used in value change events.
+        /// </summary>
+        public bool changingPreset { get; private set; } = false;
+
+        /// <summary>
+        /// Is true while resetting the config. Can be used in value change events.
+        /// </summary>
+        public bool resetting { get; private set; } = false;
+
         #endregion
 
         #region Internal Properties
@@ -527,6 +537,8 @@ namespace PluginConfig.API
             if (newPreset == currentPreset)
                 return;
 
+            changingPreset = true;
+
             string presetIdBefore = currentPreset == null ? null : currentPreset.fileId;
             string presetIdAfter = newPreset == null ? null : newPreset.fileId;
 
@@ -610,6 +622,8 @@ namespace PluginConfig.API
                 }
             }
 
+            changingPreset = false;
+
             isDirty = dirty;
             isPresetHeaderDirty = true;
 
@@ -643,6 +657,8 @@ namespace PluginConfig.API
 
                 return;
             }
+
+            resetting = true;
 
             string presetId = currentPreset == null ? null : currentPreset.fileId;
 
@@ -681,6 +697,8 @@ namespace PluginConfig.API
                     field.ReloadDefault();
                 }
             }
+
+            resetting = false;
 
             if (postPresetResetEvent != null)
             {
