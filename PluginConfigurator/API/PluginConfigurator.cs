@@ -550,7 +550,7 @@ namespace PluginConfig.API
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+                    Debug.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
                 }
             }
 
@@ -575,7 +575,7 @@ namespace PluginConfig.API
                     while (!stream.EndOfStream)
                     {
                         string guid = stream.ReadLine();
-                        if (guid == null || string.IsNullOrEmpty(guid))
+                        if (string.IsNullOrEmpty(guid))
                             break;
 
                         string data = stream.ReadLine();
@@ -607,7 +607,15 @@ namespace PluginConfig.API
                 {
                     if (config.TryGetValue(field.guid, out string val))
                     {
-                        field.ReloadFromString(val);
+                        try
+                        {
+                            field.ReloadFromString(val);
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"Exception thrown while changing preset (thrown by {field.guid})\n{e}");
+                        }
+
                         if (!dirty)
                         {
                             if (!config.TryGetValue(field.guid, out string newVal) || val != newVal)
@@ -635,7 +643,7 @@ namespace PluginConfig.API
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
+                    Debug.LogError($"Exception thrown while calling pre preset change event for {guid}:\n{e}");
                 }
             }
 
@@ -694,7 +702,14 @@ namespace PluginConfig.API
             {
                 foreach (ConfigField field in list)
                 {
-                    field.ReloadDefault();
+                    try
+                    {
+                        field.ReloadDefault();
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Exception thrown while resetting field {field.guid}\n{e}");
+                    }
                 }
             }
 
@@ -727,7 +742,7 @@ namespace PluginConfig.API
                 GameObject.Destroy(preset.currentUI.gameObject);
 
             if (File.Exists(preset.filePath))
-                try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
+                try { File.Delete(preset.filePath); } catch (Exception e) { Debug.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
             
             isPresetHeaderDirty = true;
             FlushPresets();
@@ -792,7 +807,7 @@ namespace PluginConfig.API
 
                     if (currentPresetPath == null)
                     {
-                        PluginConfiguratorController.LogWarning($"Invalid preset config for {guid}");
+                        Debug.LogWarning($"Invalid preset config for {guid}");
 
                         currentPresetPath = "";
                         currentPreset = null;
@@ -809,20 +824,20 @@ namespace PluginConfig.API
                         string name = stream.ReadLine();
                         if(name == null)
                         {
-                            PluginConfiguratorController.LogWarning($"Invalid preset config ending for {guid}");
+                            Debug.LogWarning($"Invalid preset config ending for {guid}");
                             break;
                         }
 
                         string indexStr = stream.ReadLine();
                         if(indexStr == null)
                         {
-                            PluginConfiguratorController.LogWarning($"Invalid preset config ending for {guid}");
+                            Debug.LogWarning($"Invalid preset config ending for {guid}");
                             break;
                         }
 
                         if(!int.TryParse(indexStr, out int index))
                         {
-                            PluginConfiguratorController.LogWarning($"Invalid list index for {guid}:{id}:{name}");
+                            Debug.LogWarning($"Invalid list index for {guid}:{id}:{name}");
                             index = 0;
                         }
 
@@ -846,7 +861,7 @@ namespace PluginConfig.API
                     currentPreset = presets.Find(preset => preset.fileId == currentPresetPath);
                     if(currentPreset == null)
                     {
-                        PluginConfiguratorController.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
+                        Debug.LogWarning($"Could not find preset with id {guid}:{currentPresetPath}");
                     }
                 }
             }
@@ -879,7 +894,7 @@ namespace PluginConfig.API
                         string data = stream.ReadLine();
                         if (data == null)
                             data = "";
-                        PluginConfiguratorController.LogDebug($"{guid}:{data}");
+
                         config[guid] = data;
                     }
                 }
@@ -944,7 +959,7 @@ namespace PluginConfig.API
                     if (preset.markedForDelete)
                     {
                         if (File.Exists(preset.filePath))
-                            try { File.Delete(preset.filePath); } catch (Exception e) { PluginConfiguratorController.LogError(e.ToString()); }
+                            try { File.Delete(preset.filePath); } catch (Exception e) { Debug.LogError(e.ToString()); }
                         continue;
                     }
 
@@ -983,7 +998,7 @@ namespace PluginConfig.API
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Pre config event for {guid} threw an error: {e}");
+                    Debug.LogError($"Pre config event for {guid} threw an error: {e}");
                 }
             }
 
@@ -996,7 +1011,7 @@ namespace PluginConfig.API
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
+                    Debug.LogError($"Post config event for {guid} threw an error: {e}");
                 }
 
                 return;
@@ -1038,7 +1053,7 @@ namespace PluginConfig.API
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Post config event for {guid} threw an error: {e}");
+                    Debug.LogError($"Post config event for {guid} threw an error: {e}");
                 }
             }
         }
@@ -1203,19 +1218,19 @@ namespace PluginConfig.API
 
             if (nonCriticalConflicts.Count != 0)
             {
-                PluginConfiguratorController.LogWarning("Non-critical GUID conflicts:");
+                Debug.LogWarning("Non-critical GUID conflicts:");
                 foreach (KeyValuePair<ConfigField, ConfigField> duplicate in nonCriticalConflicts)
                 {
-                    PluginConfiguratorController.LogWarning($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+                    Debug.LogWarning($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
                 }
             }
 
             if (criticalConflicts.Count != 0)
             {
-                PluginConfiguratorController.LogError("Critical GUID conflicts:");
+                Debug.LogError("Critical GUID conflicts:");
                 foreach (KeyValuePair<ConfigField, ConfigField> duplicate in criticalConflicts)
                 {
-                    PluginConfiguratorController.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
+                    Debug.LogError($"{duplicate.Key.parentPanel.currentDirectory}:{duplicate.Key.guid}\n{duplicate.Value.parentPanel.currentDirectory}:{duplicate.Value.guid}");
                 }
             }
         }

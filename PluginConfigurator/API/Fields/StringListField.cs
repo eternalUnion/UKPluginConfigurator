@@ -357,7 +357,7 @@ namespace PluginConfig.API.Fields
         {
             if (val < 0 || val >= values.Count)
             {
-                PluginConfiguratorController.LogWarning("String list index requested does not exist");
+                Debug.LogWarning("String list index requested does not exist");
                 value = _value;
                 return;
             }
@@ -377,7 +377,7 @@ namespace PluginConfig.API.Fields
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                    Debug.LogError($"Value change event for {guid} threw an error: {e}");
                 }
             }
 
@@ -400,7 +400,7 @@ namespace PluginConfig.API.Fields
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Post value change event for {guid} threw an error: {e}");
+                    Debug.LogError($"Post value change event for {guid} threw an error: {e}");
                 }
             }
         }

@@ -259,7 +259,7 @@ namespace PluginConfig.API.Fields
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                    Debug.LogError($"Value change event for {guid} threw an error: {e}");
                 }
 
                 if (eventData.canceled)
@@ -345,7 +345,7 @@ namespace PluginConfig.API.Fields
                 }
                 catch (Exception e)
                 {
-                    PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                    Debug.LogError($"Value change event for {guid} threw an error: {e}");
                 }
 
                 if (args.canceled)
@@ -445,7 +445,7 @@ namespace PluginConfig.API.Fields
                     }
                     catch (Exception e)
                     {
-                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                        Debug.LogError($"Value change event for {guid} threw an error: {e}");
                     }
 
                     if (args.canceled)
@@ -500,7 +500,7 @@ namespace PluginConfig.API.Fields
                     }
                     catch (Exception e)
                     {
-                        PluginConfiguratorController.LogError($"Value change event for {guid} threw an error: {e}");
+                        Debug.LogError($"Value change event for {guid} threw an error: {e}");
                     }
 
                     if (args.canceled)

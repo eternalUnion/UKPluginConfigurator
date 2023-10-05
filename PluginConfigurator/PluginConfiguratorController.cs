@@ -48,7 +48,7 @@ namespace PluginConfig
         }
 		private void PatchUltraTweaker()
 		{
-            LogDebug("Ultra Tweaker detected");
+            Logger.LogInfo("Ultra Tweaker detected");
             try
             {
                 ultraTweakerHarmony.Patch(typeof(UltraTweaker.Handlers.SettingUIHandler).GetMethod("CreateUI", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic), postfix: new HarmonyMethod(typeof(PluginConfiguratorController).GetMethod("HandleUltraTweakerUI", BindingFlags.NonPublic | BindingFlags.Static)));
@@ -192,11 +192,11 @@ namespace PluginConfig
 						if (comp.panel != null)
 							comp.panel.rootConfig.FlushAll();
 						else
-							LogWarning("Panel component does not have a config panel attached, could not flush");
+							Debug.LogWarning("Panel component does not have a config panel attached, could not flush");
 					}
 					else
 					{
-						LogWarning("Could not find panel's component");
+                        Debug.LogWarning("Could not find panel's component");
 					}
 
 					activePanel.SetActive(false);
@@ -219,16 +219,6 @@ namespace PluginConfig
 		internal static BoolField patchPause;
 		internal static BoolField cancelOnEsc;
 		internal static BoolField devConfigs;
-
-		public enum LogLevel
-		{
-			Disabled,
-			Debug,
-			Warning,
-			Error
-		}
-		
-		internal static EnumField<LogLevel> consoleLogLevel;
 
 		private static class TestConfigs
 		{
@@ -265,7 +255,7 @@ namespace PluginConfig
 							Texture2D loadedTexture = DownloadHandlerTexture.GetContent(request);
 							field.sprite = Sprite.Create(loadedTexture, new Rect(0f, 0f, loadedTexture.width, loadedTexture.height), Vector2.zero);
 							field.SetImageSprite();
-							PluginConfiguratorController.LogDebug($"Loaded sprite from {url} successfully");
+							PluginConfiguratorController.logger.LogInfo($"Loaded sprite from {url} successfully");
 						}
 					}
 				}
@@ -484,10 +474,10 @@ namespace PluginConfig
 				new ConfigHeader(div2, "Division 2");
 
 				ButtonArrayField buttons = new ButtonArrayField(div2, "buttons", 4, new float[] { 0.25f, 0.5f, 0.125f, 0.125f }, new string[] { "First", "Second", "Third", "Fourth" });
-				buttons.OnClickEventHandler(0).onClick += () => { PluginConfiguratorController.LogDebug("Button 1 pressed"); };
-				buttons.OnClickEventHandler(1).onClick += () => { PluginConfiguratorController.LogDebug("Button 2 pressed"); };
-				buttons.OnClickEventHandler(2).onClick += () => { PluginConfiguratorController.LogDebug("Button 3 pressed"); };
-				buttons.OnClickEventHandler(3).onClick += () => { PluginConfiguratorController.LogDebug("Button 4 pressed"); };
+				buttons.OnClickEventHandler(0).onClick += () => { logger.LogWarning("Button 1 pressed"); };
+				buttons.OnClickEventHandler(1).onClick += () => { logger.LogWarning("Button 2 pressed"); };
+				buttons.OnClickEventHandler(2).onClick += () => { logger.LogWarning("Button 3 pressed"); };
+				buttons.OnClickEventHandler(3).onClick += () => { logger.LogWarning("Button 4 pressed"); };
 
 				new BoolField(div2, "Sample Field", "sampleField2", true);
 				new ConfigPanel(div2, "SamplePanel", "samplePanel");
@@ -595,8 +585,7 @@ namespace PluginConfig
 			};
 			TestConfigs.Init();
 			devConfigs.TriggerValueChangeEvent();
-			consoleLogLevel = new EnumField<LogLevel>(config.rootPanel, "Console log level", "consoleLogLevel", LogLevel.Disabled);
-
+			
 			Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
 
 			static MethodInfo GetStaticMethod<T>(string name) => typeof(T).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
@@ -649,27 +638,6 @@ namespace PluginConfig
 		private void OnDisable()
 		{
 			SceneManager.activeSceneChanged -= OnSceneChange;
-		}
-
-		public static void LogDebug(string message)
-		{
-			if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Debug)
-				return;
-			logger.LogMessage(message);
-		}
-
-		public static void LogWarning(string message)
-		{
-			if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Warning && consoleLogLevel.value != LogLevel.Error)
-				return;
-			logger.LogWarning(message);
-		}
-
-		public static void LogError(string message)
-		{
-			if (consoleLogLevel != null && consoleLogLevel.value != LogLevel.Error)
-				return;
-			logger.LogError(message);
 		}
 
 		private void OnApplicationQuit()
