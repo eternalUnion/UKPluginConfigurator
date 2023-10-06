@@ -51,9 +51,6 @@ namespace PluginConfig.API
                 {
                     panel.rootConfig.FlushAll();
                     PluginConfiguratorController.mainPanel.gameObject.SetActive(true);
-                    PluginConfiguratorController.activePanel = PluginConfiguratorController.mainPanel.gameObject;
-                    PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
-                    PluginConfiguratorController.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
                 }
                 else
                 {
@@ -80,7 +77,7 @@ namespace PluginConfig.API
 			panel.rootConfig.presetButtonCanBeShown = false;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
 
-            if (PluginConfiguratorController.activePanel == this)
+            if (PluginConfiguratorController.activePanel == gameObject)
                 PluginConfiguratorController.activePanel = null;
 
             try
@@ -524,8 +521,6 @@ namespace PluginConfig.API
                     rootConfig.FlushAll();
                     PluginConfiguratorController.mainPanel.gameObject.SetActive(true);
                     PluginConfiguratorController.activePanel = PluginConfiguratorController.mainPanel.gameObject;
-                    PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
-                    PluginConfiguratorController.backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
                 }
                 else
                 {

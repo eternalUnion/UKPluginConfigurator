@@ -32,6 +32,28 @@ namespace PluginConfig
 		}
 	}
 
+	class MainPanelComponent : MonoBehaviour
+	{
+		void OnEnable()
+		{
+			PluginConfiguratorController.activePanel = gameObject;
+			PluginConfiguratorController.backButton.onClick = new Button.ButtonClickedEvent();
+			PluginConfiguratorController.backButton.onClick.AddListener(() =>
+			{
+				if (PluginConfiguratorController.activePanel != null && PluginConfiguratorController.activePanel != gameObject)
+					PluginConfiguratorController.activePanel.SetActive(false);
+				
+				OptionsManager.Instance.CloseOptions();
+            });
+        }
+
+		void OnDisable()
+		{
+			if (PluginConfiguratorController.activePanel == gameObject)
+				PluginConfiguratorController.activePanel = null;
+        }
+	}
+
 	/// <summary>
 	/// Component for the Config Manager plugin
 	/// </summary>
@@ -150,6 +172,7 @@ namespace PluginConfig
 			pluginConfigObj.transform.SetSiblingIndex(1);
 
 			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, optionsMenu).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
+			mainPanel.gameObject.AddComponent<MainPanelComponent>();
 			mainPanel.header.text = "--PLUGIN CONFIGURATOR--";
 			mainPanel.gameObject.SetActive(false);
 
@@ -173,19 +196,16 @@ namespace PluginConfig
 						if(activePanel != null)
 						{
 							activePanel.SetActive(false);
-							backButton.onClick = new Button.ButtonClickedEvent();
-							backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
 						}
+						backButton.onClick = new Button.ButtonClickedEvent();
+						backButton.onClick.AddListener(() => OptionsMenuToManager.Instance.CloseOptions());
 					});
 				}
 			}
 
-			pluginConfigButton.onClick.AddListener(() => mainPanel.gameObject.SetActive(true));
-			pluginConfigButton.onClick.AddListener(mainPanelSelector.Activate);
-			pluginConfigButton.onClick.AddListener(mainPanelSelector.SetTop);
 			pluginConfigButton.onClick.AddListener(() =>
 			{
-				if (activePanel != null)
+				if (activePanel != null && activePanel != mainPanel.gameObject)
 				{
 					if(activePanel.TryGetComponent(out ConfigPanelComponent comp))
 					{
@@ -203,8 +223,7 @@ namespace PluginConfig
 				}
 				activePanel = null;
 
-				backButton.onClick = new Button.ButtonClickedEvent();
-				backButton.onClick.AddListener(MonoSingleton<OptionsMenuToManager>.Instance.CloseOptions);
+				mainPanel.gameObject.SetActive(true);
 			});
 
 			CreateConfigUI(optionsMenu);

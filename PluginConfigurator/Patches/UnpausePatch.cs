@@ -10,7 +10,7 @@ namespace PluginConfig.Patches
             if (PluginConfiguratorController.activePanel == null || !PluginConfiguratorController.activePanel.activeSelf)
                 return true;
 
-            if (MenuFinderPatch.optionsMenu != null && MenuFinderPatch.optionsMenu.gameObject.activeInHierarchy)
+            if (PluginConfiguratorController.activePanel != null && PluginConfiguratorController.activePanel != PluginConfiguratorController.mainPanel.gameObject)
                 return false;
 
             return true;
