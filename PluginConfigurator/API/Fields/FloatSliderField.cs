@@ -353,6 +353,18 @@ namespace PluginConfig.API.Fields
             }
 
             value = args.newValue;
+
+            if (postValueChangeEvent != null)
+            {
+                try
+                {
+                    postValueChangeEvent.Invoke(_value, _bounds);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Post value change event for {guid} threw an error: {e}");
+                }
+            }
         }
 
         public class FloatSliderValueChangeEvent
@@ -453,6 +465,18 @@ namespace PluginConfig.API.Fields
                 }
 
                 normalizedValue = args.newNormalizedValue;
+
+                if (postValueChangeEvent != null)
+                {
+                    try
+                    {
+                        postValueChangeEvent.Invoke(_value, _bounds);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Post value change event for {guid} threw an error: {e}");
+                    }
+                }
             });
 
             currentUi.input.characterValidation = InputField.CharacterValidation.Decimal;
@@ -508,6 +532,18 @@ namespace PluginConfig.API.Fields
                 }
 
                 value = args.newValue;
+
+                if (postValueChangeEvent != null)
+                {
+                    try
+                    {
+                        postValueChangeEvent.Invoke(_value, _bounds);
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"Post value change event for {guid} threw an error: {e}");
+                    }
+                }
             });
 
             currentUi.resetButton.onClick = new Button.ButtonClickedEvent();

@@ -234,10 +234,14 @@ namespace PluginConfig
 		internal static Harmony configuratorPatches;
 
 		internal static PluginConfigurator config;
+
 		internal static BoolField patchCheatKeys;
 		internal static BoolField patchPause;
 		internal static BoolField cancelOnEsc;
 		internal static BoolField devConfigs;
+
+		internal static ColorField notificationPanelBackground;
+		internal static FloatSliderField notificationPanelOpacity;
 
 		private static class TestConfigs
 		{
@@ -436,7 +440,8 @@ namespace PluginConfig
 
 			public static void Init()
 			{
-				PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
+                #region Division Test
+                PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
 				testConfigs.Add(divConfig);
 				divConfig.saveToFile = true;
 
@@ -534,8 +539,10 @@ namespace PluginConfig
 				{
 					div2.interactable = data.value;
 				};
+                #endregion
 
-				PluginConfigurator rangeConfig = PluginConfigurator.Create("Range", "rangeTest");
+                #region Range Test
+                PluginConfigurator rangeConfig = PluginConfigurator.Create("Range", "rangeTest");
 				testConfigs.Add(rangeConfig);
 				rangeConfig.saveToFile = false;
 
@@ -545,8 +552,10 @@ namespace PluginConfig
 				new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
 				new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
 				new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
+                #endregion
 
-				PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
+                #region Custom Field Test
+                PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
 				testConfigs.Add(customFieldTest);
 				customFieldTest.saveToFile = true;
 
@@ -564,8 +573,9 @@ namespace PluginConfig
 
 				new ConfigHeader(customFieldTest.rootPanel, "Random Color Picker (peak laziness)", 16);
 				new CustomRandomColorPickerField(customFieldTest.rootPanel, "randomColor", new Color(1, 0, 0));
-			}
-		}
+                #endregion
+            }
+        }
 
 		internal static Sprite defaultPluginIcon;
 
@@ -591,12 +601,20 @@ namespace PluginConfig
 			config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 			config.SetIconWithURL(Path.Combine(workingDir, "icon.png"));
 
-			new ConfigHeader(config.rootPanel, "Patches");
+			new ConfigHeader(config.rootPanel, "Patches").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
 			patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
 			patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
-			new ConfigHeader(config.rootPanel, "Behaviour");
-			cancelOnEsc = new BoolField(config.rootPanel, "Cancel on ESC", "cancelOnEsc", true);
-			new ConfigHeader(config.rootPanel, "Developer Stuffs");
+			new ConfigSpace(config.rootPanel, 10f);
+			new ConfigHeader(config.rootPanel, "Behaviour").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
+			cancelOnEsc = new BoolField(config.rootPanel, "Cancel on ESC", "cancelOnEsc", false);
+            new ConfigSpace(config.rootPanel, 10f);
+            new ConfigHeader(config.rootPanel, "Notification Panel").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
+			notificationPanelBackground = new ColorField(config.rootPanel, "Background color", "notificationPanelBg", Color.black);
+			notificationPanelBackground.postValueChangeEvent += (v) => NotificationPanel.UpdateBackgroundColor();
+            notificationPanelOpacity = new FloatSliderField(config.rootPanel, "Opacity", "notificationPanelAlpha", new Tuple<float, float>(0, 100), 89.64f);
+            notificationPanelOpacity.postValueChangeEvent += (v, r) => NotificationPanel.UpdateBackgroundColor();
+            new ConfigSpace(config.rootPanel, 10f);
+            new ConfigHeader(config.rootPanel, "Developer Stuff").textColor = new Color(137 / 255f, 207 / 255f, 240 / 255f);
 			devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
 			devConfigs.onValueChange += (BoolField.BoolValueChangeEvent e) =>
 			{

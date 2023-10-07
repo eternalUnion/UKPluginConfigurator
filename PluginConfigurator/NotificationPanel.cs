@@ -54,6 +54,17 @@ namespace PluginConfig
 		internal static Notification currentNotification = null;
 
 		private static RectTransform root;
+        private static Image currentBackground;
+		internal static void UpdateBackgroundColor()
+		{
+			if (currentBackground == null)
+				return;
+
+            Color bgColor = PluginConfiguratorController.notificationPanelBackground.value;
+            bgColor.a = PluginConfiguratorController.notificationPanelOpacity.value / 100f;
+			currentBackground.color = bgColor;
+        }
+
 		internal static void InitUI()
 		{
 			if (root == null && PluginConfiguratorController.optionsMenu != null)
@@ -70,8 +81,10 @@ namespace PluginConfig
 				root.localScale = Vector3.one;
 				root.gameObject.AddComponent<NotificationPanelComp>();
 
-				Image bg = root.gameObject.AddComponent<Image>();
-				bg.color = new Color(0, 0, 0, 0.8964f);
+				currentBackground = root.gameObject.AddComponent<Image>();
+				Color bgColor = PluginConfiguratorController.notificationPanelBackground.value;
+				bgColor.a = PluginConfiguratorController.notificationPanelOpacity.value / 100f;
+				currentBackground.color = bgColor;
 
 				MenuEsc esc = root.gameObject.AddComponent<MenuEsc>();
 				esc.DontClose = true;
