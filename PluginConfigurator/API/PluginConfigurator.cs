@@ -42,13 +42,24 @@ namespace PluginConfig.API
         private const string ASSET_PATH_PRESET_ADD_BUTTON = "PluginConfigurator/PresetAddButton.prefab";
         private const string ASSET_PATH_DEFAULT_PRESET_BUTTON = "PluginConfigurator/DefaultPresetButton.prefab";
         private const string ASSET_PATH_CUSTOM_PRESET_BUTTON = "PluginConfigurator/CustomPresetButton.prefab";
-        
+
         #region API Properties
 
+        private string _displayName;
         /// <summary>
-        /// The text displayed on the plugin button
+        /// The text displayed on the plugin field
         /// </summary>
-        public string displayName { private set; get; }
+        public string displayName
+        {
+            get => _displayName;
+            set
+            {
+                _displayName = value;
+
+                if (configMenu != null)
+                    configMenu.name.text = _displayName;
+            }
+        }
 
         /// <summary>
         /// Plugin id, do not change after release (this field is used to find the path to the config file). If a change is required, changing the display name is adviced
@@ -364,7 +375,13 @@ namespace PluginConfig.API
         internal ConfigButtonField addPresetButton;
 
         internal bool isDirty = false;
+        /// <summary>
+        /// Map of guid to value. Used by value fields when initializing (getting value from the save file) and changing value. Fields which change the config map must set <see cref="isDirty"/> to true.
+        /// </summary>
         internal Dictionary<string, string> config = new Dictionary<string, string>();
+        /// <summary>
+        /// Fields add themselves to this dictionary to have their <see cref="ConfigField.ReloadFromString(string)"/> and <see cref="ConfigField.ReloadDefault"/> methods called on preset change and reset. Used for fields with values.
+        /// </summary>
         internal Dictionary<string, ConfigField> fields = new Dictionary<string, ConfigField>();
 
         internal bool isPresetHeaderDirty = false;
@@ -1194,6 +1211,9 @@ namespace PluginConfig.API
             }
         }
 
+        /// <summary>
+        /// Check for GUID collision. Non-critical guid collisions happen when multiple non value fields have the same guid (ex. buttons, headers). Critical guid collisions happen when multiple value fields have the same guid, causing them to write to the same line in the config file. Used for testing.
+        /// </summary>
         public void LogDuplicateGUID()
         {
             List<ConfigField> allFields = new List<ConfigField>();

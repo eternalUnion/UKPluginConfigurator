@@ -75,7 +75,7 @@ namespace PluginConfig.API.Fields
             fieldWidth = width;
             fieldHeight = height;
 
-            strictGuid = false;
+            strictGuid = true;
             rootConfig.fields.Add(guid, this);
             if (rootConfig.config.TryGetValue(guid, out string val))
                 _fieldValue = val;
