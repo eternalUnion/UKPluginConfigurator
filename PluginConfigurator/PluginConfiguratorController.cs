@@ -153,8 +153,14 @@ namespace PluginConfig
 		internal static GameObject activePanel;
 		internal static Button backButton;
 		
-		private void OnSceneChange(Scene before, Scene after)
+		private void OnSceneLoad(Scene scene, LoadSceneMode mode)
 		{
+			if (mode == LoadSceneMode.Additive)
+				return;
+
+			if (mainPanel != null)
+				return;
+
 			GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
 			if (canvas == null)
 				return;
@@ -669,12 +675,12 @@ namespace PluginConfig
 
 		private void OnEnable()
 		{
-			SceneManager.activeSceneChanged += OnSceneChange;
+			SceneManager.sceneLoaded += OnSceneLoad;
 		}
 
 		private void OnDisable()
 		{
-			SceneManager.activeSceneChanged -= OnSceneChange;
+			SceneManager.sceneLoaded -= OnSceneLoad;
 		}
 
 		private void OnApplicationQuit()
