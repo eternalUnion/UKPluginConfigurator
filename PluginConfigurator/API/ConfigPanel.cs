@@ -358,7 +358,7 @@ namespace PluginConfig.API
         internal virtual void Register(ConfigField field)
         {
             fields.Add(field);
-            if (currentPanel != null && currentPanel.gameObject.activeInHierarchy)
+            if (currentPanel != null && fieldsCreated)
             {
                 int currentIndex = currentPanel.content.childCount;
                 if (field.createUI)
@@ -391,6 +391,8 @@ namespace PluginConfig.API
         internal List<List<Transform>> fieldObjects = new List<List<Transform>>();
         internal protected override GameObject CreateUI(Transform content)
         {
+            fieldsCreated = false;
+
             GameObject panel = Addressables.InstantiateAsync(ASSET_PATH_PANEL, PluginConfiguratorController.optionsMenu).WaitForCompletion();
             currentPanel = panel.GetComponent<ConfigPanelConcrete>();
             panel.SetActive(false);
@@ -438,10 +440,13 @@ namespace PluginConfig.API
         }
 
         // Lazy UI creation
+        private bool fieldsCreated = false;
         internal void CreateFieldUI()
         {
-            if (currentPanel == null || currentPanel.content.childCount != 0)
+            if (currentPanel == null || fieldsCreated)
                 return;
+
+            fieldsCreated = true;
 
             fieldObjects.Clear();
             int currentChildIndex = currentPanel.content.childCount;
