@@ -43,18 +43,7 @@ namespace PluginConfig.API.Functionals
             }
         }
 
-        private string _text = "";
-        public string text
-        {
-            get => _text; set
-            {
-                _text = value;
-                if (currentUi != null)
-                    currentUi.text.text = _text;
-            }
-        }
-
-        private float _buttonHeight = 50;
+        private float _buttonHeight = 60;
         public float buttonHeight
         {
             get => _buttonHeight;
@@ -66,6 +55,76 @@ namespace PluginConfig.API.Functionals
 
                 currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, _buttonHeight);
                 parentPanel.FieldDimensionChanged();
+            }
+        }
+
+        private string _text = "";
+        public string text
+        {
+            get => _text; set
+            {
+                _text = value;
+                if (currentUi != null)
+                    currentUi.text.text = _text;
+            }
+        }
+
+        private int _textSize = 24;
+        public int textSize
+        {
+            get => _textSize;
+            set
+            {
+                _textSize = value;
+
+                if (currentUi == null)
+                    return;
+
+                currentUi.text.fontSize = _textSize;
+            }
+        }
+
+        private bool _textBestFit = true;
+        public bool textBestFit
+        {
+            get => _textBestFit;
+            set
+            {
+                _textBestFit = value;
+
+                if (currentUi == null)
+                    return;
+
+                currentUi.text.resizeTextForBestFit = value;
+            }
+        }
+
+        private int _textBestFitMin = 2;
+        public int textBestFitMin
+        {
+            get => _textBestFitMin;
+            set
+            {
+                _textBestFitMin = value;
+
+                if (currentUi == null)
+                    return;
+
+                currentUi.text.resizeTextMinSize = value;
+            }
+        }
+
+        private int _textBestFitMax = 24;
+        public int textBestFitMax
+        {
+            get => _textBestFitMax;
+            set
+            {
+                _textBestFitMax = value;
+
+                if (currentUi == null)
+                    return;
+                currentUi.text.resizeTextMaxSize = value;
             }
         }
 
@@ -88,6 +147,10 @@ namespace PluginConfig.API.Functionals
             currentUi.rect.sizeDelta = new Vector2(currentUi.rect.sizeDelta.x, _buttonHeight);
 
             currentUi.text.text = text;
+            currentUi.text.fontSize = _textSize;
+            currentUi.text.resizeTextForBestFit = _textBestFit;
+            currentUi.text.resizeTextMinSize = _textBestFitMin;
+            currentUi.text.resizeTextMaxSize = _textBestFitMax;
 
             currentUi.button.onClick.AddListener(() =>
             {

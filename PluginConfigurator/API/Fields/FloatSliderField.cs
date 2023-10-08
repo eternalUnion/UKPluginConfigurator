@@ -110,13 +110,7 @@ namespace PluginConfig.API.Fields
                 return;
             currentUi.gameObject.SetActive(val);
         }
-        private bool _hidden = false;
-        public override bool hidden { get => _hidden; set {
-                _hidden = value;
-                SetUiHidden(!_hidden && !parentHidden);
-            } 
-        }
-        
+
         private void SetUiInteractable(bool val)
         {
             if (currentUi == null)
@@ -125,6 +119,17 @@ namespace PluginConfig.API.Fields
             currentUi.input.interactable = val;
             currentUi.name.color = val ? Color.white : Color.gray;
         }
+
+        private bool _hidden = false;
+        public override bool hidden
+        {
+            get => _hidden; set
+            {
+                _hidden = value;
+                SetUiHidden(!_hidden && !parentHidden);
+            }
+        }
+
         private bool _interactable = true;
         public override bool interactable { get => _interactable; set {
                 _interactable = value;

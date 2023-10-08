@@ -23,9 +23,9 @@ namespace PluginConfig.API.Functionals
 			set => _displayName = value;
 		}
 
-		public int buttonCount = 0;
+		public readonly int buttonCount = 0;
 
-        private float _buttonHeight = 50;
+        private float _buttonHeight = 60;
         public float buttonHeight
         {
             get => _buttonHeight;
@@ -100,15 +100,11 @@ namespace PluginConfig.API.Functionals
 
         public bool GetButtonInteractable(int index)
         {
-            if (index < 0 || index >= buttonCount)
-                throw new ArgumentException("Index out of range");
             return _interactables[index];
         }
 
         public void SetButtonInteractable(int index, bool interactable)
         {
-            if (index < 0 || index >= buttonCount)
-                throw new ArgumentException("Index out of range");
             _interactables[index] = interactable;
             this.interactable = this.interactable;
         }
@@ -116,20 +112,91 @@ namespace PluginConfig.API.Functionals
         private string[] _texts;
         public string GetButtonText(int index)
         {
-            if (index < 0 || index >= buttonCount)
-                throw new ArgumentException("Index out of range");
             return _texts[index];
         }
 
         public void SetButtonText(int index, string text)
         {
-            if (index < 0 || index >= buttonCount)
-                throw new ArgumentException("Index out of range");
             _texts[index] = text;
 
             if (currentContainer == null)
                 return;
             currentUi[index].text.text = text;
+        }
+
+        private int[] _textSizes;
+        public int GetTextSize(int index)
+        {
+            return _textSizes[index];
+        }
+
+        public void SetTextSize(int index, int size)
+        {
+            _textSizes[index] = size;
+
+            if (currentContainer == null)
+                return;
+            currentUi[index].text.fontSize = size;
+        }
+
+        private bool[] _textBestFit;
+        public bool GetTextBestFit(int index)
+        {
+            return _textBestFit[index];
+        }
+
+        public void SetTextBestFit(int index, bool bestFit)
+        {
+            _textBestFit[index] = bestFit;
+
+            if (currentContainer == null)
+                return;
+            currentUi[index].text.resizeTextForBestFit = bestFit;
+        }
+
+        private int[] _textBestFitMin;
+        public int GetTextBestFitMin(int index)
+        {
+            return _textBestFitMin[index];
+        }
+
+        public void SetTextBestFitMin(int index, int min)
+        {
+            _textBestFitMin[index] = min;
+
+            if (currentContainer == null)
+                return;
+            currentUi[index].text.resizeTextMinSize = min;
+        }
+
+        private int[] _textBestFitMax;
+        public int GetTextBestFitMax(int index)
+        {
+            return _textBestFitMax[index];
+        }
+
+        public void SetTextBestFitMax(int index, int min)
+        {
+            _textBestFitMax[index] = min;
+
+            if (currentContainer == null)
+                return;
+            currentUi[index].text.resizeTextMaxSize = min;
+        }
+
+        private Color[] _textColors;
+        public Color GetTextColor(int index)
+        {
+            return _textColors[index];
+        }
+
+        public void SetTextColor(int index, Color color)
+        {
+            _textColors[index] = color;
+
+            if (currentContainer == null)
+                return;
+            currentUi[index].text.color = color;
         }
 
         public delegate void OnClick();
@@ -174,6 +241,11 @@ namespace PluginConfig.API.Functionals
             _hiddens = new bool[buttonCount];
             _interactables = new bool[buttonCount];
             _texts = new string[buttonCount];
+            _textSizes = new int[buttonCount];
+            _textBestFit = new bool[buttonCount];
+            _textBestFitMin = new int[buttonCount];
+            _textBestFitMax = new int[buttonCount];
+            _textColors = new Color[buttonCount];
             _width = new float[buttonCount];
             _onClickEvents = new ButtonClickEvent[buttonCount];
 
@@ -182,6 +254,11 @@ namespace PluginConfig.API.Functionals
                 _hiddens[i] = false;
                 _interactables[i] = true;
                 _texts[i] = texts[i];
+                _textSizes[i] = 24;
+                _textBestFit[i] = true;
+                _textBestFitMin[i] = 2;
+                _textBestFitMax[i] = 24;
+                _textColors[i] = Color.white;
                 _width[i] = relativeWidths[i];
                 _onClickEvents[i] = new ButtonClickEvent();
             }
@@ -221,6 +298,11 @@ namespace PluginConfig.API.Functionals
                 });
 
                 ui.text.text = _texts[i];
+                ui.text.fontSize = _textSizes[i];
+                ui.text.resizeTextForBestFit = _textBestFit[i];
+                ui.text.resizeTextMinSize = _textBestFitMin[i];
+                ui.text.resizeTextMaxSize = _textBestFitMax[i];
+                ui.text.color = _textColors[i];
 
                 ui.gameObject.SetActive(!hidden && !parentHidden && !_hiddens[i]);
                 ui.button.interactable = interactable && parentInteractable && _interactables[i];
