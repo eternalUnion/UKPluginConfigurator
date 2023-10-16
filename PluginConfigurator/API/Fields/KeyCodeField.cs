@@ -230,7 +230,8 @@ namespace PluginConfig.API.Fields
 				if (currentUi != null)
 				{
                     currentUi.keycode.interactable = _interactable && parentInteractable;
-				}
+					currentUi.name.color = _interactable && parentInteractable ? Color.white : Color.gray;
+                }
 			}
 		}
 
@@ -290,7 +291,8 @@ namespace PluginConfig.API.Fields
 			
 			field.SetActive(!_hidden && !parentHidden);
 			currentUi.keycode.interactable = interactable && parentInteractable;
-			return field;
+            currentUi.name.color = _interactable && parentInteractable ? Color.white : Color.gray;
+            return field;
 		}
 
 		private void OnReset()

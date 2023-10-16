@@ -18,7 +18,7 @@ namespace PluginConfig.API.Fields
         public void OnPointerUp(PointerEventData data)
         {
             if (callback != null)
-                callback.OnValueChange();
+                callback.OnValueChange(callback.GetColorFromSliders());
         }
     }
 
@@ -58,6 +58,8 @@ namespace PluginConfig.API.Fields
             currentUi.blueInput.SetTextWithoutNotify(((int)(c.b * 255)).ToString());
             currentUi.SetColor(c.r, c.g, c.b);
         }
+
+        internal Color GetColorFromSliders() => new Color(currentUi.red.normalizedValue, currentUi.green.normalizedValue, currentUi.blue.normalizedValue);
 
         private string StringifyColor(Color c)
         {
@@ -255,9 +257,8 @@ namespace PluginConfig.API.Fields
             return field;
         }
 
-        internal void OnValueChange()
+        internal void OnValueChange(Color newColor)
         {
-            Color newColor = new Color(currentUi.red.value, currentUi.green.value, currentUi.blue.value);
             if (newColor == _value)
             {
                 value = _value;
@@ -323,13 +324,13 @@ namespace PluginConfig.API.Fields
                 return;
 
             targetSlider.SetNormalizedValueWithoutNotify(value / 255f);
-            OnValueChange();
+            OnValueChange(new Color(currentUi.red.normalizedValue, currentUi.green.normalizedValue, currentUi.blue.normalizedValue));
         }
 
         internal void OnReset()
         {
             SetSliders(defaultValue);
-            OnValueChange();
+            OnValueChange(defaultValue);
         }
 
         internal void LoadFromString(string data)
@@ -385,15 +386,13 @@ namespace PluginConfig.API.Fields
 
                 if (validData)
                 {
-                    SetSliders(new Color(r, g, b));
-                    OnValueChange();
+                    OnValueChange(new Color(r, g, b));
                     return;
                 }
             }
 
             rootConfig.isDirty = true;
-            SetSliders(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
-            OnValueChange();
+            OnValueChange(new Color(defaultValue.r, defaultValue.g, defaultValue.b));
 
             if (saveToConfig)
             {
