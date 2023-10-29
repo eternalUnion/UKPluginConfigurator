@@ -249,6 +249,8 @@ namespace PluginConfig
 		internal static BoolField patchCheatKeys;
 		internal static BoolField patchPause;
 		internal static BoolField cancelOnEsc;
+
+		internal static BoolField devToggle;
 		internal static BoolField devConfigs;
 
 		internal static ColorField notificationPanelBackground;
@@ -659,13 +661,20 @@ namespace PluginConfig
             notificationPanelOpacity.postValueChangeEvent += (v, r) => NotificationPanel.UpdateBackgroundColor();
             new ConfigSpace(config.rootPanel, 10f);
             new ConfigHeader(config.rootPanel, "Developer Stuff").textColor = new Color(137 / 255f, 207 / 255f, 240 / 255f);
-			devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
-			devConfigs.onValueChange += (BoolField.BoolValueChangeEvent e) =>
+			devToggle = new BoolField(config.rootPanel, "Enable developer features", "devToggle", false);
+			ConfigDivision devDiv = new ConfigDivision(config.rootPanel, "devDiv");
+			devToggle.postValueChangeEvent += (newVal) =>
 			{
-				TestConfigs.SetVisibility(e.value);
+				devDiv.hidden = !newVal;
+				TestConfigs.SetVisibility(devConfigs.value && newVal);
+			};
+			devConfigs = new BoolField(devDiv, "Config tests", "configTestToggle", false);
+			devConfigs.postValueChangeEvent += (newVal) =>
+			{
+				TestConfigs.SetVisibility(devToggle.value && newVal);
 			};
 			TestConfigs.Init();
-			devConfigs.TriggerValueChangeEvent();
+			devToggle.TriggerPostValueChangeEvent();
 			
 			Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
 
