@@ -77,8 +77,9 @@ namespace PluginConfig.API
 				panel.currentEsc.previousPage = panel.bridge.parentPanel.GetConcretePanelObj();
 			}
 
-			panel.rootConfig.presetButtonCanBeShown = true;
-			panel.rootConfig.presetMenuButton.gameObject.SetActive(!panel.rootConfig.presetButtonHidden);
+            PluginConfigurator currentConfig = panel.bridged ? panel.bridge.rootConfig : panel.rootConfig;
+			currentConfig.presetButtonCanBeShown = true;
+			currentConfig.presetMenuButton.gameObject.SetActive(!currentConfig.presetButtonHidden);
 
             try
             {
@@ -93,8 +94,9 @@ namespace PluginConfig.API
         
         void OnDisable()
         {
-			panel.rootConfig.presetButtonCanBeShown = false;
-			panel.rootConfig.presetMenuButton.gameObject.SetActive(false);
+			PluginConfigurator currentConfig = panel.bridged ? panel.bridge.rootConfig : panel.rootConfig;
+			currentConfig.presetButtonCanBeShown = false;
+			currentConfig.presetMenuButton.gameObject.SetActive(false);
 
             if (PluginConfiguratorController.activePanel == gameObject)
                 PluginConfiguratorController.activePanel = null;
