@@ -77,7 +77,7 @@ namespace PluginConfig.API
 				panel.currentEsc.previousPage = panel.bridge.parentPanel.GetConcretePanelObj();
 			}
 
-            PluginConfigurator currentConfig = panel.bridged ? panel.bridge.rootConfig : panel.rootConfig;
+            PluginConfigurator currentConfig = panel.ParentBridgedRootConfig();
 			currentConfig.presetButtonCanBeShown = true;
 			currentConfig.presetMenuButton.gameObject.SetActive(!currentConfig.presetButtonHidden);
 
@@ -94,7 +94,7 @@ namespace PluginConfig.API
         
         void OnDisable()
         {
-			PluginConfigurator currentConfig = panel.bridged ? panel.bridge.rootConfig : panel.rootConfig;
+			PluginConfigurator currentConfig = panel.ParentBridgedRootConfig();
 			currentConfig.presetButtonCanBeShown = false;
 			currentConfig.presetMenuButton.gameObject.SetActive(false);
 
@@ -137,6 +137,21 @@ namespace PluginConfig.API
         internal protected ConfigMenuField currentMenu;
         internal protected MenuEsc currentEsc;
         internal ConfigPanelComponent currentComp;
+
+        internal PluginConfigurator ParentBridgedRootConfig()
+        {
+            ConfigPanel panel = this;
+
+            while (panel != null)
+            {
+                if (panel.bridged)
+                    return panel.bridge.rootConfig;
+
+                panel = panel.parentPanel;
+            }
+
+            return rootConfig;
+        }
 
         private Color _fieldColor = Color.black;
         public Color fieldColor
