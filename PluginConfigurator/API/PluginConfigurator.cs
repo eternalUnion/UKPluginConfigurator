@@ -777,7 +777,7 @@ namespace PluginConfig.API
             }
 
 			// Save state for accidental resets
-			PresetOldFileManager.CopyFileToResetBin(preset.filePath, $"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{guid}_{preset.name}.config");
+			PresetOldFileManager.CopyFileToResetBin(currentConfigFilePath, $"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{guid}_{currentPresetName}.config");
 
 			resetting = true;
 
@@ -853,7 +853,7 @@ namespace PluginConfig.API
             presets.Remove(preset);
             if (preset.currentUI != null)
                 GameObject.Destroy(preset.currentUI.gameObject);
-
+            
             if (File.Exists(preset.filePath))
             {
                 try
