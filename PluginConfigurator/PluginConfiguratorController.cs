@@ -633,6 +633,8 @@ namespace PluginConfig
 			workingPath = Assembly.GetExecutingAssembly().Location;
 			workingDir = Path.GetDirectoryName(workingPath);
 			catalogPath = Path.Combine(workingDir, "Assets");
+			PresetOldFileManager.Init();
+			PresetOldFileManager.CheckForOldFiles();
 
 			Addressables.InitializeAsync().WaitForCompletion();
 			Addressables.LoadContentCatalogAsync(Path.Combine(catalogPath, "catalog.json"), true).WaitForCompletion();
@@ -647,6 +649,9 @@ namespace PluginConfig
 			config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 			config.SetIconWithURL(Path.Combine(workingDir, "icon.png"));
 
+			ButtonArrayField binButtons = new ButtonArrayField(config.rootPanel, "binButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Deleted Presets Folder", "Reset Presests Folder" });
+			binButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(PresetOldFileManager.trashBinDir);
+			binButtons.OnClickEventHandler(1).onClick += () => Application.OpenURL(PresetOldFileManager.resetBinDir);
 			new ConfigHeader(config.rootPanel, "Patches").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
 			patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
 			patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);

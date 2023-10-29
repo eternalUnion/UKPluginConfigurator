@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
+using System.Text;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Networking;
@@ -34,6 +35,96 @@ namespace PluginConfig.API
             gameObject.SetActive(false);
         }
     }
+
+    internal static class PresetOldFileManager
+    {
+        public static string trashBinDir;
+        public static string resetBinDir;
+
+        public static void Init()
+        {
+            trashBinDir = Path.Combine(Paths.ConfigPath, "PluginConfigurator", "preset_trash_bin");
+			resetBinDir = Path.Combine(Paths.ConfigPath, "PluginConfigurator", "preset_reset_bin");
+
+            if (!Directory.Exists(trashBinDir))
+                Directory.CreateDirectory(trashBinDir);
+            if (!Directory.Exists(resetBinDir))
+                Directory.CreateDirectory(resetBinDir);
+		}
+
+        public static void CheckForOldFiles()
+        {
+            foreach (string trashFile in Directory.GetFiles(trashBinDir))
+            {
+                FileInfo trashFileInfo = new FileInfo(trashFile);
+                if (trashFileInfo.CreationTime < DateTime.Now.AddDays(-7))
+                    trashFileInfo.Delete();
+            }
+
+			foreach (string resetFile in Directory.GetFiles(resetBinDir))
+			{
+				FileInfo resetFileInfo = new FileInfo(resetFile);
+				if (resetFileInfo.CreationTime < DateTime.Now.AddDays(-7))
+					resetFileInfo.Delete();
+			}
+		}
+
+        private static string TurnToUniquePath(string path)
+        {
+            string dir = Path.GetDirectoryName(path);
+            string fileName = Path.GetFileNameWithoutExtension(path);
+            string ext = Path.GetExtension(path);
+
+            int postfix = 0;
+            string newPath = path;
+            while (File.Exists(newPath))
+                newPath = Path.Combine(dir, $"{fileName}_{postfix++}{ext}");
+
+            return newPath;
+        }
+
+        private static readonly char[] pathSafeCharacters = new char[] { '.', '-', '_', ' ' };
+        private static string GetPathSafeString(string s)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (char.IsLetter(c) || char.IsDigit(c) || Array.IndexOf(pathSafeCharacters, c) != -1)
+                {
+                    sb.Append(c);
+                }
+                else
+                {
+                    if (sb.Length != 0 && sb[sb.Length - 1] != '_')
+                        sb.Append('_');
+                }
+            }
+
+            return sb.Length == 0 ? "file" : sb.ToString();
+        }
+
+        public static void MoveFileToTrashBin(string path, string fileName)
+        {
+            if (!File.Exists(path))
+                return;
+
+            fileName = GetPathSafeString(fileName);
+            string destination = TurnToUniquePath(Path.Combine(trashBinDir, fileName));
+            File.Move(path, destination);
+        }
+
+		public static void CopyFileToResetBin(string path, string fileName)
+		{
+			if (!File.Exists(path))
+				return;
+
+			fileName = GetPathSafeString(fileName);
+			string destination = TurnToUniquePath(Path.Combine(resetBinDir, fileName));
+			File.Copy(path, destination);
+		}
+	}
 
     public class PluginConfigurator
     {
@@ -685,7 +776,10 @@ namespace PluginConfig.API
                 return;
             }
 
-            resetting = true;
+			// Save state for accidental resets
+			PresetOldFileManager.CopyFileToResetBin(preset.filePath, $"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{guid}_{preset.name}.config");
+
+			resetting = true;
 
             string presetId = currentPreset == null ? null : currentPreset.fileId;
 
@@ -761,8 +855,14 @@ namespace PluginConfig.API
                 GameObject.Destroy(preset.currentUI.gameObject);
 
             if (File.Exists(preset.filePath))
-                try { File.Delete(preset.filePath); } catch (Exception e) { Debug.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
-            
+            {
+                try
+                {
+                    PresetOldFileManager.MoveFileToTrashBin(preset.filePath, $"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{guid}_{preset.name}.config");
+                }
+                catch (Exception e) { Debug.LogError($"Exception thrown while trying to delete preset:\n{e}"); }
+            }
+
             isPresetHeaderDirty = true;
             FlushPresets();
         }
