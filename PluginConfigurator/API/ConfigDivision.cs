@@ -121,7 +121,7 @@ namespace PluginConfig.API
 			if (currentVirtualPanel != null)
 			{
 				int currentIndex = currentVirtualPanel.content.childCount;
-                if (field.createUI)
+                if (field.createUI && !field.bridged)
 				    field.CreateUI(currentVirtualPanel.content);
 				List<Transform> objects = new List<Transform>();
 				for (; currentIndex < currentVirtualPanel.content.childCount; currentIndex++)
@@ -155,13 +155,15 @@ namespace PluginConfig.API
             GameObject panel = Addressables.InstantiateAsync(ASSET_PATH, content).WaitForCompletion();
             currentVirtualPanel = panel.GetComponent<ConfigPanelVirtual>();
             panel.SetActive(false);
-            
+
+            fieldsCreated = true;
+
 			fieldObjects.Clear();
 			int currentChildIndex = currentVirtualPanel.content.childCount;
 			foreach (ConfigField config in fields)
 			{
 				List<Transform> fieldUI = new List<Transform>();
-                if (config.createUI)
+                if (config.createUI && !config.bridged)
 				    config.CreateUI(currentVirtualPanel.content);
 				for (; currentChildIndex < currentVirtualPanel.content.childCount; currentChildIndex++)
 					fieldUI.Add(currentVirtualPanel.content.GetChild(currentChildIndex));

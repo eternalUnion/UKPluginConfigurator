@@ -84,7 +84,7 @@ namespace PluginConfig
 
 		public const string PLUGIN_NAME = "PluginConfigurator";
 		public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-		public const string PLUGIN_VERSION = "1.7.1";
+		public const string PLUGIN_VERSION = "1.8.0";
 
 		private const string ASSET_PATH_CONFIG_BUTTON = "PluginConfigurator/PluginConfiguratorButton.prefab";
         private const string ASSET_PATH_CONFIG_MENU = "PluginConfigurator/PluginConfigField.prefab";
@@ -152,8 +152,8 @@ namespace PluginConfig
 		internal static ConfigPanelConcrete mainPanel;
 		internal static GameObject activePanel;
 		internal static Button backButton;
-		
-		private void OnSceneLoad(Scene scene, LoadSceneMode mode)
+
+		private void OnSceneLoad(Scene currentScene, LoadSceneMode mode)
 		{
 			if (mode == LoadSceneMode.Additive)
 				return;
@@ -161,12 +161,17 @@ namespace PluginConfig
 			if (mainPanel != null)
 				return;
 
-			GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
-			if (canvas == null)
-				return;
+			GameObject canvas = null;
+			foreach (var rootCanvas in currentScene.GetRootGameObjects().Where(obj => obj.name == "Canvas"))
+			{
+				optionsMenu = rootCanvas.transform.Find("OptionsMenu");
+				if (optionsMenu == null)
+					continue;
 
-			optionsMenu = canvas.transform.Find("OptionsMenu");
-			if (optionsMenu == null)
+				canvas = rootCanvas;
+			}
+
+			if (canvas == null)
 				return;
 			optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
 
@@ -244,6 +249,8 @@ namespace PluginConfig
 		internal static BoolField patchCheatKeys;
 		internal static BoolField patchPause;
 		internal static BoolField cancelOnEsc;
+
+		internal static BoolField devToggle;
 		internal static BoolField devConfigs;
 
 		internal static ColorField notificationPanelBackground;
@@ -579,9 +586,42 @@ namespace PluginConfig
 
 				new ConfigHeader(customFieldTest.rootPanel, "Random Color Picker (peak laziness)", 16);
 				new CustomRandomColorPickerField(customFieldTest.rootPanel, "randomColor", new Color(1, 0, 0));
-                #endregion
-            }
-        }
+				#endregion
+
+				#region Config bridge test
+				PluginConfigurator sourceConfig = PluginConfigurator.Create("Source Config", "eternalUnion.sourceConfig");
+				testConfigs.Add(sourceConfig);
+
+				PluginConfigurator bridgedConfig = PluginConfigurator.Create("Bridged config", "eternalUnion.bridgedConfig");
+				testConfigs.Add(bridgedConfig);
+
+				StringField sourceLocal = new StringField(sourceConfig.rootPanel, "Local field", "localFieldSource", "local value");
+				ConfigDivision sourceLocalDiv = new ConfigDivision(sourceConfig.rootPanel, "LocalDiv");
+
+				ConfigPanel sourceBridgedPanel = new ConfigPanel(sourceLocalDiv, "Bridged panel", "sourceBridgedPanel");
+				StringField sourceBridged = new StringField(sourceBridgedPanel, "Bridged field", "localBridgedSource", "bridged value", true);
+				
+				StringField sourceBridgeCopier = new StringField(sourceConfig.rootPanel, "Bridged copier", "sourceBridgeCopier", sourceBridged.value, true);
+				sourceBridgeCopier.interactable = false;
+				sourceBridged.postValueChangeEvent += (newVal) =>
+				{
+					sourceBridgeCopier.value = newVal;
+				};
+
+				ButtonField createBridgeButton = new ButtonField(bridgedConfig.rootPanel, "Create Bridge", "bridge_button");
+				createBridgeButton.onClick += () =>
+				{
+					createBridgeButton.hidden = true;
+
+					ConfigBridge bridge = new ConfigBridge(sourceBridgedPanel, bridgedConfig.rootPanel);
+					BoolField bridgeHidden = new BoolField(bridgedConfig.rootPanel, "Bridge hidden", "bridge_hidden", false, false);
+					bridgeHidden.postValueChangeEvent += (newVal) => bridge.hidden = newVal;
+					BoolField bridgeInteractable = new BoolField(bridgedConfig.rootPanel, "Bridge interactable", "bridge_interactable", true, false);
+					bridgeInteractable.postValueChangeEvent += (newVal) => bridge.interactable = newVal;
+				};
+				#endregion
+			}
+		}
 
 		internal static Sprite defaultPluginIcon;
 
@@ -593,6 +633,8 @@ namespace PluginConfig
 			workingPath = Assembly.GetExecutingAssembly().Location;
 			workingDir = Path.GetDirectoryName(workingPath);
 			catalogPath = Path.Combine(workingDir, "Assets");
+			PresetOldFileManager.Init();
+			PresetOldFileManager.CheckForOldFiles();
 
 			Addressables.InitializeAsync().WaitForCompletion();
 			Addressables.LoadContentCatalogAsync(Path.Combine(catalogPath, "catalog.json"), true).WaitForCompletion();
@@ -607,6 +649,9 @@ namespace PluginConfig
 			config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 			config.SetIconWithURL(Path.Combine(workingDir, "icon.png"));
 
+			ButtonArrayField binButtons = new ButtonArrayField(config.rootPanel, "binButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Deleted Presets Folder", "Reset Presests Folder" });
+			binButtons.OnClickEventHandler(0).onClick += () => Application.OpenURL(PresetOldFileManager.trashBinDir);
+			binButtons.OnClickEventHandler(1).onClick += () => Application.OpenURL(PresetOldFileManager.resetBinDir);
 			new ConfigHeader(config.rootPanel, "Patches").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
 			patchCheatKeys = new BoolField(config.rootPanel, "Patch cheat keys", "cheatKeyPatch", true);
 			patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
@@ -621,13 +666,20 @@ namespace PluginConfig
             notificationPanelOpacity.postValueChangeEvent += (v, r) => NotificationPanel.UpdateBackgroundColor();
             new ConfigSpace(config.rootPanel, 10f);
             new ConfigHeader(config.rootPanel, "Developer Stuff").textColor = new Color(137 / 255f, 207 / 255f, 240 / 255f);
-			devConfigs = new BoolField(config.rootPanel, "Config tests", "configTestToggle", false);
-			devConfigs.onValueChange += (BoolField.BoolValueChangeEvent e) =>
+			devToggle = new BoolField(config.rootPanel, "Enable developer features", "devToggle", false);
+			ConfigDivision devDiv = new ConfigDivision(config.rootPanel, "devDiv");
+			devToggle.postValueChangeEvent += (newVal) =>
 			{
-				TestConfigs.SetVisibility(e.value);
+				devDiv.hidden = !newVal;
+				TestConfigs.SetVisibility(devConfigs.value && newVal);
+			};
+			devConfigs = new BoolField(devDiv, "Config tests", "configTestToggle", false);
+			devConfigs.postValueChangeEvent += (newVal) =>
+			{
+				TestConfigs.SetVisibility(devToggle.value && newVal);
 			};
 			TestConfigs.Init();
-			devConfigs.TriggerValueChangeEvent();
+			devToggle.TriggerPostValueChangeEvent();
 			
 			Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
 
