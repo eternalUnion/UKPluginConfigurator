@@ -84,9 +84,18 @@ namespace PluginConfig.API
         public ConfigPanel parentPanel { internal set; get; }
 
         /// <summary>
-        /// Position of the field in the panel
+        /// Set to true if this field is connected to a <see cref="ConfigBridge"/>. Bridged fields will not have their UI created in their parent panel and no field can have more than 1 bridges.
         /// </summary>
-        public int siblingIndex
+        public bool bridged { get; internal set; } = false;
+        /// <summary>
+        /// <see cref="ConfigBridge"/> connected to this field. Bridged fields don't have their UI created in their <see cref="parentPanel"/>. Instead, they will be created in the bridge's parent panel.
+        /// </summary>
+        public ConfigBridge bridge { get; internal set; } = null;
+
+		/// <summary>
+		/// Position of the field in the panel
+		/// </summary>
+		public int siblingIndex
         {
             get
             {

@@ -84,7 +84,7 @@ namespace PluginConfig
 
 		public const string PLUGIN_NAME = "PluginConfigurator";
 		public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-		public const string PLUGIN_VERSION = "1.7.1";
+		public const string PLUGIN_VERSION = "1.8.0";
 
 		private const string ASSET_PATH_CONFIG_BUTTON = "PluginConfigurator/PluginConfiguratorButton.prefab";
         private const string ASSET_PATH_CONFIG_MENU = "PluginConfigurator/PluginConfigField.prefab";
@@ -153,14 +153,25 @@ namespace PluginConfig
 		internal static GameObject activePanel;
 		internal static Button backButton;
 		
-		private void OnSceneChange(Scene before, Scene after)
+		private void OnSceneLoad(Scene currentScene, LoadSceneMode mode)
 		{
-			GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
-			if (canvas == null)
+			if (mode == LoadSceneMode.Additive)
 				return;
 
-			optionsMenu = canvas.transform.Find("OptionsMenu");
-			if (optionsMenu == null)
+			if (mainPanel != null)
+				return;
+
+			GameObject canvas = null;
+			foreach (var rootCanvas in currentScene.GetRootGameObjects().Where(obj => obj.name == "Canvas"))
+			{
+				optionsMenu = rootCanvas.transform.Find("OptionsMenu");
+				if (optionsMenu == null)
+					continue;
+
+				canvas = rootCanvas;
+			}
+
+			if (canvas == null)
 				return;
 			optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
 
@@ -573,9 +584,42 @@ namespace PluginConfig
 
 				new ConfigHeader(customFieldTest.rootPanel, "Random Color Picker (peak laziness)", 16);
 				new CustomRandomColorPickerField(customFieldTest.rootPanel, "randomColor", new Color(1, 0, 0));
-                #endregion
-            }
-        }
+				#endregion
+
+				#region Config bridge test
+				PluginConfigurator sourceConfig = PluginConfigurator.Create("Source Config", "eternalUnion.sourceConfig");
+				testConfigs.Add(sourceConfig);
+
+				PluginConfigurator bridgedConfig = PluginConfigurator.Create("Bridged config", "eternalUnion.bridgedConfig");
+				testConfigs.Add(bridgedConfig);
+
+				StringField sourceLocal = new StringField(sourceConfig.rootPanel, "Local field", "localFieldSource", "local value");
+				ConfigDivision sourceLocalDiv = new ConfigDivision(sourceConfig.rootPanel, "LocalDiv");
+
+				ConfigPanel sourceBridgedPanel = new ConfigPanel(sourceLocalDiv, "Bridged panel", "sourceBridgedPanel");
+				StringField sourceBridged = new StringField(sourceBridgedPanel, "Bridged field", "localBridgedSource", "bridged value", true);
+				
+				StringField sourceBridgeCopier = new StringField(sourceConfig.rootPanel, "Bridged copier", "sourceBridgeCopier", sourceBridged.value, true);
+				sourceBridgeCopier.interactable = false;
+				sourceBridged.postValueChangeEvent += (newVal) =>
+				{
+					sourceBridgeCopier.value = newVal;
+				};
+
+				ButtonField createBridgeButton = new ButtonField(bridgedConfig.rootPanel, "Create Bridge", "bridge_button");
+				createBridgeButton.onClick += () =>
+				{
+					createBridgeButton.hidden = true;
+
+					ConfigBridge bridge = new ConfigBridge(sourceBridgedPanel, bridgedConfig.rootPanel);
+					BoolField bridgeHidden = new BoolField(bridgedConfig.rootPanel, "Bridge hidden", "bridge_hidden", false, false);
+					bridgeHidden.postValueChangeEvent += (newVal) => bridge.hidden = newVal;
+					BoolField bridgeInteractable = new BoolField(bridgedConfig.rootPanel, "Bridge interactable", "bridge_interactable", true, false);
+					bridgeInteractable.postValueChangeEvent += (newVal) => bridge.interactable = newVal;
+				};
+				#endregion
+			}
+		}
 
 		internal static Sprite defaultPluginIcon;
 
@@ -669,12 +713,12 @@ namespace PluginConfig
 
 		private void OnEnable()
 		{
-			SceneManager.activeSceneChanged += OnSceneChange;
+			SceneManager.sceneLoaded += OnSceneLoad;
 		}
 
 		private void OnDisable()
 		{
-			SceneManager.activeSceneChanged -= OnSceneChange;
+			SceneManager.sceneLoaded -= OnSceneLoad;
 		}
 
 		private void OnApplicationQuit()

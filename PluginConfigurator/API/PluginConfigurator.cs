@@ -515,6 +515,8 @@ namespace PluginConfig.API
             addPresetButton.button.onClick.AddListener(() =>
             {
                 string name = $"Copy of {currentPresetName}";
+                if (currentPreset == null)
+                    name = "Copy of Default Config";
                 string id = Guid.NewGuid().ToString();
                 string originalPath = currentConfigFilePath;
                 string presetPath = Path.Combine(configPresetsFolderPath, $"{id}.config");

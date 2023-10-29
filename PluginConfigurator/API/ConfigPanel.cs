@@ -47,16 +47,35 @@ namespace PluginConfig.API
             PluginConfiguratorController.backButton.onClick.AddListener(() =>
             {
                 gameObject.SetActive(false);
-                if(panel.parentPanel == null)
+                if (!panel.bridged)
                 {
-                    panel.rootConfig.FlushAll();
-                    PluginConfiguratorController.mainPanel.gameObject.SetActive(true);
+                    if(panel.parentPanel == null)
+                    {
+                        panel.rootConfig.FlushAll();
+                        PluginConfiguratorController.mainPanel.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        panel.parentPanel.ActivatePanel();
+				    }
                 }
                 else
                 {
-                    panel.parentPanel.ActivatePanel();
-				}
+                    panel.bridge.parentPanel.ActivatePanel();
+                }
 			});
+
+			if (!panel.bridged)
+			{
+				if (panel.parentPanel == null)
+					panel.currentEsc.previousPage = PluginConfiguratorController.mainPanel.gameObject;
+				else
+					panel.currentEsc.previousPage = panel.parentPanel.GetConcretePanelObj();
+			}
+			else
+			{
+				panel.currentEsc.previousPage = panel.bridge.parentPanel.GetConcretePanelObj();
+			}
 
 			panel.rootConfig.presetButtonCanBeShown = true;
 			panel.rootConfig.presetMenuButton.gameObject.SetActive(!panel.rootConfig.presetButtonHidden);
@@ -114,6 +133,7 @@ namespace PluginConfig.API
 
         internal protected ConfigPanelConcrete currentPanel;
         internal protected ConfigMenuField currentMenu;
+        internal protected MenuEsc currentEsc;
         internal ConfigPanelComponent currentComp;
 
         private Color _fieldColor = Color.black;
@@ -361,7 +381,7 @@ namespace PluginConfig.API
             if (currentPanel != null && fieldsCreated)
             {
                 int currentIndex = currentPanel.content.childCount;
-                if (field.createUI)
+                if (field.createUI && !field.bridged)
                     field.CreateUI(currentPanel.content);
                 List<Transform> objects = new List<Transform>();
                 for (; currentIndex < currentPanel.content.childCount; currentIndex++)
@@ -402,10 +422,18 @@ namespace PluginConfig.API
             currentPanel.header.text = _headerText;
 
             MenuEsc esc = panel.AddComponent<MenuEsc>();
-            if (parentPanel == null)
-                esc.previousPage = PluginConfiguratorController.mainPanel.gameObject;
+            currentEsc = esc;
+            if (!bridged)
+            {
+                if (parentPanel == null)
+                    esc.previousPage = PluginConfiguratorController.mainPanel.gameObject;
+                else
+                    esc.previousPage = parentPanel.GetConcretePanelObj();
+            }
             else
-                esc.previousPage = parentPanel.GetConcretePanelObj();
+            {
+                esc.previousPage = bridge.parentPanel.GetConcretePanelObj();
+            }
 
 			if (content != null)
             {
@@ -439,8 +467,8 @@ namespace PluginConfig.API
             return panel;
         }
 
-        // Lazy UI creation
-        private bool fieldsCreated = false;
+		// Lazy UI creation
+		internal bool fieldsCreated = false;
         internal void CreateFieldUI()
         {
             if (currentPanel == null || fieldsCreated)
@@ -453,7 +481,7 @@ namespace PluginConfig.API
             foreach (ConfigField config in fields)
             {
                 List<Transform> fieldUI = new List<Transform>();
-                if (config.createUI)
+                if (config.createUI && !config.bridged)
                     config.CreateUI(currentPanel.content);
                 for (; currentChildIndex < currentPanel.content.childCount; currentChildIndex++)
                     fieldUI.Add(currentPanel.content.GetChild(currentChildIndex));
