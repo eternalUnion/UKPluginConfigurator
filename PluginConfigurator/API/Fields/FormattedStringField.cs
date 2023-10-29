@@ -478,7 +478,7 @@ namespace PluginConfig.API.Fields
             _format.Add(new FormattedStringBuilder.FormatRange() { format = format.Last(), begin = lastPosition, end = rawString.Length });
         }
 
-        internal List<CharacterInfo> GetFormat()
+        public List<CharacterInfo> GetFormat()
         {
             List<CharacterInfo> formatList = new List<CharacterInfo>();
             for (int i = 0; i < _format.Count; i++)
