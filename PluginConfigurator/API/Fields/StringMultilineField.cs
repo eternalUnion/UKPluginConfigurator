@@ -203,7 +203,7 @@ namespace PluginConfig.API.Fields
             currentUi.resetButton.onClick.AddListener(OnReset);
             currentUi.resetButton.gameObject.SetActive(false);
 
-            Utils.SetupResetButton(field, parentPanel.currentPanel.rect,
+            Utils.SetupResetButton(field, /*parentPanel.currentPanel.rect*/content.gameObject.GetComponentInParent<ScrollRect>(),
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
 
