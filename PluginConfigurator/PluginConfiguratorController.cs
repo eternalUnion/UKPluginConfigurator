@@ -84,7 +84,7 @@ namespace PluginConfig
 
 		public const string PLUGIN_NAME = "PluginConfigurator";
 		public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
-		public const string PLUGIN_VERSION = "1.8.2";
+		public const string PLUGIN_VERSION = "1.8.3";
 
 		private const string ASSET_PATH_CONFIG_BUTTON = "PluginConfigurator/PluginConfiguratorButton.prefab";
         private const string ASSET_PATH_CONFIG_MENU = "PluginConfigurator/PluginConfigField.prefab";
