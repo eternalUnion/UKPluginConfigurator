@@ -123,7 +123,72 @@ namespace PluginConfig.API.Fields
 		internal protected ConfigKeycodeField currentUi;
 		public readonly bool saveToConfig = true;
 
-        private Color _fieldColor = Color.black;
+		private static string GetKeyName(KeyCode key)
+		{
+			switch (key)
+			{
+				case KeyCode.Alpha0:
+					return "0";
+				case KeyCode.Alpha1:
+					return "1";
+				case KeyCode.Alpha2:
+					return "2";
+				case KeyCode.Alpha3:
+					return "3";
+				case KeyCode.Alpha4:
+					return "4";
+				case KeyCode.Alpha5:
+					return "5";
+				case KeyCode.Alpha6:
+					return "6";
+				case KeyCode.Alpha7:
+					return "7";
+				case KeyCode.Alpha8:
+					return "8";
+				case KeyCode.Alpha9:
+					return "9";
+				default:
+					switch (key)
+					{
+						case KeyCode.RightShift:
+							return "Right Shift";
+						case KeyCode.LeftShift:
+							return "Left Shift";
+						case KeyCode.RightControl:
+							return "Right Control";
+						case KeyCode.LeftControl:
+							return "Left Control";
+						case KeyCode.RightAlt:
+							return "Right Alt";
+						case KeyCode.LeftAlt:
+							return "Left Alt";
+						default:
+							switch (key)
+							{
+								case KeyCode.Mouse0:
+									return "Left Mouse Button";
+								case KeyCode.Mouse1:
+									return "Right Mouse Button";
+								case KeyCode.Mouse2:
+									return "Middle Mouse Button";
+								case KeyCode.Mouse3:
+									return "Mouse4";
+								case KeyCode.Mouse4:
+									return "Mouse5";
+								case KeyCode.Mouse5:
+									return "Mouse6";
+								case KeyCode.Mouse6:
+									return "Mouse7";
+								default:
+									return key.ToString();
+							}
+							break;
+					}
+					break;
+			}
+		}
+
+		private Color _fieldColor = Color.black;
         public Color fieldColor
         {
             get => _fieldColor;
@@ -164,7 +229,7 @@ namespace PluginConfig.API.Fields
 				_value = value;
 
 				if (currentUi != null)
-					currentUi.keycodeText.text = ControlsOptions.GetKeyName(value);
+					currentUi.keycodeText.text = GetKeyName(value);
 			}
 		}
 
@@ -279,7 +344,7 @@ namespace PluginConfig.API.Fields
             currentUi.keycode.onClick = new Button.ButtonClickedEvent();
 			currentUi.keycode.onClick.AddListener(listener.Activate);
 
-			currentUi.keycodeText.text = ControlsOptions.GetKeyName(_value);
+			currentUi.keycodeText.text = GetKeyName(_value);
 
 			currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
 			currentUi.resetButton.onClick.AddListener(OnReset);
@@ -297,7 +362,7 @@ namespace PluginConfig.API.Fields
 
 		private void OnReset()
 		{
-			currentUi.keycodeText.text = ControlsOptions.GetKeyName(defaultValue);
+			currentUi.keycodeText.text = GetKeyName(defaultValue);
 			OnValueChange(defaultValue);
 		}
 
