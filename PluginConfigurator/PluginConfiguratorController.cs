@@ -58,29 +58,9 @@ namespace PluginConfig
 	/// Component for the Config Manager plugin
 	/// </summary>
 	[BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
-	[BepInDependency("waffle.ultrakill.ultratweaker", BepInDependency.DependencyFlags.SoftDependency)]
 	public class PluginConfiguratorController : BaseUnityPlugin
 	{
 		public static ManualLogSource logger;
-
-        internal static Harmony ultraTweakerHarmony = new Harmony(PLUGIN_GUID + "_ultraTweakerPatches");
-        internal static bool ultraTweaker
-		{
-			get => AppDomain.CurrentDomain.GetAssemblies().Where(asm => asm.GetName().Name == "UltraTweaker").FirstOrDefault() != null;
-        }
-		private void PatchUltraTweaker()
-		{
-            Logger.LogInfo("Ultra Tweaker detected");
-            try
-            {
-                ultraTweakerHarmony.Patch(typeof(UltraTweaker.Handlers.SettingUIHandler).GetMethod("CreateUI", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic), postfix: new HarmonyMethod(typeof(PluginConfiguratorController).GetMethod("HandleUltraTweakerUI", BindingFlags.NonPublic | BindingFlags.Static)));
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Exception thrown while patching ultra tweaker from plugin configurator");
-                Debug.LogError(e);
-            }
-        }
 
 		public const string PLUGIN_NAME = "PluginConfigurator";
 		public const string PLUGIN_GUID = "com.eternalUnion.pluginConfigurator";
@@ -175,7 +155,7 @@ namespace PluginConfig
 				return;
 			optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
 
-			backButton = optionsMenu.transform.Find("Back").GetComponent<Button>();
+			backButton = optionsMenu.transform.Find("Panel/Back").GetComponent<Button>();
 
 			GameObject pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, optionsMenu).WaitForCompletion();
 			pluginConfigObj.SetActive(true);
@@ -640,11 +620,6 @@ namespace PluginConfig
 			Addressables.LoadContentCatalogAsync(Path.Combine(catalogPath, "catalog.json"), true).WaitForCompletion();
 			defaultPluginIcon = Addressables.LoadAssetAsync<Sprite>("PluginConfigurator/Textures/default-icon.png").WaitForCompletion();
 
-            if (ultraTweaker)
-            {
-				PatchUltraTweaker();
-            }
-
             configuratorPatches = new Harmony(PLUGIN_GUID);
 			config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 			config.SetIconWithURL(Path.Combine(workingDir, "icon.png"));
@@ -722,17 +697,8 @@ namespace PluginConfig
 			configuratorPatches.Patch(GetInstanceMethod<MenuEsc>("Update"), transpiler: new HarmonyMethod(GetStaticMethod<MenuEscPatch>(nameof(MenuEscPatch.FixNullExcpCausedByUncheckedField))));
 
             config.FlushAll();
-			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
-		}
-
-		private void OnEnable()
-		{
 			SceneManager.sceneLoaded += OnSceneLoad;
-		}
-
-		private void OnDisable()
-		{
-			SceneManager.sceneLoaded -= OnSceneLoad;
+			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
 		}
 
 		private void OnApplicationQuit()
@@ -759,6 +725,13 @@ namespace PluginConfig
 				{
 					config.FlushAll();
 				}
+		}
+
+		private void OnDestroy()
+		{
+			Debug.LogError($"Instance destroyed in scene '{SceneManager.GetActiveScene().name}'");
+			Debug.LogError($"Plugin was in scene '{gameObject.scene.name}'");
+			Debug.LogError($"Object name was '{gameObject.name}'");
 		}
 	}
 }
