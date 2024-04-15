@@ -47,6 +47,9 @@
     <Reference Include="Unity.ResourceManager">
       <HintPath>Libs\Unity.ResourceManager.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>Libs\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
       <HintPath>Libs\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>

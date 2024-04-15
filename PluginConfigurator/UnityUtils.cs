@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace PluginConfig
@@ -21,9 +22,7 @@ namespace PluginConfig
 
         public static IEnumerable<Transform> GetChilds(Transform obj)
         {
-            int count = obj.childCount;
-            for (int i = 0; i < count; i++)
-                yield return obj.GetChild(i);
+            return Enumerable.Range(0, obj.childCount).Select(i => obj.GetChild(i)).ToArray().AsEnumerable();
         }
 
         public static IEnumerable<T> GetComponentsInChildrenRecursively<T>(Transform obj)

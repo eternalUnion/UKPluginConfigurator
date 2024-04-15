@@ -15,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
@@ -155,12 +156,26 @@ namespace PluginConfig
 				return;
 			optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
 
+			{
+				Transform optionsText = optionsMenu.transform.Find("Text");
+				if (optionsText != null)
+					Destroy(optionsText.gameObject);
+			}
+
+			Transform panel = optionsMenu.transform.Find("Panel");
 			backButton = optionsMenu.transform.Find("Panel/Back").GetComponent<Button>();
 
-			GameObject pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, optionsMenu).WaitForCompletion();
+			GameObject pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, panel).WaitForCompletion();
 			pluginConfigObj.SetActive(true);
 			Button pluginConfigButton = pluginConfigObj.GetComponent<Button>();
-			pluginConfigObj.transform.SetSiblingIndex(1);
+			pluginConfigObj.transform.SetSiblingIndex(0);
+			Image buttonImage = pluginConfigObj.GetComponent<Image>();
+
+			ButtonHighlightParent highlightParent = panel.GetComponent<ButtonHighlightParent>();
+			highlightParent.buttons = highlightParent.buttons.AsEnumerable().AddItem(buttonImage).ToArray();
+			highlightParent.buttonTexts = highlightParent.buttonTexts.AsEnumerable().AddItem(pluginConfigObj.GetComponentInChildren<TextMeshProUGUI>(true)).ToArray();
+
+			pluginConfigButton.onClick.AddListener(() => highlightParent.ChangeButton(buttonImage));
 
 			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, optionsMenu).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
 			mainPanel.gameObject.AddComponent<MainPanelComponent>();
@@ -168,7 +183,7 @@ namespace PluginConfig
 			mainPanel.gameObject.SetActive(false);
 
 			GamepadObjectSelector mainPanelSelector = mainPanel.GetComponent<GamepadObjectSelector>();
-			foreach (Transform t in UnityUtils.GetChilds(optionsMenu.transform))
+			foreach (Transform t in UnityUtils.GetChilds(optionsMenu.transform).Concat(UnityUtils.GetChilds(panel)))
 			{
 				if (t == mainPanel.transform || t == pluginConfigObj.transform)
 					continue;
