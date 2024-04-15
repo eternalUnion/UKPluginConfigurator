@@ -336,6 +336,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   text: {fileID: 2271467043553768795}
   button: {fileID: 4305355724737836379}
+  rect: {fileID: 0}
 --- !u!1 &2523636942827948141
 GameObject:
   m_ObjectHideFlags: 0
@@ -900,6 +901,15 @@ MonoBehaviour:
   previousPage: {fileID: 0}
   HardClose: 0
   DontClose: 0
+  OnClose:
+    toActivateObjects: []
+    toDisActivateObjects: []
+    onActivate:
+      m_PersistentCalls:
+        m_Calls: []
+    onDisActivate:
+      m_PersistentCalls:
+        m_Calls: []
 --- !u!114 &436087840760376465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1064,6 +1074,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   text: {fileID: 7275165868453924169}
   button: {fileID: 4669381562096684361}
+  rect: {fileID: 0}
 --- !u!1 &8709923109119817051
 GameObject:
   m_ObjectHideFlags: 0
