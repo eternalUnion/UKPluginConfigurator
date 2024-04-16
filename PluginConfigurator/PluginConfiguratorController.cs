@@ -710,38 +710,28 @@ namespace PluginConfig
 
             config.FlushAll();
 			SceneManager.sceneLoaded += OnSceneLoad;
-			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
-		}
 
-		private void OnApplicationQuit()
-		{
-			foreach(PluginConfigurator config in configs)
-			{
-				config.FlushAll();
-			}
-		}
-
-		private static void OnApplicationPause(bool pause)
-		{
-			if (pause)
-				foreach (PluginConfigurator config in PluginConfiguratorController.configs)
-				{
-					config.FlushAll();
-				}
-		}
-
-		private void OnApplicationFocus(bool hasFocus)
-		{
-			if (!hasFocus)
+			Application.quitting += () => {
 				foreach (PluginConfigurator config in configs)
 				{
 					config.FlushAll();
 				}
+			};
+			Application.focusChanged += (bool hasFocus) =>
+			{
+				if (!hasFocus)
+					foreach (PluginConfigurator config in configs)
+					{
+						config.FlushAll();
+					}
+			};
+
+			Logger.LogInfo($"Plugin {PLUGIN_GUID} is loaded!");
 		}
 
 		private void OnDestroy()
 		{
-			Debug.LogError($"Instance destroyed in scene '{SceneManager.GetActiveScene().name}'");
+			Debug.LogError($"Plugin configurator controller instance destroyed in scene '{SceneManager.GetActiveScene().name}'");
 			Debug.LogError($"Plugin was in scene '{gameObject.scene.name}'");
 			Debug.LogError($"Object name was '{gameObject.name}'");
 		}
