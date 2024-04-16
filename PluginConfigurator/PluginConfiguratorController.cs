@@ -172,9 +172,6 @@ namespace PluginConfig
 			Image buttonImage = pluginConfigObj.GetComponent<Image>();
 
 			ButtonHighlightParent highlightParent = panel.GetComponent<ButtonHighlightParent>();
-			highlightParent.buttons = highlightParent.buttons.AsEnumerable().AddItem(buttonImage).ToArray();
-			highlightParent.buttonTexts = highlightParent.buttonTexts.AsEnumerable().AddItem(pluginConfigObj.GetComponentInChildren<TextMeshProUGUI>(true)).ToArray();
-
 			pluginConfigButton.onClick.AddListener(() => highlightParent.ChangeButton(buttonImage));
 
 			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, optionsMenu).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
