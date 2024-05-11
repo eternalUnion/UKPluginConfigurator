@@ -1,6 +1,7 @@
 ﻿using PluginConfiguratorComponents;
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
@@ -197,14 +198,14 @@ namespace PluginConfig.API.Fields
             currentUi.fieldBg.color = _fieldColor;
 
             currentUi.dropdown.interactable = interactable && parentInteractable;
-            currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
+            currentUi.dropdown.onValueChanged = new TMP_Dropdown.DropdownEvent();
             currentUi.dropdown.options.Clear();
             currentUi.dropdown.onValueChanged.AddListener(OnValueChange);
 
             T[] enumVals = Enum.GetValues(typeof(T)) as T[];
             foreach (T val in enumVals)
             {
-                currentUi.dropdown.options.Add(new Dropdown.OptionData(enumNames[val]));
+                currentUi.dropdown.options.Add(new TMP_Dropdown.OptionData(enumNames[val]));
             }
 
             int index = -1;

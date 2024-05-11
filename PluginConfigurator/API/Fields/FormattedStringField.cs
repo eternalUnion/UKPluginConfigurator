@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
@@ -331,7 +332,7 @@ namespace PluginConfig.API.Fields
 
         private class OnSelectListener : MonoBehaviour, ISelectHandler
         {
-            public InputField field;
+            public TMP_InputField field;
             public string lastValue = "";
 
             public void OnSelect(BaseEventData data)
@@ -340,7 +341,7 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        private static void OnInputChange(InputField field, Slider slider, string lastValue)
+        private static void OnInputChange(TMP_InputField field, Slider slider, string lastValue)
         {
             int currentValue = (int)(slider.normalizedValue * 255);
 
@@ -379,7 +380,7 @@ namespace PluginConfig.API.Fields
 
                     FormattedStringPanelComp comp = _panel.gameObject.AddComponent<FormattedStringPanelComp>();
                     
-                    static void SetupSlider(Slider slider, InputField input)
+                    static void SetupSlider(Slider slider, TMP_InputField input)
                     {
                         slider.minValue = 0;
                         slider.maxValue = 1;
@@ -1024,8 +1025,8 @@ namespace PluginConfig.API.Fields
 
             currentUi.fieldBg.color = _fieldColor;
 
-            InputField input = field.GetComponentInChildren<InputField>();
-            input.characterValidation = InputField.CharacterValidation.None;
+            TMP_InputField input = currentUi.input;
+            input.characterValidation = TMP_InputField.CharacterValidation.None;
             input.readOnly = true;
             input.interactable = false;
 
@@ -1036,9 +1037,11 @@ namespace PluginConfig.API.Fields
             currentUi.reset.onClick.AddListener(OnReset);
             currentUi.reset.gameObject.SetActive(false);
 
-            Utils.SetupResetButton(field, /*parentPanel.currentPanel.rect*/content.gameObject.GetComponentInParent<ScrollRect>(),
+            ScrollRect scrollRect = content.gameObject.GetComponentInParent<ScrollRect>();
+			Utils.SetupResetButton(field, scrollRect,
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.reset.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.reset.gameObject.SetActive(false));
+            Utils.AddScrollEvents(currentUi.input.gameObject.AddComponent<EventTrigger>(), scrollRect);
 
             currentUi.edit.onClick = new Button.ButtonClickedEvent();
             currentUi.edit.onClick.AddListener(() =>

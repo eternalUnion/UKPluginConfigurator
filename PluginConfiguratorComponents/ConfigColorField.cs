@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +9,7 @@ namespace PluginConfiguratorComponents
 {
     public class ConfigColorField : MonoBehaviour
     {
-        public Text name;
+        public TextMeshProUGUI name;
 
         public Image fieldBg;
         public Image image;
@@ -17,9 +18,9 @@ namespace PluginConfiguratorComponents
         public Slider green;
         public Slider blue;
 
-        public InputField redInput;
-        public InputField greenInput;
-        public InputField blueInput;
+        public TMP_InputField redInput;
+        public TMP_InputField greenInput;
+        public TMP_InputField blueInput;
 
         public Button resetButton;
 

@@ -1,6 +1,7 @@
 ﻿using PluginConfiguratorComponents;
 using System;
 using System.Globalization;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
@@ -198,7 +199,7 @@ namespace PluginConfig.API.Fields
             currentUi.fieldBg.color = _fieldColor;
 
             currentUi.input.interactable = interactable && parentInteractable;
-            currentUi.input.characterValidation = InputField.CharacterValidation.Decimal;
+            currentUi.input.characterValidation = TMP_InputField.CharacterValidation.Decimal;
             currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
             currentUi.input.onEndEdit.AddListener(OnCompValueChange);
             currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
@@ -207,9 +208,11 @@ namespace PluginConfig.API.Fields
             currentUi.resetButton.onClick.AddListener(OnReset);
             currentUi.resetButton.gameObject.SetActive(false);
 
-            Utils.SetupResetButton(field, /*parentPanel.currentPanel.rect*/content.gameObject.GetComponentInParent<ScrollRect>(),
+            ScrollRect scrollRect = content.gameObject.GetComponentInParent<ScrollRect>();
+			Utils.SetupResetButton(field, scrollRect,
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
+            Utils.AddScrollEvents(currentUi.input.gameObject.AddComponent<EventTrigger>(), scrollRect);
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);

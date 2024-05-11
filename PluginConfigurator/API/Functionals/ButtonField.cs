@@ -95,7 +95,7 @@ namespace PluginConfig.API.Functionals
                 if (currentUi == null)
                     return;
 
-                currentUi.text.resizeTextForBestFit = value;
+                currentUi.text.enableAutoSizing = value;
             }
         }
 
@@ -110,7 +110,7 @@ namespace PluginConfig.API.Functionals
                 if (currentUi == null)
                     return;
 
-                currentUi.text.resizeTextMinSize = value;
+                currentUi.text.fontSizeMin = value;
             }
         }
 
@@ -124,7 +124,7 @@ namespace PluginConfig.API.Functionals
 
                 if (currentUi == null)
                     return;
-                currentUi.text.resizeTextMaxSize = value;
+                currentUi.text.fontSizeMax = value;
             }
         }
 
@@ -148,9 +148,9 @@ namespace PluginConfig.API.Functionals
 
             currentUi.text.text = text;
             currentUi.text.fontSize = _textSize;
-            currentUi.text.resizeTextForBestFit = _textBestFit;
-            currentUi.text.resizeTextMinSize = _textBestFitMin;
-            currentUi.text.resizeTextMaxSize = _textBestFitMax;
+            currentUi.text.enableAutoSizing = _textBestFit;
+            currentUi.text.fontSizeMin = _textBestFitMin;
+            currentUi.text.fontSizeMax = _textBestFitMax;
 
             currentUi.button.onClick.AddListener(() =>
             {

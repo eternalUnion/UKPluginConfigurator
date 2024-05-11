@@ -1,5 +1,6 @@
 ﻿using PluginConfiguratorComponents;
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
@@ -188,24 +189,26 @@ namespace PluginConfig.API.Fields
             currentUi.fieldBg.color = _fieldColor;
 
             currentUi.input.interactable = interactable && parentInteractable;
-            currentUi.input.characterValidation = InputField.CharacterValidation.None;
+            currentUi.input.characterValidation = TMP_InputField.CharacterValidation.None;
             currentUi.input.onValueChanged.AddListener(val => { if (!currentUi.input.wasCanceled) lastInputText = val; });
             currentUi.input.onEndEdit.AddListener(OnValueChange);
-            currentUi.input.lineType = InputField.LineType.MultiLineNewline;
+            currentUi.input.lineType = TMP_InputField.LineType.MultiLineNewline;
             currentUi.input.text = _value.Replace(separatorChar, '\n');
             
-            currentUi.input.textComponent.horizontalOverflow = HorizontalWrapMode.Wrap;
-            currentUi.input.textComponent.verticalOverflow = VerticalWrapMode.Overflow;
-            currentUi.input.textComponent.resizeTextForBestFit = false;
-            currentUi.input.textComponent.alignment = TextAnchor.UpperLeft;
+            currentUi.input.textComponent.enableWordWrapping = true;
+            currentUi.input.textComponent.overflowMode = TextOverflowModes.Overflow;
+            currentUi.input.textComponent.enableAutoSizing = false;
+            currentUi.input.textComponent.alignment = TextAlignmentOptions.TopLeft;
 
             currentUi.resetButton.onClick = new Button.ButtonClickedEvent();
             currentUi.resetButton.onClick.AddListener(OnReset);
             currentUi.resetButton.gameObject.SetActive(false);
 
-            Utils.SetupResetButton(field, /*parentPanel.currentPanel.rect*/content.gameObject.GetComponentInParent<ScrollRect>(),
+            ScrollRect scrollRect = content.gameObject.GetComponentInParent<ScrollRect>();
+			Utils.SetupResetButton(field, scrollRect,
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
+            Utils.AddScrollEvents(currentUi.input.gameObject.AddComponent<EventTrigger>(), scrollRect);
 
             field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(interactable && parentInteractable);

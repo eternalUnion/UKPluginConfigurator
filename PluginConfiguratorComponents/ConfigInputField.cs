@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,8 +9,8 @@ namespace PluginConfiguratorComponents
 {
     public class ConfigInputField : MonoBehaviour
     {
-        public Text name;
-        public InputField input;
+        public TextMeshProUGUI name;
+        public TMP_InputField input;
 
         public Image fieldBg;
         public Button resetButton;

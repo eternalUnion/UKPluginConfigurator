@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,9 +21,9 @@ namespace PluginConfiguratorComponents
         public Slider greenSlider;
         public Slider blueSlider;
 
-        public InputField redInput;
-        public InputField greenInput;
-        public InputField blueInput;
+        public TMP_InputField redInput;
+        public TMP_InputField greenInput;
+        public TMP_InputField blueInput;
 
         public Toggle bold;
         public Toggle italic;

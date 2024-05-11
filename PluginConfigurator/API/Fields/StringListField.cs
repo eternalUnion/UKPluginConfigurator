@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.EventSystems;
@@ -59,7 +60,7 @@ namespace PluginConfig.API.Fields
 
             values.Add(newValue);
             if (currentUi != null)
-                currentUi.dropdown.options.Add(new Dropdown.OptionData(newValue));
+                currentUi.dropdown.options.Add(new TMP_Dropdown.OptionData(newValue));
         }
 
         public void InsertValue(int index, string newValue)
@@ -75,7 +76,7 @@ namespace PluginConfig.API.Fields
 
             values.Insert(index, newValue);
             if (currentUi != null)
-                currentUi.dropdown.options.Insert(index, new Dropdown.OptionData(newValue));
+                currentUi.dropdown.options.Insert(index, new TMP_Dropdown.OptionData(newValue));
         }
 
         public void RemoveAt(int index)
@@ -321,13 +322,13 @@ namespace PluginConfig.API.Fields
             currentUi.fieldBg.color = _fieldColor;
 
             currentUi.dropdown.interactable = interactable && parentInteractable;
-            currentUi.dropdown.onValueChanged = new Dropdown.DropdownEvent();
+            currentUi.dropdown.onValueChanged = new TMP_Dropdown.DropdownEvent();
             currentUi.dropdown.options.Clear();
             currentUi.dropdown.onValueChanged.AddListener(OnValueChange);
             
             foreach (string val in values)
             {
-                currentUi.dropdown.options.Add(new Dropdown.OptionData(val));
+                currentUi.dropdown.options.Add(new TMP_Dropdown.OptionData(val));
             }
 
             int index = values.IndexOf(_value);

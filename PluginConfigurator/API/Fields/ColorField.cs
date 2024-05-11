@@ -8,6 +8,7 @@ using static PluginConfig.API.Fields.BoolField;
 using System.Globalization;
 using PluginConfiguratorComponents;
 using UnityEngine.AddressableAssets;
+using TMPro;
 
 namespace PluginConfig.API.Fields
 {
@@ -248,11 +249,15 @@ namespace PluginConfig.API.Fields
             currentUi.resetButton.onClick.AddListener(OnReset);
             currentUi.resetButton.gameObject.SetActive(false);
 
-            Utils.SetupResetButton(field, /*parentPanel.currentPanel.rect*/content.gameObject.GetComponentInParent<ScrollRect>(),
+            ScrollRect scrollRect = content.gameObject.GetComponentInParent<ScrollRect>();
+			Utils.SetupResetButton(field, scrollRect,
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
+            Utils.AddScrollEvents(currentUi.redInput.gameObject.AddComponent<EventTrigger>(), scrollRect);
+			Utils.AddScrollEvents(currentUi.greenInput.gameObject.AddComponent<EventTrigger>(), scrollRect);
+			Utils.AddScrollEvents(currentUi.blueInput.gameObject.AddComponent<EventTrigger>(), scrollRect);
 
-            field.SetActive(!_hidden && !parentHidden);
+			field.SetActive(!_hidden && !parentHidden);
             SetInteractableColor(_interactable && parentInteractable);
             return field;
         }
@@ -300,7 +305,7 @@ namespace PluginConfig.API.Fields
             }
         }
 
-        internal void OnInputFieldChange(InputField field, Slider targetSlider, ref string lastValue)
+        internal void OnInputFieldChange(TMP_InputField field, Slider targetSlider, ref string lastValue)
         {
             if (field.wasCanceled)
             {

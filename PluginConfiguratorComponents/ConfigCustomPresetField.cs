@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,7 @@ namespace PluginConfiguratorComponents
     public class ConfigCustomPresetField : MonoBehaviour
     {
         public Button preset;
-        public InputField nameInput;
+        public TMP_InputField nameInput;
         public Button reset;
         public Button edit;
         public Button delete;

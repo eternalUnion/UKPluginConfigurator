@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,7 +9,7 @@ namespace PluginConfiguratorComponents
 {
     public class ConfigPanelConcrete : MonoBehaviour
     {
-        public Text header;
+        public TextMeshProUGUI header;
         public VerticalLayoutGroup layout;
         public RectTransform trans;
         public ScrollRect rect;

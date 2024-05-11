@@ -151,7 +151,7 @@ namespace PluginConfig.API.Functionals
 
             if (currentContainer == null)
                 return;
-            currentUi[index].text.resizeTextForBestFit = bestFit;
+            currentUi[index].text.enableAutoSizing = bestFit;
         }
 
         private int[] _textBestFitMin;
@@ -166,7 +166,7 @@ namespace PluginConfig.API.Functionals
 
             if (currentContainer == null)
                 return;
-            currentUi[index].text.resizeTextMinSize = min;
+            currentUi[index].text.fontSizeMin = min;
         }
 
         private int[] _textBestFitMax;
@@ -181,7 +181,7 @@ namespace PluginConfig.API.Functionals
 
             if (currentContainer == null)
                 return;
-            currentUi[index].text.resizeTextMaxSize = min;
+            currentUi[index].text.fontSizeMax = min;
         }
 
         private Color[] _textColors;
@@ -299,9 +299,9 @@ namespace PluginConfig.API.Functionals
 
                 ui.text.text = _texts[i];
                 ui.text.fontSize = _textSizes[i];
-                ui.text.resizeTextForBestFit = _textBestFit[i];
-                ui.text.resizeTextMinSize = _textBestFitMin[i];
-                ui.text.resizeTextMaxSize = _textBestFitMax[i];
+                ui.text.enableAutoSizing = _textBestFit[i];
+                ui.text.fontSizeMin = _textBestFitMin[i];
+                ui.text.fontSizeMax = _textBestFitMax[i];
                 ui.text.color = _textColors[i];
 
                 ui.gameObject.SetActive(!hidden && !parentHidden && !_hiddens[i]);

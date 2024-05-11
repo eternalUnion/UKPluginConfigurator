@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Events;
@@ -484,7 +485,7 @@ namespace PluginConfig.API.Fields
                 }
             });
 
-            currentUi.input.characterValidation = InputField.CharacterValidation.Decimal;
+            currentUi.input.characterValidation = TMP_InputField.CharacterValidation.Decimal;
             currentUi.slider.onValueChanged.AddListener(newValue =>
             {
                 float finalValue = (float)Math.Round(Denormalize(currentUi.slider.normalizedValue, bounds.Item1, bounds.Item2), roundDecimalPoints);
@@ -555,9 +556,11 @@ namespace PluginConfig.API.Fields
             currentUi.resetButton.onClick.AddListener(OnReset);
             currentUi.resetButton.gameObject.SetActive(false);
 
-            Utils.SetupResetButton(field, /*parentPanel.currentPanel.rect*/content.gameObject.GetComponentInParent<ScrollRect>(),
+            ScrollRect scrollRect = content.gameObject.GetComponentInParent<ScrollRect>();
+			Utils.SetupResetButton(field, scrollRect,
                 (BaseEventData e) => { if (_interactable && parentInteractable) currentUi.resetButton.gameObject.SetActive(true); },
                 (BaseEventData e) => currentUi.resetButton.gameObject.SetActive(false));
+            Utils.AddScrollEvents(currentUi.input.gameObject.AddComponent<EventTrigger>(), scrollRect);
 
             currentUi.input.SetTextWithoutNotify(_value.ToString(CultureInfo.InvariantCulture));
             currentUi.slider.SetNormalizedValueWithoutNotify(_normalizedValue);
