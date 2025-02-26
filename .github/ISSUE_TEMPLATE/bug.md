@@ -15,8 +15,8 @@ How to reproduce the bug (if the steps are known, else give as many information 
 - Step 1:
 
 ### Installed plugins
-- Plugin Configurator
-- (any other installed plugins)
+- Plugin Configurator (version here)
+- (any other installed plugins and their versions)
 
 ### Extra
 Anything you want to add
