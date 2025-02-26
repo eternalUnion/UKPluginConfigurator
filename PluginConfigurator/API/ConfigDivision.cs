@@ -15,19 +15,19 @@ namespace PluginConfig.API
     {
         public ConfigDivision div;
 
-        protected override void OnRectTransformDimensionsChange()
+        public override void OnRectTransformDimensionsChange()
         {
             base.OnRectTransformDimensionsChange();
 
             div.RecalculateLayout();
         }
 
-        protected override void OnEnable()
+        public override void OnEnable()
         {
             div.RecalculateLayout();
         }
 
-        protected override void OnDisable()
+        public override void OnDisable()
         {
             div.RecalculateLayout();
         }

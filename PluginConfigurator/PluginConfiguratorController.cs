@@ -18,8 +18,10 @@ using System.Threading;
 using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.Audio;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
+using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -134,13 +136,29 @@ namespace PluginConfig
 		internal static GameObject activePanel;
 		internal static Button backButton;
 
-		private void OnSceneLoad(Scene currentScene, LoadSceneMode mode)
+		private IEnumerator loadObjectAsync(Transform panel)
 		{
-			if (mode == LoadSceneMode.Additive)
-				return;
+			var pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, panel);
+			yield return pluginConfigObj;
+
+			logger.LogInfo("Load object status:");
+			logger.LogInfo(pluginConfigObj.Status);
+        }
+
+        private void OnSceneLoad(Scene currentScene, LoadSceneMode mode)
+		{
+			StartCoroutine(OnSceneLoadAsync(currentScene, mode));
+		}
+
+        private IEnumerator OnSceneLoadAsync(Scene currentScene, LoadSceneMode mode)
+        {
+			yield return null;
+
+            if (mode == LoadSceneMode.Additive)
+                yield break;
 
 			if (mainPanel != null)
-				return;
+                yield break;
 
 			GameObject canvas = null;
 			foreach (var rootCanvas in currentScene.GetRootGameObjects().Where(obj => obj.name == "Canvas"))
@@ -153,7 +171,7 @@ namespace PluginConfig
 			}
 
 			if (canvas == null)
-				return;
+                yield break;
 			optionsMenu.gameObject.AddComponent<OptionsMenuCloseListener>();
 
 			{
@@ -162,25 +180,26 @@ namespace PluginConfig
 					Destroy(optionsText.gameObject);
 			}
 
-			Transform panel = optionsMenu.transform.Find("Panel");
-			backButton = optionsMenu.transform.Find("Panel/Back").GetComponent<Button>();
+			Transform panel = optionsMenu.transform.Find("Navigation Rail");
+            Transform pages = optionsMenu.transform.Find("Pages");
+            backButton = optionsMenu.transform.Find("Navigation Rail/Back").GetComponent<Button>();
 
 			GameObject pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, panel).WaitForCompletion();
-			pluginConfigObj.SetActive(true);
+            pluginConfigObj.SetActive(true);
 			Button pluginConfigButton = pluginConfigObj.GetComponent<Button>();
 			pluginConfigObj.transform.SetSiblingIndex(0);
 			Image buttonImage = pluginConfigObj.GetComponent<Image>();
 
-			ButtonHighlightParent highlightParent = panel.GetComponent<ButtonHighlightParent>();
+            ButtonHighlightParent highlightParent = panel.GetComponent<ButtonHighlightParent>();
 			pluginConfigButton.onClick.AddListener(() => highlightParent.ChangeButton(buttonImage));
 
-			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, optionsMenu).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
+			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, pages).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
 			mainPanel.gameObject.AddComponent<MainPanelComponent>();
 			mainPanel.header.text = "--PLUGIN CONFIGURATOR--";
 			mainPanel.gameObject.SetActive(false);
 
 			GamepadObjectSelector mainPanelSelector = mainPanel.GetComponent<GamepadObjectSelector>();
-			foreach (Transform t in UnityUtils.GetChilds(optionsMenu.transform).Concat(UnityUtils.GetChilds(panel)))
+			foreach (Transform t in UnityUtils.GetChilds(pages).Concat(UnityUtils.GetChilds(panel)))
 			{
 				if (t == mainPanel.transform || t == pluginConfigObj.transform)
 					continue;
@@ -622,18 +641,19 @@ namespace PluginConfig
 			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 			logger = Logger;
 
-			workingPath = Assembly.GetExecutingAssembly().Location;
+            workingPath = Assembly.GetExecutingAssembly().Location;
 			workingDir = Path.GetDirectoryName(workingPath);
 			catalogPath = Path.Combine(workingDir, "Assets");
 			PresetOldFileManager.Init();
 			PresetOldFileManager.CheckForOldFiles();
 
 			Addressables.InitializeAsync().WaitForCompletion();
-			Addressables.LoadContentCatalogAsync(Path.Combine(catalogPath, "catalog.json"), true).WaitForCompletion();
-			defaultPluginIcon = Addressables.LoadAssetAsync<Sprite>("PluginConfigurator/Textures/default-icon.png").WaitForCompletion();
+			var catalog = Addressables.LoadContentCatalogAsync(Path.Combine(catalogPath, "catalog.json"), true).WaitForCompletion();
 
-            configuratorPatches = new Harmony(PLUGIN_GUID);
-			config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
+            defaultPluginIcon = Addressables.LoadAssetAsync<Sprite>("PluginConfigurator/Textures/default-icon.png").WaitForCompletion();
+            
+			configuratorPatches = new Harmony(PLUGIN_GUID);
+            config = PluginConfigurator.Create("Plugin Configurator", PLUGIN_GUID);
 			config.SetIconWithURL(Path.Combine(workingDir, "icon.png"));
 
 			ButtonArrayField binButtons = new ButtonArrayField(config.rootPanel, "binButtons", 2, new float[] { 0.5f, 0.5f }, new string[] { "Deleted Presets Folder", "Reset Presets Folder" });
@@ -705,7 +725,7 @@ namespace PluginConfig
 			if (patchPause.value)
 				UnpauseListener(new BoolField.BoolValueChangeEvent() { value = true });
 
-			configuratorPatches.Patch(GetInstanceMethod<HUDOptions>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
+			configuratorPatches.Patch(GetInstanceMethod<SettingsMenu.Components.SettingsMenu>("Start"), postfix: new HarmonyMethod(GetStaticMethod<MenuFinderPatch>("Postfix")));
 			configuratorPatches.Patch(GetInstanceMethod<MenuEsc>("Update"), transpiler: new HarmonyMethod(GetStaticMethod<MenuEscPatch>(nameof(MenuEscPatch.FixNullExcpCausedByUncheckedField))));
 
             config.FlushAll();

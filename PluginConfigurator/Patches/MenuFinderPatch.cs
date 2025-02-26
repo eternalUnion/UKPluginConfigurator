@@ -9,7 +9,7 @@ namespace PluginConfig.Patches
         public static Transform pauseMenu;
         public static Transform optionsMenu;
 
-        public static void Postfix(HUDOptions __instance)
+        public static void Postfix(SettingsMenu.Components.SettingsMenu __instance)
         {
             GameObject canvas = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.name == "Canvas").FirstOrDefault();
             if (canvas == null)
