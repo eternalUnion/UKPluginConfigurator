@@ -638,6 +638,8 @@ namespace PluginConfig
 
 		private void Awake()
 		{
+			gameObject.hideFlags = HideFlags.HideAndDontSave;
+
 			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 			logger = Logger;
 
