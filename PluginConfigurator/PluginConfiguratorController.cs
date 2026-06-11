@@ -52,7 +52,7 @@ namespace PluginConfig
 
 		void OnDisable()
 		{
-			if (PluginConfiguratorController.activePanel == gameObject)
+			if (!PluginConfiguratorController.rememberConfigPage.value && PluginConfiguratorController.activePanel == gameObject)
 				PluginConfiguratorController.activePanel = null;
         }
 	}
@@ -132,9 +132,60 @@ namespace PluginConfig
 		}
 
 		internal static Transform optionsMenu;
+		internal static GameObject pluginConfigObj;
 		internal static ConfigPanelConcrete mainPanel;
 		internal static GameObject activePanel;
 		internal static Button backButton;
+
+		private static void SelectPluginConfigInOptions()
+		{
+			Transform panel = optionsMenu.transform.Find("Navigation Rail");
+			Transform pages = optionsMenu.transform.Find("Pages");
+
+			ButtonHighlightParent highlightParent = panel.GetComponent<ButtonHighlightParent>();
+			Image buttonImage = pluginConfigObj.GetComponent<Image>();
+			if (highlightParent != null && buttonImage != null) highlightParent.ChangeButton(buttonImage);
+
+			foreach (Transform t in UnityUtils.GetChilds(pages).Concat(UnityUtils.GetChilds(panel)))
+			{
+				if (t == mainPanel.transform || t == pluginConfigObj.transform)
+					continue;
+
+				if (t.gameObject.TryGetComponent(out GamepadObjectSelector goj))
+				{
+					goj.gameObject.SetActive(false);
+				}
+			}
+
+			if (!rememberConfigPage.value)
+			{
+				if (activePanel != null && activePanel != mainPanel.gameObject)
+				{
+					if (activePanel.TryGetComponent(out ConfigPanelComponent comp))
+					{
+						if (comp.panel != null)
+							comp.panel.rootConfig.FlushAll();
+						else
+							Debug.LogWarning("Panel component does not have a config panel attached, could not flush");
+					}
+					else
+					{
+						Debug.LogWarning("Could not find panel's component");
+					}
+
+					activePanel.SetActive(false);
+				}
+				activePanel = null;
+				mainPanel.gameObject.SetActive(true);
+			}
+			else
+			{
+				if (activePanel != null) 
+					activePanel.SetActive(true);
+				else 
+					mainPanel.gameObject.SetActive(true);
+			}
+		}
 
 		private IEnumerator loadObjectAsync(Transform panel)
 		{
@@ -184,14 +235,12 @@ namespace PluginConfig
             Transform pages = optionsMenu.transform.Find("Pages");
             backButton = optionsMenu.transform.Find("Navigation Rail/Back").GetComponent<Button>();
 
-			GameObject pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, panel).WaitForCompletion();
+			pluginConfigObj = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_BUTTON, panel).WaitForCompletion();
             pluginConfigObj.SetActive(true);
 			Button pluginConfigButton = pluginConfigObj.GetComponent<Button>();
 			pluginConfigObj.transform.SetSiblingIndex(0);
-			Image buttonImage = pluginConfigObj.GetComponent<Image>();
 
-            ButtonHighlightParent highlightParent = panel.GetComponent<ButtonHighlightParent>();
-			pluginConfigButton.onClick.AddListener(() => highlightParent.ChangeButton(buttonImage));
+			pluginConfigButton.onClick.AddListener(SelectPluginConfigInOptions);
 
 			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, pages).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
 			mainPanel.gameObject.AddComponent<MainPanelComponent>();
@@ -204,12 +253,7 @@ namespace PluginConfig
 				if (t == mainPanel.transform || t == pluginConfigObj.transform)
 					continue;
 
-				if (t.gameObject.TryGetComponent(out GamepadObjectSelector goj))
-				{
-					// Plugin config button disables all menu panels
-					pluginConfigButton.onClick.AddListener(() => goj.gameObject.SetActive(false));
-				}
-				else if (t.gameObject.TryGetComponent(out Button btn))
+				if (t.gameObject.TryGetComponent(out Button btn))
 				{
 					// Side buttons close all configuration panels
 					btn.onClick.AddListener(() =>
@@ -225,29 +269,6 @@ namespace PluginConfig
 				}
 			}
 
-			pluginConfigButton.onClick.AddListener(() =>
-			{
-				if (activePanel != null && activePanel != mainPanel.gameObject)
-				{
-					if(activePanel.TryGetComponent(out ConfigPanelComponent comp))
-					{
-						if (comp.panel != null)
-							comp.panel.rootConfig.FlushAll();
-						else
-							Debug.LogWarning("Panel component does not have a config panel attached, could not flush");
-					}
-					else
-					{
-                        Debug.LogWarning("Could not find panel's component");
-					}
-
-					activePanel.SetActive(false);
-				}
-				activePanel = null;
-
-				mainPanel.gameObject.SetActive(true);
-			});
-
 			CreateConfigUI(optionsMenu);
 			mainPanel.rect.normalizedPosition = new Vector2(0, 1);
 			NotificationPanel.InitUI();
@@ -256,6 +277,9 @@ namespace PluginConfig
 		internal static Harmony configuratorPatches;
 
 		internal static PluginConfigurator config;
+
+		internal static KeyCodeField toggleConfigBind;
+		internal static BoolField rememberConfigPage;
 
 		internal static BoolField patchCheatKeys;
 		internal static BoolField patchPause;
@@ -664,6 +688,8 @@ namespace PluginConfig
 			patchPause = new BoolField(config.rootPanel, "Patch unpause", "unpausePatch", true);
 			new ConfigSpace(config.rootPanel, 10f);
 			new ConfigHeader(config.rootPanel, "Behaviour").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
+			toggleConfigBind = new KeyCodeField(config.rootPanel, "Open plugin config", "toggleConfigBind", KeyCode.RightBracket);
+			rememberConfigPage = new BoolField(config.rootPanel, "Remember last config page", "rememberConfigPage", false);
 			cancelOnEsc = new BoolField(config.rootPanel, "Cancel on ESC", "cancelOnEsc", false);
             new ConfigSpace(config.rootPanel, 10f);
             new ConfigHeader(config.rootPanel, "Notification Panel").textColor = new Color(250 / 255f, 160 / 255f, 160 / 255f);
@@ -754,6 +780,26 @@ namespace PluginConfig
 			Debug.LogError($"Plugin configurator controller instance destroyed in scene '{SceneManager.GetActiveScene().name}'");
 			Debug.LogError($"Plugin was in scene '{gameObject.scene.name}'");
 			Debug.LogError($"Object name was '{gameObject.name}'");
+		}
+
+		private void Update()
+		{
+			if (Input.GetKeyDown(toggleConfigBind.value))
+			{
+				if (activePanel != null && activePanel.activeInHierarchy)
+				{
+					activePanel.SetActive(false); // Idk why but gotta do this for CloseOptions to work
+					OptionsManager.Instance.CloseOptions();
+					OptionsManager.Instance.UnPause();
+					activePanel.SetActive(true); // Revert the above SetActive or we'll get a blank screen when entering options
+				}
+				else
+				{
+					OptionsManager.Instance.Pause();
+					OptionsManager.Instance.OpenOptions();
+					SelectPluginConfigInOptions();
+				}
+			}
 		}
 	}
 }
