@@ -791,7 +791,7 @@ namespace PluginConfig
 					activePanel.SetActive(false); // Idk why but gotta do this for CloseOptions to work
 					OptionsManager.Instance.CloseOptions();
 					OptionsManager.Instance.UnPause();
-					activePanel.SetActive(true); // Revert the above SetActive or we'll get a blank screen when entering options
+					activePanel?.SetActive(true); // Revert the above SetActive or we'll get a blank screen when entering options
 				}
 				else
 				{
