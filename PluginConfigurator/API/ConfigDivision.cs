@@ -88,8 +88,8 @@ namespace PluginConfig.API
                 if (currentVirtualPanel != null)
                     currentVirtualPanel.gameObject.SetActive(!hidden && !parentHidden);
 
-                foreach (ConfigField field in fields)
-                    field.parentHidden = value || (hidden || parentHidden);
+                foreach (ConfigField cfield in fields)
+                    cfield.parentHidden = value || (hidden || parentHidden);
             }
         }
 
@@ -97,9 +97,9 @@ namespace PluginConfig.API
             set 
             {
                 base.interactable = value;
-                foreach (ConfigField field in fields)
+                foreach (ConfigField cfield in fields)
                 {
-                    field.parentInteractable = value && (interactable && parentInteractable);
+                    cfield.parentInteractable = value && (interactable && parentInteractable);
                 }
             }
         }
