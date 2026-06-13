@@ -5,12 +5,14 @@ namespace PluginConfig.Patches
     [HarmonyPatch(typeof(OptionsManager), nameof(OptionsManager.CloseOptions))]
     public class CloseOptionsPatch
     {
+        internal static bool bypassBlock = false;
+
         static bool Prefix(OptionsManager __instance)
         {
             if (PluginConfiguratorController.activePanel == null || !PluginConfiguratorController.activePanel.activeSelf)
                 return true;
 
-            if (PluginConfiguratorController.activePanel != null && PluginConfiguratorController.activePanel != PluginConfiguratorController.mainPanel.gameObject)
+            if (!bypassBlock && PluginConfiguratorController.activePanel != null && PluginConfiguratorController.activePanel != PluginConfiguratorController.mainPanel.gameObject)
                 return false;
 
             return true;

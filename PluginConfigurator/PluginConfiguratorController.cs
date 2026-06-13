@@ -792,10 +792,10 @@ namespace PluginConfig
 			{
 				if (activePanel != null && activePanel.activeInHierarchy)
 				{
-					activePanel.SetActive(false); // Idk why but gotta do this for CloseOptions to work
+					CloseOptionsPatch.bypassBlock = true;
 					OptionsManager.Instance.CloseOptions();
+					CloseOptionsPatch.bypassBlock = false;
 					OptionsManager.Instance.UnPause();
-					activePanel?.SetActive(true); // Revert the above SetActive or we'll get a blank screen when entering options
 				}
 				else
 				{
