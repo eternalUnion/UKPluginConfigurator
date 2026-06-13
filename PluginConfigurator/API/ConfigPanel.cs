@@ -98,7 +98,7 @@ namespace PluginConfig.API
 			currentConfig.presetButtonCanBeShown = false;
 			currentConfig.presetMenuButton.gameObject.SetActive(false);
 
-            if (PluginConfiguratorController.activePanel == gameObject)
+            if (!PluginConfiguratorController.rememberConfigPage.value && PluginConfiguratorController.activePanel == gameObject)
                 PluginConfiguratorController.activePanel = null;
 
             try
