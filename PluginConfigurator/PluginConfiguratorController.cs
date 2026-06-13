@@ -175,7 +175,6 @@ namespace PluginConfig
 
 					activePanel.SetActive(false);
 				}
-				activePanel = null;
 				mainPanel.gameObject.SetActive(true);
 			}
 			else
