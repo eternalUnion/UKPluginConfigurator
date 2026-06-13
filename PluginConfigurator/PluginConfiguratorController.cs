@@ -137,7 +137,7 @@ namespace PluginConfig
 		internal static GameObject activePanel;
 		internal static Button backButton;
 
-		private static void SelectPluginConfigInOptions()
+		private static void SelectPluginConfigInOptions(bool forceMainPanelFallback = false)
 		{
 			Transform panel = optionsMenu.transform.Find("Navigation Rail");
 			Transform pages = optionsMenu.transform.Find("Pages");
@@ -180,10 +180,15 @@ namespace PluginConfig
 			}
 			else
 			{
-				if (activePanel != null) 
+				if (activePanel != null && !activePanel.activeInHierarchy)
+				{
 					activePanel.SetActive(true);
-				else 
+				}
+				else if (activePanel == null || (forceMainPanelFallback && activePanel != mainPanel.gameObject))
+				{
+					activePanel?.SetActive(false);
 					mainPanel.gameObject.SetActive(true);
+				}
 			}
 		}
 
@@ -240,7 +245,7 @@ namespace PluginConfig
 			Button pluginConfigButton = pluginConfigObj.GetComponent<Button>();
 			pluginConfigObj.transform.SetSiblingIndex(0);
 
-			pluginConfigButton.onClick.AddListener(SelectPluginConfigInOptions);
+			pluginConfigButton.onClick.AddListener(() => SelectPluginConfigInOptions(forceMainPanelFallback: true));
 
 			mainPanel = Addressables.InstantiateAsync(ASSET_PATH_CONFIG_PANEL, pages).WaitForCompletion().GetComponent<ConfigPanelConcrete>();
 			mainPanel.gameObject.AddComponent<MainPanelComponent>();
