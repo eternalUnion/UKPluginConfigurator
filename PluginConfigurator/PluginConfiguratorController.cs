@@ -185,10 +185,16 @@ namespace PluginConfig
 				}
 				else if (activePanel == null || (forceMainPanelFallback && activePanel != mainPanel.gameObject))
 				{
-					activePanel?.SetActive(false);
+					if (activePanel != null) activePanel.SetActive(false);
 					mainPanel.gameObject.SetActive(true);
 				}
 			}
+		}
+
+		private IEnumerator SelectPluginConfigInOptionsNextFrame()
+        {
+			yield return null;
+			SelectPluginConfigInOptions();
 		}
 
 		private IEnumerator loadObjectAsync(Transform panel)
@@ -801,7 +807,7 @@ namespace PluginConfig
 				{
 					OptionsManager.Instance.Pause();
 					OptionsManager.Instance.OpenOptions();
-					SelectPluginConfigInOptions();
+					StartCoroutine(SelectPluginConfigInOptionsNextFrame());
 				}
 			}
 		}
