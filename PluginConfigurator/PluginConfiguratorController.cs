@@ -301,6 +301,7 @@ namespace PluginConfig
 		internal static ColorField notificationPanelBackground;
 		internal static FloatSliderField notificationPanelOpacity;
 
+#if DEBUG
 		private static class TestConfigs
 		{
 			private static List<PluginConfigurator> testConfigs = new List<PluginConfigurator>();
@@ -498,7 +499,7 @@ namespace PluginConfig
 
 			public static void Init()
 			{
-                #region Division Test
+				#region Division Test
                 PluginConfigurator divConfig = PluginConfigurator.Create("Division", "divisionTest");
 				testConfigs.Add(divConfig);
 				divConfig.saveToFile = true;
@@ -597,9 +598,9 @@ namespace PluginConfig
 				{
 					div2.interactable = data.value;
 				};
-                #endregion
+				#endregion
 
-                #region Range Test
+				#region Range Test
                 PluginConfigurator rangeConfig = PluginConfigurator.Create("Range", "rangeTest");
 				testConfigs.Add(rangeConfig);
 				rangeConfig.saveToFile = false;
@@ -610,9 +611,9 @@ namespace PluginConfig
 				new FloatField(rangeConfig.rootPanel, "-2.5 to 2.5 invalid", "floatrange2", 0, -2.5f, 2.5f, false);
 				new StringField(rangeConfig.rootPanel, "do not allow empty string", "stringfield1", "Test", false);
 				new StringField(rangeConfig.rootPanel, "allow empty string", "stringfield2", "Test", true);
-                #endregion
+				#endregion
 
-                #region Custom Field Test
+				#region Custom Field Test
                 PluginConfigurator customFieldTest = PluginConfigurator.Create("Custom Fields", "customFields");
 				testConfigs.Add(customFieldTest);
 				customFieldTest.saveToFile = true;
@@ -667,6 +668,7 @@ namespace PluginConfig
 				#endregion
 			}
 		}
+#endif
 
 		internal static Sprite defaultPluginIcon;
 
@@ -713,17 +715,24 @@ namespace PluginConfig
             new ConfigHeader(config.rootPanel, "Developer Stuff").textColor = new Color(137 / 255f, 207 / 255f, 240 / 255f);
 			devToggle = new BoolField(config.rootPanel, "Enable developer features", "devToggle", false);
 			ConfigDivision devDiv = new ConfigDivision(config.rootPanel, "devDiv");
+			
 			devToggle.postValueChangeEvent += (newVal) =>
 			{
 				devDiv.hidden = !newVal;
+#if DEBUG
 				TestConfigs.SetVisibility(devConfigs.value && newVal);
+#endif
 			};
+
+#if DEBUG
 			devConfigs = new BoolField(devDiv, "Config tests", "configTestToggle", false);
 			devConfigs.postValueChangeEvent += (newVal) =>
 			{
 				TestConfigs.SetVisibility(devToggle.value && newVal);
 			};
 			TestConfigs.Init();
+#endif
+
 			devToggle.TriggerPostValueChangeEvent();
 			
 			Logger.LogInfo($"Working path: {workingPath}, Working dir: {workingDir}");
